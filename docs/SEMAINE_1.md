@@ -1,48 +1,74 @@
-# 📋 Livrables Semaine 1 - MLOps Formation
+# 🟢 Semaine 1 : Docker, FastAPI & Tests
 
-## 🎯 Objectifs Atteints
+## 🎯 Objectif de la Semaine
 
-✅ **Docker** : Conteneurisation complète de l'application  
-✅ **FastAPI** : API REST performante pour l'inférence ML  
-✅ **Tests unitaires** : Suite de tests robuste avec pytest  
-✅ **Poetry** : Gestion moderne des dépendances  
-✅ **Documentation** : README complet et scripts d'automatisation  
+**Conteneuriser et exposer un modèle ML localement via API + premiers tests unitaires**
+
+### ❓ Questions Clés
+- Comment dockeriser l'application ML ?
+- Comment exposer l'inférence via une API performante ?
+- Comment mettre en place les premiers tests de validation ?
+
+### ⏱️ Répartition des Heures (20h)
+- **7h** → Docker (concepts, commandes) + création Dockerfile
+- **7h** → Implémentation d'une API FastAPI (modèle ML)
+- **6h** → Écrire et exécuter les premiers tests unitaires avec pytest
+
+## ✅ Tâches Accomplies
+
+### 1. 🤖 Entraînement du Modèle ML
+- **Algorithme** : RandomForestClassifier
+- **Dataset** : Iris (scikit-learn)
+- **Précision** : ~95%
+- **Sauvegarde** : Modèle + métadonnées JSON
+
+### 2. 🚀 API FastAPI
+- **Endpoints** : 4 (/, /health, /predict, /model/info)
+- **Validation** : Pydantic pour les données
+- **Documentation** : Swagger UI + ReDoc
+- **Gestion d'erreurs** : Codes HTTP appropriés
+
+### 3. 🐳 Docker
+- **Base** : Python 3.11-slim
+- **Optimisations** : Multi-stage, .dockerignore
+- **Health check** : Vérification automatique
+- **Port** : 8000 exposé
+
+### 4. 🧪 Tests
+- **Couverture** : API + Modèle ML
+- **Types** : Unitaires + Intégration
+- **Outils** : pytest + httpx
+- **Configuration** : pytest.ini
 
 ## 📦 Livrables Créés
 
-### 1. 🐍 Application Python
+### Fichiers Principaux
 - **`app.py`** : API FastAPI avec endpoints complets
 - **`train_model.py`** : Script d'entraînement RandomForest sur Iris
 - **`pyproject.toml`** : Configuration Poetry avec dépendances
 - **`requirements.txt`** : Fallback pour installation pip classique
 
-### 2. 🐳 Docker
+### Docker
 - **`Dockerfile`** : Image optimisée Python 3.11-slim
 - **`docker-compose.yml`** : Orchestration simple
 - **`.dockerignore`** : Optimisation du build
 
-### 3. 🧪 Tests
+### Tests
 - **`tests/test_api.py`** : Tests complets de l'API FastAPI
 - **`tests/test_model.py`** : Tests du modèle ML
 - **`pytest.ini`** : Configuration pytest
 
-### 4. 🛠️ Automatisation
+### Automatisation
 - **`Makefile`** : 20+ commandes automatisées
 - **`scripts/setup_poetry.sh`** : Installation automatique Poetry
 - **`scripts/run_tests.sh`** : Exécution des tests
 - **`scripts/build_and_run.sh`** : Build et run Docker
 - **`scripts/validate_project.sh`** : Validation complète
 
-### 5. 📚 Documentation
+### Documentation
 - **`README.md`** : Documentation complète avec exemples
-- **`SEMAINE_1_LIVRABLES.md`** : Ce fichier de résumé
+- **`SEMAINE_1_LIVRABLES.md`** : Résumé des livrables
 - **`example_usage.py`** : Exemple d'utilisation de l'API
-
-### 6. ⚙️ Configuration
-- **`.gitignore`** : Fichiers ignorés par Git
-- **`.vscode/settings.json`** : Configuration VS Code
-- **`.vscode/extensions.json`** : Extensions recommandées
-- **`env.example`** : Variables d'environnement
 
 ## 🚀 Fonctionnalités Implémentées
 
@@ -72,17 +98,6 @@
 - ✅ Variables d'environnement
 - ✅ Health check configuré
 - ✅ Port exposé (8000)
-
-## 📊 Métriques du Projet
-
-| Métrique | Valeur |
-|----------|--------|
-| **Fichiers créés** | 20+ |
-| **Lignes de code** | ~1000+ |
-| **Tests unitaires** | 15+ |
-| **Endpoints API** | 4 |
-| **Commandes Make** | 20+ |
-| **Scripts utilitaires** | 4 |
 
 ## 🎓 Compétences Développées
 
@@ -144,20 +159,24 @@ make build
 ./scripts/validate_project.sh
 ```
 
+## 📊 Métriques
+
+| Métrique | Valeur |
+|----------|--------|
+| **Fichiers créés** | 20+ |
+| **Lignes de code** | ~1000+ |
+| **Tests unitaires** | 15+ |
+| **Endpoints API** | 4 |
+| **Commandes Make** | 20+ |
+| **Scripts utilitaires** | 4 |
+
 ## 🔗 Liens Utiles
 
 - **API Documentation** : http://localhost:8000/docs
 - **Health Check** : http://localhost:8000/health
 - **ReDoc** : http://localhost:8000/redoc
 
-## 📈 Prochaines Étapes (Semaine 2)
-
-- 🔄 CI/CD avec GitHub Actions
-- 🔧 Intégration des tests dans le pipeline
-- 📦 Build et push automatique des images Docker
-- 🏷️ Tagging et versioning automatique
-
-## ✅ Validation des Objectifs Semaine 1
+## ✅ Validation des Objectifs
 
 | Objectif | Status | Détails |
 |----------|--------|---------|
@@ -167,4 +186,22 @@ make build
 | **Documentation** | ✅ | README + scripts + exemples |
 | **Automatisation** | ✅ | Makefile + scripts utilitaires |
 
-**🎉 Tous les objectifs de la Semaine 1 sont atteints !**
+## 🚀 Prochaines Étapes (Semaine 2)
+
+- 🔄 CI/CD avec GitHub Actions
+- 🔧 Intégration des tests dans le pipeline
+- 📦 Build et push automatique des images Docker
+- 🏷️ Tagging et versioning automatique
+
+## 📚 Ressources
+
+- [FastAPI Documentation](https://fastapi.tiangolo.com/fr/)
+- [Docker Getting Started](https://docs.docker.com/get-started/)
+- [pytest Documentation](https://docs.pytest.org/)
+- [scikit-learn Iris Dataset](https://scikit-learn.org/stable/modules/generated/sklearn.datasets.load_iris.html)
+
+---
+
+**🎉 Semaine 1 terminée avec succès !**
+
+Tous les objectifs sont atteints et le projet est prêt pour la suite de la formation MLOps.

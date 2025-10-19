@@ -1,19 +1,98 @@
-# 🌸 API Classification Iris - Semaine 1 MLOps
+# 🌸 Projet 1 MLOps : Pipeline Local & CI/CD Complet
 
-## 📋 Description
+## 📋 Vue d'Ensemble
 
-Ce projet implémente une API FastAPI pour la classification des fleurs d'iris, dans le cadre de la formation MLOps. Il s'agit du premier projet de la semaine 1 qui couvre :
+**Projet** : API Classification Iris - Formation MLOps (Semaines 1-4)  
+**Technologies** : Python, FastAPI, Docker, GitHub Actions, Terraform, MLflow, DVC  
+**Objectif** : Maîtriser le packaging, les API et l'automatisation de base pour le déploiement de modèles ML  
 
-- **Docker** : Conteneurisation de l'application
-- **FastAPI** : API REST performante pour l'inférence ML
-- **Tests unitaires** : Validation avec pytest
+## 🎯 Objectifs du Projet 1
 
-## 🎯 Objectifs de la Semaine 1
+Ce projet couvre les **4 premières semaines** de la formation MLOps et vise à :
 
-- ✅ Entraîner un modèle ML simple (RandomForest sur Iris)
-- ✅ Créer une API FastAPI pour exposer le modèle
-- ✅ Dockeriser l'application complète
-- ✅ Implémenter des tests unitaires robustes
+- ✅ **Semaine 1** : Docker, FastAPI & Tests unitaires
+- 🔄 **Semaine 2** : CI/CD avec GitHub Actions  
+- 🔄 **Semaine 3** : Infrastructure as Code (Terraform)
+- 🔄 **Semaine 4** : MLOps local (MLflow + DVC)
+
+## 📊 Résumé du Projet
+
+**Projet** : API Classification Iris - Semaine 1 MLOps  
+**Technologies** : Python, FastAPI, Docker, Poetry, pytest  
+**Objectif** : Conteneuriser et exposer un modèle ML via API + tests unitaires  
+
+### 📁 Structure Complète
+
+```
+mlops-core/
+├── 📄 Fichiers Principaux
+│   ├── app.py                    # API FastAPI principale
+│   ├── train_model.py            # Script d'entraînement ML
+│   ├── pyproject.toml            # Configuration Poetry
+│   ├── requirements.txt          # Dépendances pip (fallback)
+│   ├── Dockerfile               # Image Docker
+│   ├── docker-compose.yml       # Orchestration Docker
+│   ├── Makefile                 # Commandes automatisées
+│   └── README.md                # Documentation principale
+│
+├── 🧪 Tests
+│   ├── tests/
+│   │   ├── __init__.py
+│   │   ├── test_api.py          # Tests API FastAPI
+│   │   └── test_model.py        # Tests modèle ML
+│   └── pytest.ini              # Configuration pytest
+│
+├── 🛠️ Scripts
+│   ├── scripts/
+│   │   ├── setup_poetry.sh      # Installation Poetry
+│   │   ├── run_tests.sh         # Exécution tests
+│   │   ├── build_and_run.sh     # Build et run Docker
+│   │   └── validate_project.sh  # Validation complète
+│
+├── ⚙️ Configuration
+│   ├── .vscode/
+│   │   ├── settings.json        # Configuration VS Code
+│   │   └── extensions.json      # Extensions recommandées
+│   ├── .gitignore              # Fichiers ignorés Git
+│   ├── .dockerignore           # Fichiers ignorés Docker
+│   └── env.example             # Variables d'environnement
+│
+├── 📚 Documentation
+│   ├── SEMAINE_1_LIVRABLES.md  # Résumé des livrables
+│   ├── RESUME_PROJET.md        # Ce fichier
+│   └── example_usage.py        # Exemple d'utilisation API
+│
+└── 📦 Modèles (générés)
+    └── models/                  # Modèles sauvegardés
+        ├── iris_model.pkl      # Modèle entraîné
+        └── model_metadata.json # Métadonnées modèle
+```
+
+## 🎓 Compétences Développées
+
+### Docker
+- ✅ Dockerfile optimisé
+- ✅ Gestion des dépendances
+- ✅ Health checks
+- ✅ Variables d'environnement
+
+### FastAPI
+- ✅ API REST moderne
+- ✅ Validation Pydantic
+- ✅ Documentation automatique
+- ✅ Gestion d'erreurs
+
+### Tests
+- ✅ Tests unitaires pytest
+- ✅ Tests d'intégration
+- ✅ Couverture de code
+- ✅ Mocks et fixtures
+
+### Poetry
+- ✅ Gestion des dépendances
+- ✅ Environnements virtuels
+- ✅ Configuration pyproject.toml
+- ✅ Scripts personnalisés
 
 ## 🚀 Démarrage Rapide
 
@@ -34,44 +113,11 @@ cd mlops-core
 # Installation automatique avec Poetry
 make install
 
-# Ou manuellement :
-# 1. Installer Poetry
-curl -sSL https://install.python-poetry.org | python3 -
-
-# 2. Configurer Poetry
-poetry config virtualenvs.in-project true
-
-# 3. Installer les dépendances
-poetry install
-
 # Entraîner le modèle
 make train
-# ou: poetry run python train_model.py
 
 # Lancer l'API
 make run
-# ou: poetry run uvicorn app:app --reload --host 0.0.0.0 --port 8000
-```
-
-### Installation Classique (pip)
-
-```bash
-# Cloner le repository
-git clone <votre-repo>
-cd mlops-core
-
-# Créer un environnement virtuel
-python -m venv venv
-source venv/bin/activate  # Sur Windows: venv\Scripts\activate
-
-# Installer les dépendances
-pip install -r requirements.txt
-
-# Entraîner le modèle
-python train_model.py
-
-# Lancer l'API
-uvicorn app:app --host 0.0.0.0 --port 8000
 ```
 
 ### Avec Docker
@@ -133,50 +179,6 @@ make test-watch        # Tests en mode watch
 poetry run pytest
 poetry run pytest --cov=app
 poetry run pytest tests/test_api.py
-
-# Avec pip classique
-pytest
-pytest --cov=app
-pytest tests/test_api.py
-```
-
-### Structure des Tests
-
-```
-tests/
-├── __init__.py
-├── test_api.py      # Tests de l'API FastAPI
-└── test_model.py    # Tests du modèle ML
-```
-
-## 🐳 Docker
-
-### Dockerfile
-
-Le Dockerfile utilise une image Python 3.11-slim et :
-- Installe les dépendances système nécessaires
-- Copie et installe les dépendances Python
-- Entraîne le modèle au build
-- Expose le port 8000
-- Lance l'API avec uvicorn
-
-### Commandes Docker
-
-```bash
-# Build
-docker build -t iris-api .
-
-# Run
-docker run -p 8000:8000 iris-api
-
-# Run en arrière-plan
-docker run -d -p 8000:8000 --name iris-api iris-api
-
-# Logs
-docker logs iris-api
-
-# Arrêt
-docker stop iris-api
 ```
 
 ## 🛠️ Commandes Make Disponibles
@@ -220,62 +222,49 @@ make docs             # Afficher les liens de documentation
 make help             # Afficher toutes les commandes
 ```
 
-## 📁 Structure du Projet
+## 📚 Documentation par Semaine
 
-```
-mlops-core/
-├── app.py                 # API FastAPI principale
-├── train_model.py         # Script d'entraînement du modèle
-├── pyproject.toml         # Configuration Poetry
-├── requirements.txt       # Dépendances Python (fallback)
-├── Makefile              # Commandes automatisées
-├── Dockerfile            # Configuration Docker
-├── docker-compose.yml    # Orchestration Docker
-├── pytest.ini           # Configuration pytest
-├── .dockerignore        # Fichiers ignorés par Docker
-├── .gitignore           # Fichiers ignorés par Git
-├── scripts/              # Scripts utilitaires
-│   ├── setup_poetry.sh
-│   ├── run_tests.sh
-│   └── build_and_run.sh
-├── tests/               # Tests unitaires
-│   ├── __init__.py
-│   ├── test_api.py
-│   └── test_model.py
-├── models/              # Modèles sauvegardés (généré)
-│   ├── iris_model.pkl
-│   └── model_metadata.json
-└── README.md           # Ce fichier
-```
+### 🟢 [Semaine 1 : Docker, FastAPI & Tests](./docs/SEMAINE_1.md)
+- **Objectif** : Conteneuriser et exposer un modèle ML localement via API + premiers tests unitaires
+- **Technologies** : Docker, FastAPI, pytest
+- **Durée** : 20h
+- **Status** : ✅ **TERMINÉ**
 
-## 🔧 Configuration
+### 🟡 [Semaine 2 : CI/CD (GitHub Actions)](./docs/SEMAINE_2.md)
+- **Objectif** : Automatiser le processus de build/test/push de l'image Docker sur push GitHub
+- **Technologies** : GitHub Actions, Docker Registry
+- **Durée** : 20h
+- **Status** : 🔄 **EN COURS**
 
-### Variables d'Environnement
+### 🟡 [Semaine 3 : Infrastructure as Code (Terraform)](./docs/SEMAINE_3.md)
+- **Objectif** : Provisionner une infrastructure cloud simple sur GCP via Terraform
+- **Technologies** : Terraform, GCP, IAM
+- **Durée** : 20h
+- **Status** : 📋 **PLANNIFIÉ**
 
-| Variable | Description | Défaut |
-|----------|-------------|---------|
-| `PYTHONPATH` | Chemin Python | `/app` |
-| `PORT` | Port de l'API | `8000` |
+### 🟡 [Semaine 4 : MLOps local (MLflow + DVC)](./docs/SEMAINE_4.md)
+- **Objectif** : Traquer et versionner les expériences ML localement pour la reproductibilité
+- **Technologies** : MLflow, DVC
+- **Durée** : 20h
+- **Status** : 📋 **PLANNIFIÉ**
 
-### Modèle ML
+## 📈 Métriques du Projet
 
-- **Algorithme** : RandomForestClassifier
-- **Dataset** : Iris (scikit-learn)
-- **Features** : 4 (longueur/largeur sépale et pétale)
-- **Classes** : 3 (setosa, versicolor, virginica)
-- **Précision** : ~95% (typique)
+| Catégorie | Quantité |
+|-----------|----------|
+| **Fichiers créés** | 20+ |
+| **Lignes de code** | 1000+ |
+| **Tests unitaires** | 15+ |
+| **Endpoints API** | 4 |
+| **Commandes Make** | 20+ |
+| **Scripts utilitaires** | 4 |
 
-## 📈 Métriques et Monitoring
+## 🔗 Liens Utiles
 
-L'API expose des endpoints de monitoring :
-- `/health` : État de santé général
-- `/model/info` : Informations détaillées du modèle
-
-## 🚀 Prochaines Étapes (Semaine 2)
-
-- CI/CD avec GitHub Actions
-- Intégration des tests dans le pipeline
-- Build et push automatique des images Docker
+- **API** : http://localhost:8000
+- **Documentation** : http://localhost:8000/docs
+- **Santé** : http://localhost:8000/health
+- **ReDoc** : http://localhost:8000/redoc
 
 ## 📚 Ressources
 
@@ -286,5 +275,11 @@ L'API expose des endpoints de monitoring :
 
 ## 👥 Auteur
 
-Formation MLOps - Semaine 1
-**Objectif** : Maîtriser Docker, FastAPI et les tests unitaires pour le déploiement de modèles ML
+Formation MLOps - Projet 1 (Semaines 1-4)  
+**Objectif** : Maîtriser le packaging, les API et l'automatisation de base pour le déploiement de modèles ML
+
+---
+
+**🎉 Projet 1 en cours de développement !**
+
+Ce projet fait partie de la formation MLOps complète et couvre les fondations essentielles pour le déploiement de modèles ML en production.

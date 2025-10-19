@@ -1,0 +1,152 @@
+# .cursorignore - Fichiers ignorés par Cursor IDE
+# Optimise les performances et évite l'indexation de fichiers non pertinents
+
+# Dossiers générés automatiquement
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Environnements virtuels
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# Cache et fichiers temporaires
+.cache/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# Modèles ML (générés)
+models/
+*.pkl
+*.joblib
+*.h5
+*.pb
+*.onnx
+*.tflite
+
+# Données (potentiellement volumineuses)
+data/
+datasets/
+raw_data/
+processed_data/
+
+# Logs
+logs/
+*.log
+
+# MLOps spécifique
+mlruns/
+.dvc/
+.dvcignore
+
+# IDE et éditeurs
+.vscode/settings.json
+.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Docker
+.dockerignore
+
+# Git
+.git/
+.gitignore
+
+# Documentation générée
+docs/_build/
+site/
+
+# Fichiers de configuration sensibles
+.env.local
+.env.production
+.env.staging
+secrets.json
+config.json
+
+# Fichiers de backup
+*.bak
+*.backup
+*.old
+*.orig
+
+# Fichiers de test volumineux
+test_data/
+test_models/
+*.test.*
+
+# Fichiers de déploiement
+deployment/
+k8s/
+terraform/
+*.tfstate
+*.tfstate.*
+
+# Fichiers de monitoring
+prometheus/
+grafana/
+monitoring/
+
+# Fichiers de CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Fichiers de packaging
+*.whl
+*.tar.gz
+*.zip
+*.exe
+
+# Fichiers de base de données
+*.db
+*.sqlite
+*.sqlite3
+
+# Fichiers de cache spécifiques
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
