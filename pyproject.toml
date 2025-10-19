@@ -31,10 +31,6 @@ mypy = "^1.7.0"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.poetry.scripts]
-train-model = "train_model:main"
-start-api = "app:main"
-
 [tool.black]
 line-length = 88
 target-version = ['py311']

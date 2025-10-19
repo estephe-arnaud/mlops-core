@@ -28,11 +28,11 @@ mlops-core/
 ├── 📄 Fichiers Principaux
 │   ├── app.py                    # API FastAPI principale
 │   ├── train_model.py            # Script d'entraînement ML
-│   ├── pyproject.toml            # Configuration Poetry
-│   ├── requirements.txt          # Dépendances pip (fallback)
+│   ├── pyproject.toml            # Configuration Poetry (unique)
 │   ├── Dockerfile               # Image Docker
 │   ├── docker-compose.yml       # Orchestration Docker
 │   ├── Makefile                 # Commandes automatisées
+│   ├── .cursorignore            # Configuration Cursor IDE
 │   └── README.md                # Documentation principale
 │
 ├── 🧪 Tests
@@ -40,27 +40,25 @@ mlops-core/
 │   │   ├── __init__.py
 │   │   ├── test_api.py          # Tests API FastAPI
 │   │   └── test_model.py        # Tests modèle ML
-│   └── pytest.ini              # Configuration pytest
 │
-├── 🛠️ Scripts
+├── 🛠️ Scripts (optimisés)
 │   ├── scripts/
 │   │   ├── setup_poetry.sh      # Installation Poetry
-│   │   ├── run_tests.sh         # Exécution tests
-│   │   ├── build_and_run.sh     # Build et run Docker
 │   │   └── validate_project.sh  # Validation complète
 │
 ├── ⚙️ Configuration
-│   ├── .vscode/
-│   │   ├── settings.json        # Configuration VS Code
-│   │   └── extensions.json      # Extensions recommandées
 │   ├── .gitignore              # Fichiers ignorés Git
 │   ├── .dockerignore           # Fichiers ignorés Docker
+│   ├── .cursorignore           # Fichiers ignorés Cursor IDE
 │   └── env.example             # Variables d'environnement
 │
 ├── 📚 Documentation
-│   ├── SEMAINE_1_LIVRABLES.md  # Résumé des livrables
-│   ├── RESUME_PROJET.md        # Ce fichier
-│   └── example_usage.py        # Exemple d'utilisation API
+│   ├── docs/
+│   │   ├── SEMAINE_1.md        # Semaine 1 (terminée)
+│   │   ├── SEMAINE_2.md        # Semaine 2 (planifiée)
+│   │   ├── SEMAINE_3.md        # Semaine 3 (planifiée)
+│   │   └── SEMAINE_4.md        # Semaine 4 (planifiée)
+│   └── env.example             # Template variables
 │
 └── 📦 Modèles (générés)
     └── models/                  # Modèles sauvegardés
@@ -89,7 +87,7 @@ mlops-core/
 - ✅ Mocks et fixtures
 
 ### Poetry
-- ✅ Gestion des dépendances
+- ✅ Gestion unique des dépendances
 - ✅ Environnements virtuels
 - ✅ Configuration pyproject.toml
 - ✅ Scripts personnalisés
@@ -257,7 +255,7 @@ make help             # Afficher toutes les commandes
 | **Tests unitaires** | 15+ |
 | **Endpoints API** | 4 |
 | **Commandes Make** | 20+ |
-| **Scripts utilitaires** | 4 |
+| **Scripts utilitaires** | 2 |
 
 ## 🔗 Liens Utiles
 

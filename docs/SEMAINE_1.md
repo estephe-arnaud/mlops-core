@@ -38,15 +38,14 @@
 - **Couverture** : API + Modèle ML
 - **Types** : Unitaires + Intégration
 - **Outils** : pytest + httpx
-- **Configuration** : pytest.ini
+- **Configuration** : pyproject.toml (pytest configuré)
 
 ## 📦 Livrables Créés
 
 ### Fichiers Principaux
 - **`app.py`** : API FastAPI avec endpoints complets
 - **`train_model.py`** : Script d'entraînement RandomForest sur Iris
-- **`pyproject.toml`** : Configuration Poetry avec dépendances
-- **`requirements.txt`** : Fallback pour installation pip classique
+- **`pyproject.toml`** : Configuration Poetry (unique)
 
 ### Docker
 - **`Dockerfile`** : Image optimisée Python 3.11-slim
@@ -56,19 +55,16 @@
 ### Tests
 - **`tests/test_api.py`** : Tests complets de l'API FastAPI
 - **`tests/test_model.py`** : Tests du modèle ML
-- **`pytest.ini`** : Configuration pytest
 
 ### Automatisation
 - **`Makefile`** : 20+ commandes automatisées
 - **`scripts/setup_poetry.sh`** : Installation automatique Poetry
-- **`scripts/run_tests.sh`** : Exécution des tests
-- **`scripts/build_and_run.sh`** : Build et run Docker
 - **`scripts/validate_project.sh`** : Validation complète
 
 ### Documentation
 - **`README.md`** : Documentation complète avec exemples
-- **`SEMAINE_1_LIVRABLES.md`** : Résumé des livrables
-- **`example_usage.py`** : Exemple d'utilisation de l'API
+- **`docs/SEMAINE_1.md`** : Documentation détaillée de la semaine 1
+- **`.cursorignore`** : Configuration Cursor IDE optimisée
 
 ## 🚀 Fonctionnalités Implémentées
 
@@ -168,7 +164,7 @@ make build
 | **Tests unitaires** | 15+ |
 | **Endpoints API** | 4 |
 | **Commandes Make** | 20+ |
-| **Scripts utilitaires** | 4 |
+| **Scripts utilitaires** | 2 |
 
 ## 🔗 Liens Utiles
 

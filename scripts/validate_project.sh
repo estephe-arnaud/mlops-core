@@ -26,7 +26,6 @@ required_files=(
     "app.py"
     "train_model.py"
     "pyproject.toml"
-    "requirements.txt"
     "Dockerfile"
     "docker-compose.yml"
     "Makefile"
@@ -34,8 +33,7 @@ required_files=(
     "tests/test_api.py"
     "tests/test_model.py"
     "scripts/setup_poetry.sh"
-    "scripts/run_tests.sh"
-    "scripts/build_and_run.sh"
+    "scripts/validate_project.sh"
 )
 
 for file in "${required_files[@]}"; do

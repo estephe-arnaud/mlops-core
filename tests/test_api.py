@@ -158,6 +158,3 @@ class TestAPI:
             data = response.json()
             assert data["prediction"] in ["setosa", "versicolor", "virginica"]
             assert data["confidence"] > 0.5
-
-if __name__ == "__main__":
-    pytest.main([__file__])

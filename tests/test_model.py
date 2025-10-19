@@ -142,6 +142,3 @@ class TestModel:
         assert metadata["n_samples"] == 150
         assert len(metadata["feature_names"]) == 4
         assert len(metadata["target_names"]) == 3
-
-if __name__ == "__main__":
-    pytest.main([__file__])
