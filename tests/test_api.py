@@ -3,9 +3,11 @@ Tests unitaires pour l'API FastAPI
 Semaine 1 - MLOps Formation
 """
 
-import pytest
 import json
+
+import pytest
 from fastapi.testclient import TestClient
+
 from app import app
 
 # Client de test

@@ -3,13 +3,15 @@ Script d'entraînement du modèle ML pour la semaine 1 MLOps
 Modèle de classification sur le dataset Iris
 """
 
+import os
+
 import joblib
 import pandas as pd
 from sklearn.datasets import load_iris
-from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
-import os
+from sklearn.model_selection import train_test_split
+
 
 def train_iris_model():
     """

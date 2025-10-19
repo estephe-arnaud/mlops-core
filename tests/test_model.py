@@ -3,13 +3,16 @@ Tests unitaires pour le modèle ML
 Semaine 1 - MLOps Formation
 """
 
-import pytest
-import numpy as np
-import joblib
 import json
 import os
-from train_model import train_iris_model
+
+import joblib
+import numpy as np
+import pytest
 from sklearn.datasets import load_iris
+
+from train_model import train_iris_model
+
 
 class TestModel:
     """Tests pour le modèle ML"""
@@ -75,9 +78,9 @@ class TestModel:
     
     def test_model_accuracy(self):
         """Test de la précision du modèle"""
-        from sklearn.model_selection import train_test_split
         from sklearn.metrics import accuracy_score
-        
+        from sklearn.model_selection import train_test_split
+
         # Chargement du dataset
         iris = load_iris()
         X = iris.data

@@ -3,14 +3,15 @@ API FastAPI pour le modèle de classification Iris
 Semaine 1 - MLOps Formation
 """
 
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, ConfigDict
-import joblib
 import json
-import numpy as np
-from typing import List, Dict, Any
 import os
 from contextlib import asynccontextmanager
+from typing import Any, Dict, List
+
+import joblib
+import numpy as np
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, ConfigDict
 
 # Chargement du modèle et des métadonnées
 model = None
