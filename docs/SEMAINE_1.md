@@ -85,7 +85,6 @@
 ### Tests
 - ✅ Tests d'API (endpoints, validation, erreurs)
 - ✅ Tests de modèle (entraînement, prédiction, métadonnées)
-- ✅ Couverture de code configurée
 - ✅ Tests avec données typiques et limites
 
 ### Docker
@@ -115,7 +114,6 @@
 - ✅ Tests unitaires pytest
 - ✅ Tests d'intégration API
 - ✅ Mocks et fixtures
-- ✅ Couverture de code
 - ✅ Tests de validation
 
 ### Poetry

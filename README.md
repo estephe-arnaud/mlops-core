@@ -83,7 +83,6 @@ mlops-core/
 ### Tests
 - ✅ Tests unitaires pytest
 - ✅ Tests d'intégration
-- ✅ Couverture de code
 - ✅ Mocks et fixtures
 
 ### Poetry
@@ -170,12 +169,9 @@ curl -X POST "http://localhost:8000/predict" \
 ```bash
 # Avec Make (recommandé)
 make test              # Tous les tests
-make test-cov          # Tests avec couverture
-make test-watch        # Tests en mode watch
 
 # Avec Poetry
 poetry run pytest
-poetry run pytest --cov=app
 poetry run pytest tests/test_api.py
 ```
 
@@ -193,8 +189,6 @@ make train            # Entraîner le modèle
 
 # Tests
 make test             # Exécuter tous les tests
-make test-cov         # Tests avec couverture
-make test-watch       # Tests en mode watch
 
 # API
 make run              # Lancer l'API en mode développement
@@ -208,7 +202,7 @@ make stop-docker      # Arrêter le conteneur Docker
 
 # Qualité du code
 make format           # Formater le code (Black + isort)
-make lint             # Vérifier la qualité du code
+make lint             # Vérifier la qualité du code (flake8 + black + isort)
 
 # Nettoyage
 make clean            # Nettoyer les fichiers temporaires

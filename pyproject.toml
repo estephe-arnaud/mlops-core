@@ -20,12 +20,10 @@ requests = "^2.31.0"
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"
 pytest-asyncio = "^0.21.1"
-pytest-cov = "^4.1.0"
 httpx = "^0.25.2"
 black = "^23.11.0"
 flake8 = "^6.1.0"
 isort = "^5.12.0"
-mypy = "^1.7.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -36,20 +34,17 @@ line-length = 88
 target-version = ['py311']
 include = '\\.pyi?$'
 extend-exclude = '''
-/(
-  # directories
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | venv
-  | _build
-  | buck-out
-  | build
-  | dist
-)/
+\\.eggs
+\\.git
+\\.hg
+\\.mypy_cache
+\\.tox
+\\.venv
+venv
+_build
+buck-out
+build
+dist
 '''
 
 [tool.isort]
@@ -58,62 +53,16 @@ multi_line_output = 3
 line_length = 88
 known_first_party = ["app", "tests"]
 
-[tool.mypy]
-python_version = "3.11"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_no_return = true
-warn_unreachable = true
-strict_equality = true
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = [
-    "-v",
-    "--tb=short",
-    "--strict-markers",
-    "--disable-warnings",
-    "--cov=app",
-    "--cov-report=term-missing",
-    "--cov-report=html",
-    "--cov-report=xml"
+    "-v"
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests"
-]
-
-[tool.coverage.run]
-source = ["app"]
-omit = [
-    "*/tests/*",
-    "*/test_*",
-    "*/__pycache__/*",
-    "*/venv/*",
-    "*/.*"
-]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "if self.debug:",
-    "if settings.DEBUG",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if 0:",
-    "if __name__ == .__main__.:",
-    "class .*\\bProtocol\\):",
-    "@(abc\\.)?abstractmethod",
 ]

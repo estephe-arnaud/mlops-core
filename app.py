@@ -172,7 +172,3 @@ async def model_info():
         "feature_names": metadata.get("feature_names", []),
         "target_names": metadata.get("target_names", [])
     }
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)

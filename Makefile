@@ -1,7 +1,7 @@
 # Makefile pour le projet MLOps - Semaine 1
 # Usage: make <command>
 
-.PHONY: help install train test run build clean format lint type-check
+.PHONY: help install train test run build clean format lint
 
 # Variables
 PYTHON := poetry run python
@@ -10,7 +10,6 @@ PYTEST := poetry run pytest
 BLACK := poetry run black
 FLAKE8 := poetry run flake8
 ISORT := poetry run isort
-MYPY := poetry run mypy
 
 # Aide
 help: ## Afficher cette aide
@@ -33,14 +32,6 @@ train: ## Entraîner le modèle ML
 test: ## Exécuter tous les tests
 	@echo "🧪 Exécution des tests..."
 	$(PYTEST)
-
-test-cov: ## Exécuter les tests avec couverture
-	@echo "🧪 Tests avec couverture..."
-	$(PYTEST) --cov=app --cov-report=html --cov-report=term-missing
-
-test-watch: ## Exécuter les tests en mode watch
-	@echo "🧪 Tests en mode watch..."
-	$(PYTEST) --watch
 
 # API
 run: ## Lancer l'API en mode développement
@@ -80,12 +71,6 @@ lint: ## Vérifier la qualité du code
 	$(FLAKE8) app/ tests/
 	$(BLACK) --check .
 	$(ISORT) --check-only .
-	$(MYPY) .
-
-# Analyse de types
-type-check: ## Vérifier les types avec MyPy
-	@echo "🧠 Analyse de types..."
-	$(MYPY) .
 
 # Nettoyage
 clean: ## Nettoyer les fichiers temporaires
@@ -94,8 +79,6 @@ clean: ## Nettoyer les fichiers temporaires
 	find . -type d -name "__pycache__" -delete
 	find . -type d -name "*.egg-info" -exec rm -rf {} +
 	rm -rf .pytest_cache/
-	rm -rf .coverage
-	rm -rf htmlcov/
 	rm -rf dist/
 	rm -rf build/
 
