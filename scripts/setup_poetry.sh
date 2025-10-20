@@ -46,8 +46,22 @@ poetry config virtualenvs.create true
 # S'assurer que Poetry est dans le PATH
 if ! command -v poetry >/dev/null 2>&1; then
 	if [[ -x "$HOME/.local/bin/poetry" ]]; then
-		echo "ℹ️ Ajout de ~/.local/bin au PATH..."
-		export PATH="$HOME/.local/bin:$PATH"
+		# Détecter le shell et ajouter au bon fichier de configuration
+		if [[ "$SHELL" == *"zsh"* ]]; then
+			SHELL_CONFIG="$HOME/.zshrc"
+		else
+			SHELL_CONFIG="$HOME/.bashrc"
+		fi
+		
+		# Ajouter le path s'il n'existe pas déjà
+		if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$SHELL_CONFIG" 2>/dev/null; then
+			echo "📝 Ajout du path Poetry à $SHELL_CONFIG..."
+			echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_CONFIG"
+			echo "✅ Path ajouté et rechargé automatiquement"
+			source "$SHELL_CONFIG"
+		else
+			echo "✅ Le path Poetry est déjà configuré"
+		fi
 	else
 		echo "❌ Poetry introuvable après installation"
 		exit 1
