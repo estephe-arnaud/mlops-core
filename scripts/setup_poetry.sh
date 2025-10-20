@@ -38,11 +38,6 @@ else
 	echo "✅ Poetry déjà installé"
 fi
 
-# Configurer Poetry
-echo "⚙️ Configuration Poetry..."
-poetry config virtualenvs.in-project true
-poetry config virtualenvs.create true
-
 # S'assurer que Poetry est dans le PATH
 if ! command -v poetry >/dev/null 2>&1; then
 	if [[ -x "$HOME/.local/bin/poetry" ]]; then
@@ -71,7 +66,6 @@ fi
 # Configurer Poetry
 echo "⚙️ Configuration Poetry..."
 poetry config virtualenvs.in-project true
-poetry config virtualenvs.create true
 
 # Installer les dépendances (Poetry gérera automatiquement Python 3.11)
 echo "📚 Installation des dépendances avec Poetry..."
