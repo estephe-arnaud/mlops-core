@@ -48,20 +48,23 @@ install_python_311() {
 			return 1
 		fi
 	else
+		# Linux - Méthodes officielles par distribution
 		if command -v apt-get >/dev/null 2>&1; then
-			echo "📦 Installation de python3.11 via apt-get"
-			sudo apt-get update -y && sudo apt-get install -y python3.11 python3.11-venv python3.11-distutils || true
+			echo "📦 Installation de python3.11 via apt-get (Ubuntu/Debian officiel)"
+			sudo apt-get update -y
+			sudo apt-get install -y python3.11 python3.11-venv python3.11-distutils || true
 		elif command -v dnf >/dev/null 2>&1; then
-			echo "📦 Installation de python3.11 via dnf"
+			echo "📦 Installation de python3.11 via dnf (Fedora/RHEL officiel)"
 			sudo dnf install -y python3.11 python3.11-pip || true
-		elif command -v yum >/dev/null 2>&1; then
-			echo "📦 Installation de python3.11 via yum"
-			sudo yum install -y python3.11 || true
 		elif command -v pacman >/dev/null 2>&1; then
-			echo "📦 Installation de python (>=3.11) via pacman"
+			echo "📦 Installation de python via pacman (Arch Linux officiel)"
 			sudo pacman -Sy --noconfirm python || true
+		elif command -v snap >/dev/null 2>&1; then
+			echo "📦 Installation de python3.11 via snap (universel)"
+			sudo snap install python311 --classic || true
 		else
-			echo "❌ Gestionnaire de paquets non pris en charge. Installez Python 3.11 manuellement."
+			echo "❌ Gestionnaire de paquets non pris en charge."
+			echo "   Installez Python 3.11 manuellement ou utilisez snap: sudo snap install python311 --classic"
 			return 1
 		fi
 	fi
@@ -81,7 +84,10 @@ detect_python_311() {
 			py_bin="$(command -v python3.11)"
 		fi
 	else
-		if command -v python3.11 >/dev/null 2>&1; then
+		# Linux - Vérifier snap puis PATH standard
+		if [[ -x "/snap/python311/current/bin/python3.11" ]]; then
+			py_bin="/snap/python311/current/bin/python3.11"
+		elif command -v python3.11 >/dev/null 2>&1; then
 			py_bin="$(command -v python3.11)"
 		fi
 	fi
@@ -99,9 +105,13 @@ fi
 if [[ -z "$PY_BIN" ]]; then
 	echo "❌ python3.11 toujours introuvable après tentative d'installation."
 	if [[ "$OS_NAME" == "Darwin" ]]; then
-		echo "   Astuce (macOS/Homebrew): brew install python@3.11"
+		echo "   Astuce (macOS): brew install python@3.11"
 	else
-		echo "   Astuce (Debian/Ubuntu): sudo apt-get update && sudo apt-get install -y python3.11"
+		echo "   Astuces Linux:"
+		echo "   • Ubuntu/Debian: sudo apt-get install -y python3.11"
+		echo "   • Fedora: sudo dnf install -y python3.11"
+		echo "   • Arch: sudo pacman -S python"
+		echo "   • Universel: sudo snap install python311 --classic"
 	fi
 	exit 1
 fi
