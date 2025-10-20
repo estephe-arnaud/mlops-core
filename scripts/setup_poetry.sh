@@ -50,7 +50,7 @@ if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$SHELL_CONFIG" 2>/dev/null;
 	echo "📝 Ajout du path Poetry à $SHELL_CONFIG..."
 	echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_CONFIG"
 	echo "✅ Path ajouté et rechargé automatiquement"
-	source "$SHELL_CONFIG"
+	exec "$SHELL_CONFIG"
 else
 	echo "✅ Le path Poetry est déjà configuré"
 fi
