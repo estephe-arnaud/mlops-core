@@ -57,6 +57,7 @@ fi
 # Configurer Poetry
 echo "⚙️ Configuration Poetry..."
 poetry config virtualenvs.in-project true
+poetry config keyring.enabled false
 
 # Installer les dépendances (Poetry gérera automatiquement Python 3.11)
 echo "📚 Installation des dépendances avec Poetry..."
