@@ -1,7 +1,7 @@
 # Makefile pour le projet MLOps - Semaine 1
 # Usage: make <command>
 
-.PHONY: help install train test run build clean format lint
+.PHONY: help install uninstall train test run build clean format lint
 
 # Variables
 PYTHON := poetry run python
@@ -20,8 +20,31 @@ help: ## Afficher cette aide
 # Installation
 install: ## Installer Poetry et les dépendances
 	@echo "📦 Installation de l'environnement..."
-	@chmod +x scripts/setup_poetry.sh
-	@./scripts/setup_poetry.sh
+	@chmod +x scripts/setup.sh
+	@./scripts/setup.sh
+
+uninstall: ## Supprimer l'environnement Poetry
+	@echo "🗑️ Suppression complète de l'environnement Poetry..."
+	@echo "   Suppression de l'environnement virtuel..."
+	@rm -rf .venv
+	@echo "   Suppression du fichier poetry.lock..."
+	@rm -f poetry.lock
+	@echo "   Suppression des caches Python..."
+	@rm -rf .pytest_cache/ __pycache__/ *.pyc
+	@find . -name "*.pyc" -delete
+	@find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+	@echo "   Suppression des fichiers de build..."
+	@rm -rf build/ dist/ *.egg-info/
+	@echo "   Désinstallation de Poetry..."
+	@curl -sSL https://install.python-poetry.org | python3 - --uninstall || echo "Poetry non installé"
+	@echo "   Suppression du binaire Poetry..."
+	@rm -f ~/.local/bin/poetry
+	@echo "   Nettoyage des caches et données Poetry..."
+	@rm -rf ~/.config/pypoetry ~/.cache/pypoetry ~/.local/share/pypoetry
+	@echo "   Suppression de Poetry du PATH (à faire manuellement)..."
+	@echo "   Éditez ~/.zshrc ou ~/.bashrc pour supprimer la ligne:"
+	@echo "   export PATH=\"\$HOME/.local/bin:\$PATH\""
+	@echo "✅ Nettoyage complet terminé !"
 
 # Entraînement du modèle
 train: ## Entraîner le modèle ML
@@ -60,7 +83,7 @@ stop-docker: ## Arrêter le conteneur Docker
 	docker stop iris-api || true
 	docker rm iris-api || true
 
-# Qualité du code
+# Qualité du code (configuration dans pyproject.toml)
 format: ## Formater le code avec Black et isort
 	@echo "🎨 Formatage du code..."
 	$(BLACK) .
@@ -68,7 +91,7 @@ format: ## Formater le code avec Black et isort
 
 lint: ## Vérifier la qualité du code
 	@echo "🔍 Vérification de la qualité du code..."
-	$(FLAKE8) app/ tests/
+	$(FLAKE8) .
 	$(BLACK) --check .
 	$(ISORT) --check-only .
 

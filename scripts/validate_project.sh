@@ -32,7 +32,7 @@ required_files=(
     "README.md"
     "tests/test_api.py"
     "tests/test_model.py"
-    "scripts/setup_poetry.sh"
+    "scripts/setup.sh"
     "scripts/validate_project.sh"
 )
 

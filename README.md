@@ -43,7 +43,7 @@ mlops-core/
 │
 ├── 🛠️ Scripts (optimisés)
 │   ├── scripts/
-│   │   ├── setup_poetry.sh      # Installation Poetry
+│   │   ├── setup.sh      # Installation Poetry
 │   │   └── validate_project.sh  # Validation complète
 │
 ├── ⚙️ Configuration

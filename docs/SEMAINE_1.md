@@ -58,7 +58,7 @@
 
 ### Automatisation
 - **`Makefile`** : 20+ commandes automatisées
-- **`scripts/setup_poetry.sh`** : Installation automatique Poetry
+- **`scripts/setup.sh`** : Installation automatique Poetry
 - **`scripts/validate_project.sh`** : Validation complète
 
 ### Documentation
