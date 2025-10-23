@@ -72,11 +72,11 @@ build: ## Construire l'image Docker
 
 run-docker: ## Lancer l'API avec Docker
 	@echo "🐳 Lancement avec Docker..."
-	docker run -p 8000:8000 iris-api:latest
+	docker run -p 127.0.0.18000:8000 iris-api:latest
 
 run-docker-bg: ## Lancer l'API avec Docker en arrière-plan
 	@echo "🐳 Lancement avec Docker en arrière-plan..."
-	docker run -d -p 8000:8000 --name iris-api iris-api:latest
+	docker run -d -p 127.0.0.1:8000:8000 --name iris-api iris-api:latest
 
 stop-docker: ## Arrêter le conteneur Docker
 	@echo "🛑 Arrêt du conteneur Docker..."

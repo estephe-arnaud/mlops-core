@@ -104,7 +104,7 @@ mlops-core/
 
 ```bash
 # Cloner le repository
-git clone <votre-repo>
+git clone https://github.com/estephe-arnaud/mlops-core
 cd mlops-core
 
 # Installation automatique avec Poetry
@@ -124,7 +124,7 @@ make run
 docker build -t iris-api .
 
 # Lancer le conteneur
-docker run -p 8000:8000 iris-api
+docker run -p 127.0.0.1:8000:8000 iris-api
 
 # Ou avec Docker Compose
 docker-compose up --build
