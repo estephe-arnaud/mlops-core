@@ -4,6 +4,7 @@ version = "1.0.0"
 description = "API FastAPI pour la classification d'iris - Semaine 1 MLOps"
 authors = ["Formation MLOps <formation@mlops.com>"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.11"
