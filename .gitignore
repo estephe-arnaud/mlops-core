@@ -1,3 +1,7 @@
+# ============================================================================
+# Python
+# ============================================================================
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -28,8 +32,6 @@ share/python-wheels/
 MANIFEST
 
 # PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
 
@@ -128,24 +130,73 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# MLOps specific
+# ============================================================================
+# MLOps spécifique
+# ============================================================================
+
+# Modèles ML
 models/
 *.pkl
 *.joblib
 *.h5
 *.pb
-data/
-logs/
-mlruns/
-.dvc/
+*.onnx
+*.tflite
 
+# Données
+data/
+datasets/
+raw_data/
+processed_data/
+
+# Logs
+logs/
+
+# MLflow
+mlruns/
+
+# DVC
+.dvc/
+.dvcignore
+
+# ============================================================================
+# Terraform
+# ============================================================================
+
+# Fichiers Terraform à ignorer
+*.tfstate
+*.tfstate.*
+*.tfvars
+!terraform.tfvars.example
+.terraform/
+.terraform.lock.hcl
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# ============================================================================
 # IDE
+# ============================================================================
+
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
+# ============================================================================
 # OS
+# ============================================================================
+
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db

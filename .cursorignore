@@ -1,11 +1,23 @@
 # .cursorignore - Fichiers ignorés par Cursor IDE
 # Optimise les performances et évite l'indexation de fichiers non pertinents
+# Aligné avec .gitignore pour cohérence
 
-# Dossiers générés automatiquement
+# ============================================================================
+# Python - Générés automatiquement
+# ============================================================================
+
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
 .Python
 build/
 develop-eggs/
@@ -19,19 +31,24 @@ parts/
 sdist/
 var/
 wheels/
+pip-wheel-metadata/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
-# Environnements virtuels
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-.venv/
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ============================================================================
+# Python - Tests et couverture
+# ============================================================================
 
 # Cache et fichiers temporaires
 .cache/
@@ -45,8 +62,25 @@ coverage.xml
 *.cover
 *.py,cover
 .hypothesis/
+nosetests.xml
 
-# Modèles ML (générés)
+# ============================================================================
+# Python - Environnements virtuels
+# ============================================================================
+
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# ============================================================================
+# MLOps - Modèles ML (générés)
+# ============================================================================
+
 models/
 *.pkl
 *.joblib
@@ -55,22 +89,55 @@ models/
 *.onnx
 *.tflite
 
-# Données (potentiellement volumineuses)
+# ============================================================================
+# MLOps - Données (potentiellement volumineuses)
+# ============================================================================
+
 data/
 datasets/
 raw_data/
 processed_data/
 
-# Logs
+# ============================================================================
+# MLOps - Logs et tracking
+# ============================================================================
+
 logs/
 *.log
-
-# MLOps spécifique
 mlruns/
 .dvc/
 .dvcignore
 
+# ============================================================================
+# Terraform - Fichiers générés et sensibles
+# ============================================================================
+
+# State files (contiennent des informations sensibles)
+*.tfstate
+*.tfstate.*
+*.tfvars
+!terraform.tfvars.example
+
+# Cache et lock files
+.terraform/
+.terraform.lock.hcl
+.terraformrc
+terraform.rc
+
+# Crash logs
+crash.log
+crash.*.log
+
+# Override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# ============================================================================
 # IDE et éditeurs
+# ============================================================================
+
 .vscode/settings.json
 .vscode/launch.json
 .idea/
@@ -78,7 +145,10 @@ mlruns/
 *.swo
 *~
 
-# OS
+# ============================================================================
+# OS - Fichiers système
+# ============================================================================
+
 .DS_Store
 .DS_Store?
 ._*
@@ -87,66 +157,145 @@ mlruns/
 ehthumbs.db
 Thumbs.db
 
-# Docker
-.dockerignore
-
+# ============================================================================
 # Git
-.git/
-.gitignore
+# ============================================================================
 
+.git/
+# .gitignore (on garde pour référence)
+
+# ============================================================================
 # Documentation générée
+# ============================================================================
+
 docs/_build/
 site/
 
+# ============================================================================
 # Fichiers de configuration sensibles
+# ============================================================================
+
 .env.local
 .env.production
 .env.staging
 secrets.json
 config.json
 
+# ============================================================================
 # Fichiers de backup
+# ============================================================================
+
 *.bak
 *.backup
 *.old
 *.orig
 
+# ============================================================================
 # Fichiers de test volumineux
+# ============================================================================
+
 test_data/
 test_models/
 *.test.*
 
-# Fichiers de déploiement
-deployment/
-k8s/
-terraform/
-*.tfstate
-*.tfstate.*
+# ============================================================================
+# Fichiers de déploiement (optionnel - décommenter si nécessaire)
+# ============================================================================
 
-# Fichiers de monitoring
-prometheus/
-grafana/
-monitoring/
+# deployment/
+# k8s/
 
-# Fichiers de CI/CD
-.github/
-.gitlab-ci.yml
-.travis.yml
-.circleci/
+# ============================================================================
+# Fichiers de monitoring (optionnel - décommenter si nécessaire)
+# ============================================================================
 
+# prometheus/
+# grafana/
+# monitoring/
+
+# ============================================================================
+# CI/CD (optionnel - décommenter si nécessaire)
+# ============================================================================
+
+# .github/ (gardé pour référence mais peut être ignoré si volumineux)
+# .gitlab-ci.yml
+# .travis.yml
+# .circleci/
+
+# ============================================================================
 # Fichiers de packaging
+# ============================================================================
+
 *.whl
 *.tar.gz
 *.zip
 *.exe
 
+# ============================================================================
 # Fichiers de base de données
+# ============================================================================
+
 *.db
 *.sqlite
 *.sqlite3
 
+# ============================================================================
 # Fichiers de cache spécifiques
+# ============================================================================
+
 .mypy_cache/
 .dmypy.json
 dmypy.json
 .pyre/
+
+# ============================================================================
+# Autres fichiers Python
+# ============================================================================
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# PEP 582
+__pypackages__/
+
+# Translations
+*.mo
+*.pot
+
+# Django
+local_settings.py
+db.sqlite3-journal
+
+# Flask
+instance/
+.webassets-cache
+
+# Scrapy
+.scrapy
+
+# PyBuilder
+target/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath
+*.sage.py
+
+# Spyder
+.spyderproject
+.spyproject
+
+# Rope
+.ropeproject
+
+# mkdocs
+/site
