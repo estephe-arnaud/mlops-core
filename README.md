@@ -222,11 +222,11 @@ make help             # Afficher toutes les commandes
 - **Durée** : 20h
 - **Status** : ✅ **TERMINÉ**
 
-### 🟡 [Semaine 2 : CI/CD (GitHub Actions)](./docs/SEMAINE_2.md)
+### 🟢 [Semaine 2 : CI/CD (GitHub Actions)](./docs/SEMAINE_2.md)
 - **Objectif** : Automatiser le processus de build/test/push de l'image Docker sur push GitHub
 - **Technologies** : GitHub Actions, Docker Registry
 - **Durée** : 20h
-- **Status** : 🔄 **EN COURS**
+- **Status** : ✅ **TERMINÉ**
 
 ### 🟡 [Semaine 3 : Infrastructure as Code (Terraform)](./docs/SEMAINE_3.md)
 - **Objectif** : Provisionner une infrastructure cloud simple sur GCP via Terraform

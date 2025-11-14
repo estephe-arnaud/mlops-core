@@ -1,7 +1,7 @@
-# Makefile pour le projet MLOps - Semaine 1
+# Makefile pour le projet MLOps - Semaines 1-2
 # Usage: make <command>
 
-.PHONY: help install uninstall train test run build clean format lint
+.PHONY: help install uninstall train test run build clean format lint ci
 
 # Variables
 PYTHON := poetry run python
@@ -94,6 +94,10 @@ lint: ## Vérifier la qualité du code
 	$(FLAKE8) .
 	$(BLACK) --check .
 	$(ISORT) --check-only .
+
+# CI/CD
+ci: lint test ## Exécuter les vérifications CI (lint + test)
+	@echo "✅ Toutes les vérifications CI sont passées !"
 
 # Nettoyage
 clean: ## Nettoyer les fichiers temporaires

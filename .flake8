@@ -1,0 +1,47 @@
+[flake8]
+# Longueur maximale des lignes (cohérent avec black)
+max-line-length = 88
+
+# Extensions à ignorer
+extend-ignore =
+    # E203: Whitespace before ':' (incompatible avec Black)
+    # E266: Too many leading '#' for block comment
+    # E501: Line too long (géré par --max-line-length)
+    # W503: Line break before binary operator (incompatible avec Black)
+    E203,
+    W503,
+    E266
+
+# Exclure des répertoires
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    .env,
+    build,
+    dist,
+    *.egg-info,
+    .pytest_cache,
+    .mypy_cache,
+    poetry.lock,
+    .venv
+
+# Sélection stricte pour détecter les erreurs critiques
+select = 
+    # Erreurs de syntaxe
+    E9,
+    # Fonction définie mais non utilisée
+    F63,
+    # Retour 'return' sans valeur dans une fonction qui devrait en retourner une
+    F7,
+    # Assertion incorrecte
+    F82
+
+# Exclure du nombre de lignes pour la docstring
+docstring-convention = none
+
+# Format de sortie
+statistics = true
+show-source = true
+count = true

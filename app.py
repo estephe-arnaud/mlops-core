@@ -19,6 +19,7 @@ from pydantic import BaseModel, ConfigDict
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("iris_api")
 
+
 # Initialisation de l'application FastAPI (lifespan utilisée pour startup/shutdown)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -60,6 +61,7 @@ async def lifespan(app: FastAPI):
     # Shutdown (libérer ressources si nécessaire)
     # Ici rien de spécial à faire pour joblib/scikit-learn
     logger.info("Shutdown application")
+
 
 app = FastAPI(
     title="API Classification Iris",
@@ -175,7 +177,9 @@ async def predict_iris(features: IrisFeatures, request: Request):
             class_names = class_names[:n]
             proba = proba[:n]
 
-        probabilities = {class_names[i]: float(proba[i]) for i in range(len(class_names))}
+        probabilities = {
+            class_names[i]: float(proba[i]) for i in range(len(class_names))
+        }
         # prédiction (classe la plus probable)
         pred_index = int(np.argmax(proba))
         predicted_class = class_names[pred_index]
@@ -189,7 +193,9 @@ async def predict_iris(features: IrisFeatures, request: Request):
 
     except Exception as exc:
         logger.exception("Erreur lors de la prédiction : %s", exc)
-        raise HTTPException(status_code=400, detail=f"Erreur lors de la prédiction : {exc}")
+        raise HTTPException(
+            status_code=400, detail=f"Erreur lors de la prédiction : {exc}"
+        )
 
 
 @app.get("/model/info")
@@ -199,14 +205,20 @@ async def model_info(request: Request):
     model = getattr(request.app.state, "model", None)
 
     if metadata is None and model is None:
-        raise HTTPException(status_code=404, detail="Modèle et métadonnées non disponibles")
+        raise HTTPException(
+            status_code=404, detail="Modèle et métadonnées non disponibles"
+        )
 
     # Construction d'une réponse prudente
     return {
-        "model_type": metadata.get("model_type") if metadata else getattr(model, "__class__", "Unknown").__name__,
+        "model_type": metadata.get("model_type")
+        if metadata
+        else getattr(model, "__class__", "Unknown").__name__,
         "accuracy": metadata.get("accuracy") if metadata else "Unknown",
         "n_features": metadata.get("n_features") if metadata else "Unknown",
         "n_samples": metadata.get("n_samples") if metadata else "Unknown",
         "feature_names": metadata.get("feature_names", []) if metadata else [],
-        "target_names": metadata.get("target_names", []) if metadata else getattr(model, "classes_", []),
+        "target_names": metadata.get("target_names", [])
+        if metadata
+        else getattr(model, "classes_", []),
     }
