@@ -1,0 +1,45 @@
+# ============================================================================
+# Configuration Terraform pour MLOps - Exemple
+# ============================================================================
+# Copiez ce fichier vers terraform.tfvars et remplissez les valeurs
+# ⚠️  Ne commitez JAMAIS terraform.tfvars (il contient des informations sensibles)
+# ============================================================================
+
+# ID du projet GCP (obligatoire)
+project_id = "votre-projet-gcp-id"
+
+# Région et zone GCP
+region = "europe-west1"
+zone   = "europe-west1-a"
+
+# Nom du bucket GCS (optionnel, sera généré automatiquement si vide)
+# Le nom doit être unique globalement sur GCP
+bucket_name = ""
+
+# Configuration de la VM
+vm_name      = "iris-api-server"
+machine_type = "e2-micro" # e2-micro est dans le free tier
+vm_image     = "ubuntu-os-cloud/ubuntu-2204-lts"
+disk_size_gb = 10
+
+# Nom du réseau VPC
+network_name = "mlops-vpc"
+
+# Nom du compte de service
+service_account_name = "mlops-api-sa"
+
+# Configuration réseau
+enable_public_ip = true
+
+# IPs autorisées pour SSH (CIDR notation)
+# ⚠️  En production, restreignez cette liste à vos IPs uniquement
+allowed_ssh_ips = [
+  "0.0.0.0/0" # ⚠️  À modifier en production
+]
+
+# Tags pour les ressources
+tags = {
+  project     = "mlops"
+  environment = "dev"
+  managed_by  = "terraform"
+}

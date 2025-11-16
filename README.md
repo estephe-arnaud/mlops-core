@@ -11,8 +11,8 @@
 Ce projet couvre les **4 premières semaines** de la formation MLOps et vise à :
 
 - ✅ **Semaine 1** : Docker, FastAPI & Tests unitaires
-- 🔄 **Semaine 2** : CI/CD avec GitHub Actions  
-- 🔄 **Semaine 3** : Infrastructure as Code (Terraform)
+- ✅ **Semaine 2** : CI/CD avec GitHub Actions  
+- ✅ **Semaine 3** : Infrastructure as Code (Terraform)
 - 🔄 **Semaine 4** : MLOps local (MLflow + DVC)
 
 ## 📊 Résumé du Projet
@@ -228,11 +228,11 @@ make help             # Afficher toutes les commandes
 - **Durée** : 20h
 - **Status** : ✅ **TERMINÉ**
 
-### 🟡 [Semaine 3 : Infrastructure as Code (Terraform)](./docs/SEMAINE_3.md)
+### 🟢 [Semaine 3 : Infrastructure as Code (Terraform)](./docs/SEMAINE_3.md)
 - **Objectif** : Provisionner une infrastructure cloud simple sur GCP via Terraform
 - **Technologies** : Terraform, GCP, IAM
 - **Durée** : 20h
-- **Status** : 📋 **PLANNIFIÉ**
+- **Status** : ✅ **TERMINÉ**
 
 ### 🟡 [Semaine 4 : MLOps local (MLflow + DVC)](./docs/SEMAINE_4.md)
 - **Objectif** : Traquer et versionner les expériences ML localement pour la reproductibilité

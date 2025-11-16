@@ -1,7 +1,7 @@
-# Makefile pour le projet MLOps - Semaines 1-2
+# Makefile pour le projet MLOps - Semaines 1-3
 # Usage: make <command>
 
-.PHONY: help install uninstall train test run build clean format lint ci
+.PHONY: help install uninstall train test run build clean format lint ci terraform-init terraform-plan terraform-apply terraform-destroy terraform-output terraform-validate terraform-fmt terraform-refresh
 
 # Variables
 PYTHON := poetry run python
@@ -132,3 +132,36 @@ deploy: build run-docker-bg ## Déployer l'API (build + run)
 	@echo "🚀 Déploiement terminé !"
 	@echo "API disponible sur: http://localhost:8000"
 	@echo "Documentation: http://localhost:8000/docs"
+
+# Terraform (Semaine 3)
+terraform-init: ## Initialiser Terraform
+	@echo "🏗️  Initialisation de Terraform..."
+	@cd terraform && terraform init
+
+terraform-validate: ## Valider la configuration Terraform
+	@echo "✅ Validation de la configuration Terraform..."
+	@cd terraform && terraform validate
+
+terraform-fmt: ## Formater les fichiers Terraform
+	@echo "🎨 Formatage des fichiers Terraform..."
+	@cd terraform && terraform fmt -recursive
+
+terraform-plan: terraform-init ## Planifier les changements Terraform
+	@echo "📋 Planification des changements Terraform..."
+	@cd terraform && terraform plan
+
+terraform-apply: terraform-init ## Appliquer la configuration Terraform
+	@echo "🚀 Application de la configuration Terraform..."
+	@cd terraform && terraform apply
+
+terraform-destroy: ## Détruire l'infrastructure Terraform
+	@echo "⚠️  Destruction de l'infrastructure Terraform..."
+	@cd terraform && terraform destroy
+
+terraform-output: ## Afficher les outputs Terraform
+	@echo "📊 Outputs Terraform:"
+	@cd terraform && terraform output
+
+terraform-refresh: ## Rafraîchir l'état Terraform
+	@echo "🔄 Rafraîchissement de l'état Terraform..."
+	@cd terraform && terraform refresh
