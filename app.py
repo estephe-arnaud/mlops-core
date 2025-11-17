@@ -128,6 +128,12 @@ async def predict_iris(features: IrisFeatures, request: Request):
     """
     Prédiction de la classe d'une fleur d'iris.
     Récupère le modèle depuis request.app.state (évite globals).
+    
+    ⚠️ SÉCURITÉ : Les entrées sont validées par Pydantic (IrisFeatures).
+    En production, ajoutez :
+    - Rate limiting pour éviter les abus
+    - Authentification/autorisation si nécessaire
+    - Validation des plages de valeurs (ex: valeurs négatives acceptées mais peuvent être suspectes)
     """
     model = getattr(request.app.state, "model", None)
     metadata = getattr(request.app.state, "metadata", None)

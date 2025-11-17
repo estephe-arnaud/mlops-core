@@ -36,6 +36,7 @@ uninstall: ## Supprimer l'environnement Poetry
 	@echo "   Suppression des fichiers de build..."
 	@rm -rf build/ dist/ *.egg-info/
 	@echo "   Désinstallation de Poetry..."
+	@echo "⚠️  Téléchargement et exécution de script depuis internet"
 	@curl -sSL https://install.python-poetry.org | python3 - --uninstall || echo "Poetry non installé"
 	@echo "   Suppression du binaire Poetry..."
 	@rm -f ~/.local/bin/poetry
@@ -72,7 +73,7 @@ build: ## Construire l'image Docker
 
 run-docker: ## Lancer l'API avec Docker
 	@echo "🐳 Lancement avec Docker..."
-	docker run -p 127.0.0.18000:8000 iris-api:latest
+	docker run -p 127.0.0.1:8000:8000 iris-api:latest
 
 run-docker-bg: ## Lancer l'API avec Docker en arrière-plan
 	@echo "🐳 Lancement avec Docker en arrière-plan..."

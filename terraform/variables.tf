@@ -64,9 +64,15 @@ variable "enable_public_ip" {
 }
 
 variable "allowed_ssh_ips" {
-  description = "Liste des IPs autorisées pour SSH (CIDR)"
+  description = "Liste des IPs autorisées pour SSH (CIDR). ⚠️ SÉCURITÉ CRITIQUE : Cette variable DOIT être configurée explicitement dans terraform.tfvars. Ne laissez JAMAIS la valeur par défaut en production !"
   type        = list(string)
-  default     = ["0.0.0.0/0"] # ⚠️ À restreindre en production
+  default     = [] # ⚠️ SÉCURITÉ : Liste vide par défaut (deny by default). Configurez explicitement dans terraform.tfvars avec vos IPs autorisées (ex: ["123.45.67.89/32"])
+}
+
+variable "allowed_http_ips" {
+  description = "Liste des IPs autorisées pour HTTP/HTTPS (CIDR). Par défaut, toutes les IPs pour une API publique."
+  type        = list(string)
+  default     = ["0.0.0.0/0"] # Pour une API publique. Restreignez si l'API est privée.
 }
 
 variable "tags" {

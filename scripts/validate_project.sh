@@ -7,7 +7,9 @@ echo "🔍 Validation complète du projet MLOps - Semaine 1"
 echo "================================================"
 
 # Variables
-PROJECT_DIR="/Users/earnaud/mlops-core"
+# Utilise le répertoire parent du script (plus portable que chemin hardcodé)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 EXIT_CODE=0
 
 # Fonction pour afficher les résultats

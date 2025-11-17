@@ -29,8 +29,12 @@ fi
 echo "✅ Python trouvé: $PY_BIN"
 
 # Installer Poetry
+# ⚠️ SÉCURITÉ : Cette commande télécharge et exécute du code depuis internet
+# C'est la méthode officielle recommandée par Poetry, mais vérifiez toujours
+# l'intégrité du script si vous êtes dans un environnement sensible
 if ! command -v poetry >/dev/null 2>&1; then
     echo "📦 Installation de Poetry..."
+    echo "⚠️  Téléchargement depuis https://install.python-poetry.org"
     curl -sSL https://install.python-poetry.org | "$PY_BIN" -
     export PATH="$HOME/.local/bin:$PATH"
 else

@@ -32,9 +32,24 @@ service_account_name = "mlops-api-sa"
 enable_public_ip = true
 
 # IPs autorisées pour SSH (CIDR notation)
-# ⚠️  En production, restreignez cette liste à vos IPs uniquement
+# ⚠️  SÉCURITÉ CRITIQUE : Cette variable est OBLIGATOIRE et doit être configurée explicitement !
+# La valeur par défaut est une liste vide (deny by default) pour la sécurité.
+# 
+# Exemples :
+# - Pour une IP spécifique : ["123.45.67.89/32"]
+# - Pour un réseau d'entreprise : ["10.0.0.0/8"]
+# - Pour plusieurs IPs : ["123.45.67.89/32", "98.76.54.32/32"]
+#
+# ⚠️  NE JAMAIS utiliser "0.0.0.0/0" en production (permet SSH depuis n'importe où) !
 allowed_ssh_ips = [
-  "0.0.0.0/0" # ⚠️  À modifier en production
+  # "123.45.67.89/32"  # ⚠️  DÉCOMMENTEZ et REMPLACEZ par votre IP publique réelle !
+]
+
+# IPs autorisées pour HTTP/HTTPS (CIDR notation)
+# Pour une API publique, laissez ["0.0.0.0/0"]
+# Pour une API privée, restreignez aux IPs autorisées
+allowed_http_ips = [
+  "0.0.0.0/0" # API publique - ajustez selon vos besoins
 ]
 
 # Tags pour les ressources

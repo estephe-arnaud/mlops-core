@@ -36,6 +36,7 @@ resource "google_compute_firewall" "allow_ssh" {
 }
 
 # Règle pour autoriser HTTP (pour l'API FastAPI)
+# ⚠️ SÉCURITÉ : Utilise la variable allowed_http_ips pour contrôler l'accès
 resource "google_compute_firewall" "allow_http" {
   name    = "${var.network_name}-allow-http"
   network = google_compute_network.vpc_network.name
@@ -45,9 +46,9 @@ resource "google_compute_firewall" "allow_http" {
     ports    = ["80", "8000"]
   }
 
-  source_ranges = ["0.0.0.0/0"]
+  source_ranges = var.allowed_http_ips
   target_tags   = ["http-server"]
-  description   = "Autorise HTTP/HTTPS pour l'API"
+  description   = "Autorise HTTP/HTTPS pour l'API depuis les IPs configurées"
 }
 
 # Règle pour autoriser le trafic interne
@@ -84,18 +85,15 @@ resource "google_service_account" "api_service_account" {
 }
 
 # Rôle pour accéder au bucket GCS
+# ⚠️ SÉCURITÉ : Utilise storage.objectAdmin (lecture/écriture) au lieu de storage.admin (gestion complète)
 resource "google_project_iam_member" "storage_admin" {
   project = var.project_id
   role    = "roles/storage.objectAdmin"
   member  = "serviceAccount:${google_service_account.api_service_account.email}"
 }
 
-# Rôle pour les opérations de base sur Compute Engine
-resource "google_project_iam_member" "compute_instance_user" {
-  project = var.project_id
-  role    = "roles/compute.instanceAdmin.v1"
-  member  = "serviceAccount:${google_service_account.api_service_account.email}"
-}
+# ⚠️ SÉCURITÉ : Rôle compute.instanceAdmin.v1 supprimé car non nécessaire pour une VM simple
+# La VM n'a pas besoin de gérer d'autres instances. Si nécessaire, utilisez un rôle plus restrictif.
 
 # Rôle pour les logs
 resource "google_project_iam_member" "logging_writer" {
@@ -179,7 +177,13 @@ resource "google_compute_instance" "api_server" {
 
   service_account {
     email  = google_service_account.api_service_account.email
-    scopes = ["cloud-platform"] # Accès complet aux services GCP
+    # ⚠️ SÉCURITÉ : Scopes spécifiques au lieu de "cloud-platform" (accès complet)
+    # cloud-platform donne accès à TOUS les services GCP - trop large !
+    scopes = [
+      "https://www.googleapis.com/auth/devstorage.read_write", # GCS (lecture/écriture)
+      "https://www.googleapis.com/auth/logging.write",         # Logs
+      "https://www.googleapis.com/auth/monitoring.write"       # Monitoring
+    ]
   }
 
   metadata = {

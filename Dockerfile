@@ -43,4 +43,9 @@ RUN python train_model.py
 EXPOSE 8000
 
 # Commande de démarrage
+# ⚠️ SÉCURITÉ : Le 0.0.0.0 fait référence à l'INTÉRIEUR du container (toutes les interfaces du container)
+# L'exposition sur la machine hôte est contrôlée par le port mapping Docker (voir docker-compose.yml)
+# Dans docker-compose.yml : "127.0.0.1:8000:8000" limite l'accès à localhost sur la machine hôte ✅
+# En production, utilisez un reverse proxy (nginx, traefik) et limitez l'accès
+# via firewall/security groups plutôt que d'exposer directement l'API
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]

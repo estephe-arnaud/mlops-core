@@ -174,7 +174,7 @@ terraform destroy
 
 ### Bonnes Pratiques
 
-1. **Restreindre SSH** : Modifiez `allowed_ssh_ips` dans `terraform.tfvars` pour limiter l'accès SSH
+1. **Restreindre SSH** : ⚠️ **OBLIGATOIRE** - Configurez `allowed_ssh_ips` dans `terraform.tfvars` avec vos IPs autorisées uniquement. La valeur par défaut est une liste vide (deny by default) pour la sécurité. Ne JAMAIS utiliser `["0.0.0.0/0"]` en production !
 2. **IP Publique** : Désactivez `enable_public_ip` si vous n'en avez pas besoin
 3. **IAM** : Utilisez le principe du moindre privilège
 4. **Secrets** : Ne commitez jamais `terraform.tfvars`
