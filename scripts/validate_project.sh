@@ -25,8 +25,8 @@ print_result() {
 # Vérification de la structure du projet
 echo "📁 Vérification de la structure du projet..."
 required_files=(
-    "app.py"
-    "train_model.py"
+    "src/application/app.py"
+    "src/training/train_model.py"
     "pyproject.toml"
     "Dockerfile"
     "docker-compose.yml"
@@ -90,7 +90,7 @@ fi
 echo ""
 echo "🤖 Test d'entraînement du modèle..."
 cd "$PROJECT_DIR"
-if python3 train_model.py > /dev/null 2>&1; then
+if python3 -m src.training.train_model > /dev/null 2>&1; then
     print_result 0 "Entraînement du modèle réussi"
     if [ -f "models/iris_model.pkl" ]; then
         print_result 0 "Modèle sauvegardé"
@@ -130,7 +130,7 @@ fi
 echo ""
 echo "🎨 Vérification de la qualité du code..."
 if command -v flake8 &> /dev/null; then
-    if flake8 app.py train_model.py tests/ > /dev/null 2>&1; then
+    if flake8 src/application/app.py src/training/train_model.py tests/ > /dev/null 2>&1; then
         print_result 0 "Code conforme à flake8"
     else
         print_result 1 "Code non conforme à flake8"

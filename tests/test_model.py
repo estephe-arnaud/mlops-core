@@ -11,7 +11,7 @@ import numpy as np
 import pytest
 from sklearn.datasets import load_iris
 
-from train_model import train_iris_model
+from src.training.train_model import train_iris_model
 
 
 class TestModel:

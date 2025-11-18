@@ -37,7 +37,7 @@ COPY . .
 RUN mkdir -p models
 
 # Entraînement du modèle ML au build
-RUN python train_model.py
+RUN python -m src.training.train_model
 
 # Exposition du port 8000
 EXPOSE 8000
@@ -48,4 +48,4 @@ EXPOSE 8000
 # Dans docker-compose.yml : "127.0.0.1:8000:8000" limite l'accès à localhost sur la machine hôte ✅
 # En production, utilisez un reverse proxy (nginx, traefik) et limitez l'accès
 # via firewall/security groups plutôt que d'exposer directement l'API
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "src.application.app:app", "--host", "0.0.0.0", "--port", "8000"]

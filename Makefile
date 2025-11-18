@@ -50,7 +50,7 @@ uninstall: ## Supprimer l'environnement Poetry
 # Entraînement du modèle
 train: ## Entraîner le modèle ML
 	@echo "🤖 Entraînement du modèle..."
-	$(PYTHON) train_model.py
+	$(PYTHON) -m src.training.train_model
 
 # Tests
 test: ## Exécuter tous les tests
@@ -60,11 +60,11 @@ test: ## Exécuter tous les tests
 # API
 run: ## Lancer l'API en mode développement
 	@echo "🚀 Lancement de l'API..."
-	poetry run uvicorn app:app --reload --host 127.0.0.1 --port 8000
+	poetry run uvicorn src.application.app:app --reload --host 127.0.0.1 --port 8000
 
 run-prod: ## Lancer l'API en mode production
 	@echo "🚀 Lancement de l'API en production..."
-	poetry run uvicorn app:app --host 0.0.0.0 --port 8000
+	poetry run uvicorn src.application.app:app --host 0.0.0.0 --port 8000
 
 # Docker
 build: ## Construire l'image Docker

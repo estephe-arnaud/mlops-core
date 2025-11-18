@@ -7,8 +7,8 @@
 ## 📋 SEMAINE 1 : Docker, FastAPI & Tests ✅
 
 ### ✅ Fichiers Principaux
-- ✅ **app.py** - API FastAPI complète avec 4 endpoints (/, /health, /predict, /model/info)
-- ✅ **train_model.py** - Script d'entraînement RandomForestClassifier sur dataset Iris
+- ✅ **src/application/app.py** - API FastAPI complète avec 4 endpoints (/, /health, /predict, /model/info)
+- ✅ **src/training/train_model.py** - Script d'entraînement RandomForestClassifier sur dataset Iris
 - ✅ **pyproject.toml** - Configuration Poetry avec toutes les dépendances
 
 ### ✅ Docker
@@ -131,8 +131,11 @@
 ### ✅ Structure du Projet
 ```
 mlops-core/
-├── app.py                    ✅ API FastAPI
-├── train_model.py            ✅ Script d'entraînement
+├── src/
+│   ├── application/
+│   │   └── app.py            ✅ API FastAPI
+│   └── training/
+│       └── train_model.py    ✅ Script d'entraînement
 ├── Dockerfile                ✅ Image Docker
 ├── docker-compose.yml        ✅ Orchestration
 ├── .dockerignore             ✅ Optimisation builds

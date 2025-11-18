@@ -49,8 +49,13 @@
 ### Structure du Projet
 ```
 mlops-core/
-├── app.py                    # API FastAPI principale
-├── train_model.py            # Script d'entraînement ML
+├── src/
+│   ├── application/
+│   │   ├── __init__.py
+│   │   └── app.py            # API FastAPI principale
+│   └── training/
+│       ├── __init__.py
+│       └── train_model.py    # Script d'entraînement ML
 ├── pyproject.toml            # Configuration Poetry
 ├── Dockerfile                # Image Docker optimisée
 ├── docker-compose.yml        # Orchestration Docker
@@ -72,7 +77,7 @@ mlops-core/
 
 ### Fichiers Principaux
 
-#### `app.py` - API FastAPI
+#### `src/application/app.py` - API FastAPI
 - **Endpoints** : 4 endpoints complets
   - `GET /` : Informations générales
   - `GET /health` : État de santé de l'API
@@ -82,7 +87,7 @@ mlops-core/
 - **Documentation** : Swagger UI (`/docs`) et ReDoc (`/redoc`)
 - **Gestion d'erreurs** : Codes HTTP appropriés (400, 503, etc.)
 
-#### `train_model.py` - Script d'Entraînement
+#### `src/training/train_model.py` - Script d'Entraînement
 - **Algorithme** : RandomForestClassifier (100 arbres)
 - **Dataset** : Iris (scikit-learn)
 - **Métriques** : Précision, classification report

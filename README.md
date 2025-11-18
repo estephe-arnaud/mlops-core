@@ -26,14 +26,21 @@ Ce projet couvre les **4 premières semaines** de la formation MLOps et vise à 
 ```
 mlops-core/
 ├── 📄 Fichiers Principaux
-│   ├── app.py                    # API FastAPI principale
-│   ├── train_model.py            # Script d'entraînement ML
 │   ├── pyproject.toml            # Configuration Poetry (unique)
 │   ├── Dockerfile               # Image Docker
 │   ├── docker-compose.yml       # Orchestration Docker
 │   ├── Makefile                 # Commandes automatisées
 │   ├── .cursorignore            # Configuration Cursor IDE
 │   └── README.md                # Documentation principale
+│
+├── 📦 Code Source
+│   ├── src/
+│   │   ├── application/
+│   │   │   ├── __init__.py
+│   │   │   └── app.py           # API FastAPI principale
+│   │   └── training/
+│   │       ├── __init__.py
+│   │       └── train_model.py   # Script d'entraînement ML
 │
 ├── 🧪 Tests
 │   ├── tests/
