@@ -1,51 +1,99 @@
-# Dockerfile pour l'API FastAPI - Semaine 1 MLOps
-FROM python:3.11-slim
+# Dockerfile optimisé pour l'API FastAPI - MLOps Core
+# Utilise un multi-stage build pour réduire la taille de l'image finale
 
-# Variables d'environnement Python et Poetry
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app \
-    POETRY_NO_INTERACTION=1 \
+# ============================================================================
+# STAGE 1: Builder - Installation des dépendances et compilation
+# ============================================================================
+FROM python:3.11-slim AS builder
+
+# Argument de build pour la version de Poetry (plus flexible qu'ENV)
+ARG POETRY_VERSION=1.7.1
+
+# Variables d'environnement pour Poetry
+ENV POETRY_NO_INTERACTION=1 \
     POETRY_VENV_IN_PROJECT=1 \
     POETRY_CACHE_DIR=/tmp/poetry_cache
 
 WORKDIR /app
 
-# Installation des dépendances système pour compiler les packages Python
-RUN apt-get update && apt-get install -y \
+# Installation des dépendances système et Poetry en une seule couche
+# (gcc, g++, build-essential sont nécessaires pour certains packages comme scikit-learn)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
     curl \
     build-essential \
-    && rm -rf /var/lib/apt/lists/*
-
-# Installation de Poetry
-RUN pip install --no-cache-dir poetry==1.7.1
+    && pip install --no-cache-dir poetry==${POETRY_VERSION} \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /root/.cache/pip
 
 # Copie des fichiers de dépendances (optimisation du cache Docker)
+# Cette étape est mise en cache si pyproject.toml et poetry.lock ne changent pas
 COPY pyproject.toml poetry.lock ./
 
-# Installation des dépendances Python
-RUN poetry config virtualenvs.create false && \
-    poetry install --only=main --no-dev && \
-    rm -rf $POETRY_CACHE_DIR
+# Installation des dépendances Python dans un environnement virtuel
+# Utilisation de --no-root pour éviter d'installer le package lui-même
+# Suppression du poetry export inutile (requirements.txt non utilisé)
+RUN poetry config virtualenvs.create true && \
+    poetry config virtualenvs.in-project true && \
+    poetry install --only=main --no-dev --no-root && \
+    rm -rf $POETRY_CACHE_DIR /root/.cache/pip
 
-# Copie du code source
-COPY . .
+# ============================================================================
+# STAGE 2: Runtime - Image finale légère
+# ============================================================================
+FROM python:3.11-slim AS runtime
 
-# Création du répertoire pour les modèles ML
+# Variables d'environnement Python
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app \
+    PATH="/app/.venv/bin:$PATH"
+
+WORKDIR /app
+
+# Création d'un utilisateur non-root et installation des dépendances runtime
+# (curl pour le healthcheck, bash pour la compatibilité shell)
+RUN groupadd -r appuser && useradd -r -g appuser -m appuser && \
+    apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    bash \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copie de l'environnement virtuel depuis le stage builder
+COPY --from=builder /app/.venv /app/.venv
+
+# Création du répertoire pour les modèles ML avant la copie du code
+# (pour éviter de copier le contenu du répertoire models local)
 RUN mkdir -p models
 
-# Entraînement du modèle ML au build
-RUN python -m src.training.train_model
+# Copie du code source avec les bonnes permissions (après l'installation des dépendances pour optimiser le cache)
+COPY --chown=appuser:appuser . .
+
+# S'assurer que tous les fichiers appartiennent à appuser (y compris .venv)
+RUN chown -R appuser:appuser /app
+
+# Passage à l'utilisateur non-root
+USER appuser
 
 # Exposition du port 8000
 EXPOSE 8000
 
+# Health check intégré dans le Dockerfile
+# Vérifie que l'API répond correctement sur l'endpoint /health
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
 # Commande de démarrage
-# ⚠️ SÉCURITÉ : Le 0.0.0.0 fait référence à l'INTÉRIEUR du container (toutes les interfaces du container)
-# L'exposition sur la machine hôte est contrôlée par le port mapping Docker (voir docker-compose.yml)
-# Dans docker-compose.yml : "127.0.0.1:8000:8000" limite l'accès à localhost sur la machine hôte ✅
+# ⚠️ SÉCURITÉ : Le 0.0.0.0 fait référence à l'INTÉRIEUR du container
+# L'exposition sur la machine hôte est contrôlée par le port mapping Docker
+# Dans docker-compose.yml : "127.0.0.1:8000:8000" limite l'accès à localhost ✅
 # En production, utilisez un reverse proxy (nginx, traefik) et limitez l'accès
 # via firewall/security groups plutôt que d'exposer directement l'API
+#
+# Note : Le modèle ML doit être entraîné séparément (make train) ou monté via volume
+# L'entraînement au build n'est pas recommandé car :
+# - Il augmente le temps de build
+# - Il rend l'image moins flexible (modèle figé)
+# - Il est préférable d'entraîner le modèle séparément et de le monter via volume
 CMD ["uvicorn", "src.application.app:app", "--host", "0.0.0.0", "--port", "8000"]
