@@ -9,7 +9,7 @@
 ### ✅ Fichiers Principaux
 - ✅ **src/application/app.py** - API FastAPI complète avec 4 endpoints (/, /health, /predict, /model/info)
 - ✅ **src/application/security.py** - Module de sécurité (authentification API keys, rate limiting)
-- ✅ **src/training/train_model.py** - Script d'entraînement RandomForestClassifier sur dataset Iris
+- ✅ **src/core/train_model.py** - Script d'entraînement RandomForestClassifier sur dataset Iris
 - ✅ **pyproject.toml** - Configuration Poetry avec toutes les dépendances (flake8 config intégrée)
 
 ### ✅ Docker
@@ -143,7 +143,7 @@ mlops-core/
 │   ├── application/
 │   │   ├── app.py            ✅ API FastAPI (avec auth & rate limiting)
 │   │   └── security.py       ✅ Module de sécurité (API keys, rate limiting)
-│   └── training/
+│   └── core/
 │       └── train_model.py    ✅ Script d'entraînement
 ├── Dockerfile                ✅ Image Docker (multi-stage, non-root)
 ├── docker-compose.yml        ✅ Orchestration

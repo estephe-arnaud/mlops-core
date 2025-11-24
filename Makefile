@@ -50,7 +50,7 @@ uninstall: ## Supprimer l'environnement Poetry
 # Entraînement du modèle
 train: ## Entraîner le modèle ML
 	@echo "🤖 Entraînement du modèle..."
-	$(PYTHON) -m src.training.train_model
+	$(PYTHON) -m src.core.train_model
 
 # Tests
 test: ## Exécuter tous les tests

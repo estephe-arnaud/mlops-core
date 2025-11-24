@@ -16,7 +16,7 @@
 ## 📋 Tâches à Accomplir
 
 ### 1. 📊 MLflow Tracking
-- Intégrer MLflow dans le script de training
+- Intégrer MLflow dans le script d'entraînement (src/core/train_model.py)
 - Logger les hyperparamètres et métriques
 - Sauvegarder les modèles et artifacts
 - Interface web MLflow UI
@@ -68,7 +68,7 @@ dvc.lock                 # Verrouillage des versions
 
 ### MLflow Integration
 ```python
-# src/training/train_model.py avec MLflow
+# src/core/train_model.py avec MLflow
 import mlflow
 import mlflow.sklearn
 
@@ -106,11 +106,11 @@ stages:
     - data/processed/test.csv
     
   train:
-    cmd: python -m src.training.train_model
+    cmd: python -m src.core.train_model
     deps:
     - data/processed/train.csv
     - data/processed/test.csv
-    - src/training/train_model.py
+    - src/core/train_model.py
     outs:
     - models/iris_model.pkl
     - models/model_metadata.json
@@ -157,7 +157,7 @@ stages:
 
 ### Phase 1 : MLflow (7h)
 - [ ] Installation et configuration MLflow
-- [ ] Intégration dans src/training/train_model.py
+- [ ] Intégration dans src/core/train_model.py
 - [ ] Logging des paramètres et métriques
 - [ ] Sauvegarde des modèles
 - [ ] Interface web MLflow UI

@@ -150,7 +150,7 @@ make help         # Voir toutes les commandes
 mlops-core/
 ├── src/                    # Code source
 │   ├── application/        # API FastAPI
-│   └── training/           # Scripts d'entraînement
+│   └── core/              # Scripts d'entraînement
 ├── tests/                  # Tests unitaires
 ├── scripts/                # Scripts utilitaires & déploiement
 ├── terraform/              # Infrastructure as Code

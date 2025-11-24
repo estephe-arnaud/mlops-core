@@ -53,7 +53,7 @@ mlops-core/
 │   ├── application/
 │   │   ├── __init__.py
 │   │   └── app.py            # API FastAPI principale
-│   └── training/
+│   └── core/
 │       ├── __init__.py
 │       └── train_model.py    # Script d'entraînement ML
 ├── pyproject.toml            # Configuration Poetry
@@ -87,7 +87,7 @@ mlops-core/
 - **Documentation** : Swagger UI (`/docs`) et ReDoc (`/redoc`)
 - **Gestion d'erreurs** : Codes HTTP appropriés (400, 503, etc.)
 
-#### `src/training/train_model.py` - Script d'Entraînement
+#### `src/core/train_model.py` - Script d'Entraînement
 - **Algorithme** : RandomForestClassifier (100 arbres)
 - **Dataset** : Iris (scikit-learn)
 - **Métriques** : Précision, classification report
