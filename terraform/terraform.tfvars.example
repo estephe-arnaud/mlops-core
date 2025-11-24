@@ -29,7 +29,9 @@ network_name = "mlops-vpc"
 service_account_name = "mlops-api-sa"
 
 # Configuration réseau
-enable_public_ip = true
+# ⚠️ SÉCURITÉ : Désactivé par défaut. Activez uniquement si nécessaire.
+# En production, utilisez un Load Balancer plutôt qu'une IP publique directe.
+enable_public_ip = false
 
 # IPs autorisées pour SSH (CIDR notation)
 # ⚠️  SÉCURITÉ CRITIQUE : Cette variable est OBLIGATOIRE et doit être configurée explicitement !
@@ -46,11 +48,30 @@ allowed_ssh_ips = [
 ]
 
 # IPs autorisées pour HTTP/HTTPS (CIDR notation)
-# Pour une API publique, laissez ["0.0.0.0/0"]
-# Pour une API privée, restreignez aux IPs autorisées
+# ⚠️ SÉCURITÉ CRITIQUE : Liste vide par défaut (deny by default)
+# Configurez explicitement avec vos IPs autorisées ou utilisez un Load Balancer
+# 
+# Exemples :
+# - Pour un Load Balancer GCP : ["130.211.0.0/22", "35.191.0.0/16"] (IPs des Load Balancers GCP)
+# - Pour des IPs spécifiques : ["123.45.67.89/32", "98.76.54.32/32"]
+# - Pour un réseau d'entreprise : ["10.0.0.0/8"]
+#
+# ⚠️ NE JAMAIS utiliser ["0.0.0.0/0"] en production sans protection (Load Balancer + WAF/Cloud Armor) !
 allowed_http_ips = [
-  "0.0.0.0/0" # API publique - ajustez selon vos besoins
+  # "123.45.67.89/32"  # ⚠️ DÉCOMMENTEZ et REMPLACEZ par vos IPs autorisées !
 ]
+
+# Configuration du déploiement de l'API
+# Image Docker complète pour l'API (ex: gcr.io/PROJECT-ID/iris-api:latest)
+docker_image = "gcr.io/votre-projet-gcp-id/iris-api:latest"
+
+# Nom du secret dans Secret Manager pour l'API_KEY
+# Si vide, l'API_KEY doit être fournie via métadonnées VM (non recommandé)
+# Créez d'abord le secret avec: gcloud secrets create mlops-api-key --data-file=-
+secret_manager_api_key_name = "mlops-api-key"
+
+# Déployer automatiquement l'API au démarrage de la VM
+auto_deploy_api = true
 
 # Tags pour les ressources
 tags = {

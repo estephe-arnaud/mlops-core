@@ -16,6 +16,7 @@ numpy = "^1.25.2"
 pydantic = "^2.5.0"
 python-multipart = "^0.0.6"
 requests = "^2.31.0"
+slowapi = "^0.1.9"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"
@@ -38,8 +39,15 @@ profile = "black"
 line_length = 88
 
 [tool.flake8]
+# Longueur maximale des lignes (cohérent avec black)
 max-line-length = 88
-extend-ignore = ["E203", "W503"]
+
+# Extensions à ignorer (incompatibles avec Black)
+extend-ignore = "E203,W503,E266"
+
+# Note: Les autres options (exclude, select, statistics, etc.) sont définies
+# en ligne de commande dans le Makefile et le workflow CI car flake8 ne lit
+# pas correctement toutes les options depuis pyproject.toml
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

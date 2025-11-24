@@ -12,12 +12,21 @@ from typing import Dict, Optional
 
 import joblib
 import numpy as np
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from pydantic import BaseModel, ConfigDict
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+
+from .security import get_remote_address as get_client_ip
+from .security import verify_api_key
 
 # Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("iris_api")
+
+# Configuration du rate limiter
+# Utilise l'adresse IP du client pour limiter les requêtes
+limiter = Limiter(key_func=get_client_ip)
 
 
 # Initialisation de l'application FastAPI (lifespan utilisée pour startup/shutdown)
@@ -70,6 +79,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Configuration du rate limiter sur l'application
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 
 # --- Pydantic models ---
 class IrisFeatures(BaseModel):
@@ -105,16 +118,25 @@ class HealthResponse(BaseModel):
 # --- Endpoints ---
 @app.get("/", response_model=Dict[str, str])
 async def root():
+    """
+    Endpoint racine de l'API.
+    ⚠️ Note : Cet endpoint n'exige pas d'authentification (information publique).
+    """
     return {
         "message": "API Classification Iris - Semaine 1 MLOps",
         "docs": "/docs",
         "health": "/health",
+        "security": "Cette API utilise l'authentification par API key. Fournissez votre clé via le header X-API-Key",
     }
 
 
 @app.get("/health", response_model=HealthResponse)
+@limiter.limit("30/minute")  # Rate limiting plus permissif pour le health check
 async def health_check(request: Request):
-    """Vérifie si le modèle est chargé (via app.state)"""
+    """
+    Vérifie si le modèle est chargé (via app.state).
+    ⚠️ Note : Cet endpoint n'exige pas d'authentification pour permettre le monitoring.
+    """
     model_loaded = getattr(request.app.state, "model", None) is not None
     return HealthResponse(
         status="healthy" if model_loaded else "unhealthy",
@@ -124,16 +146,20 @@ async def health_check(request: Request):
 
 
 @app.post("/predict", response_model=PredictionResponse)
-async def predict_iris(features: IrisFeatures, request: Request):
+@limiter.limit("10/minute")  # ⚠️ SÉCURITÉ : 10 requêtes par minute par IP
+async def predict_iris(
+    features: IrisFeatures,
+    request: Request,
+    api_key: str = Depends(verify_api_key),  # ⚠️ SÉCURITÉ : Authentification requise
+):
     """
     Prédiction de la classe d'une fleur d'iris.
     Récupère le modèle depuis request.app.state (évite globals).
 
-    ⚠️ SÉCURITÉ : Les entrées sont validées par Pydantic (IrisFeatures).
-    En production, ajoutez :
-    - Rate limiting pour éviter les abus
-    - Authentification/autorisation si nécessaire
-    - Validation des plages de valeurs (ex: valeurs négatives acceptées mais peuvent être suspectes)
+    ⚠️ SÉCURITÉ :
+    - Authentification : Requiert une API key via le header X-API-Key
+    - Rate limiting : 10 requêtes par minute par adresse IP
+    - Validation : Les entrées sont validées par Pydantic (IrisFeatures)
     """
     model = getattr(request.app.state, "model", None)
     metadata = getattr(request.app.state, "metadata", None)
@@ -205,7 +231,13 @@ async def predict_iris(features: IrisFeatures, request: Request):
 
 
 @app.get("/model/info")
-async def model_info(request: Request):
+@limiter.limit(
+    "20/minute"
+)  # ⚠️ SÉCURITÉ : 20 requêtes par minute par IP (endpoint moins coûteux)
+async def model_info(
+    request: Request,
+    api_key: str = Depends(verify_api_key),  # ⚠️ SÉCURITÉ : Authentification requise
+):
     """Renvoie les métadonnées du modèle si disponibles"""
     metadata = getattr(request.app.state, "metadata", None)
     model = getattr(request.app.state, "model", None)

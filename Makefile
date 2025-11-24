@@ -92,7 +92,7 @@ format: ## Formater le code avec Black et isort
 
 lint: ## Vérifier la qualité du code
 	@echo "🔍 Vérification de la qualité du code..."
-	$(FLAKE8) .
+	$(FLAKE8) --exclude=.venv,venv,__pycache__,.git,.env,build,dist,*.egg-info,.pytest_cache,.mypy_cache,poetry.lock --count --select=E9,F63,F7,F82 --show-source --statistics .
 	$(BLACK) --check .
 	$(ISORT) --check-only .
 

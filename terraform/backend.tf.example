@@ -1,0 +1,58 @@
+# ============================================================================
+# BACKEND TERRAFORM - Configuration pour stockage distant du state
+# ============================================================================
+# ⚠️ SÉCURITÉ : Le state Terraform contient des informations sensibles
+# Il DOIT être stocké dans un backend distant avec chiffrement
+# ============================================================================
+#
+# INSTRUCTIONS :
+# 1. Créez un bucket GCS pour le state Terraform :
+#    gcloud storage buckets create gs://YOUR-PROJECT-terraform-state \
+#      --location=europe-west1 \
+#      --uniform-bucket-level-access
+#
+# 2. Activez le versioning sur le bucket :
+#    gcloud storage buckets update gs://YOUR-PROJECT-terraform-state \
+#      --versioning
+#
+# 3. (Optionnel) Créez une clé KMS pour chiffrer le state :
+#    gcloud kms keyrings create terraform-state-keyring \
+#      --location=europe-west1
+#    gcloud kms keys create terraform-state-key \
+#      --location=europe-west1 \
+#      --keyring=terraform-state-keyring \
+#      --purpose=encryption
+#
+# 4. Copiez ce fichier vers backend.tf et remplissez les valeurs :
+#    cp backend.tf.example backend.tf
+#    # Éditez backend.tf avec vos valeurs
+#
+# 5. ⚠️ IMPORTANT : Ajoutez backend.tf au .gitignore s'il contient des infos sensibles
+#    (Le fichier backend.tf.example peut être commité, mais pas backend.tf)
+#
+# ============================================================================
+
+terraform {
+  backend "gcs" {
+    # Nom du bucket GCS pour le state (DOIT exister avant terraform init)
+    bucket = "YOUR-PROJECT-terraform-state"
+    
+    # Préfixe dans le bucket (organisation par projet/environnement)
+    prefix = "mlops-core/terraform/state"
+    
+    # (Optionnel) Clé KMS pour chiffrer le state
+    # Décommentez et configurez si vous utilisez KMS
+    # encryption_key = "projects/YOUR-PROJECT-ID/locations/europe-west1/keyRings/terraform-state-keyring/cryptoKeys/terraform-state-key"
+  }
+}
+
+# ============================================================================
+# NOTES DE SÉCURITÉ :
+# ============================================================================
+# - Le bucket doit avoir uniform_bucket_level_access = true
+# - Activez le versioning pour récupérer d'anciennes versions du state
+# - Limitez l'accès au bucket aux utilisateurs/SA nécessaires uniquement
+# - Utilisez IAM pour contrôler qui peut lire/écrire le state
+# - En production, utilisez KMS pour chiffrer le state
+# - Ne commitez JAMAIS le fichier backend.tf avec des valeurs réelles
+# ============================================================================

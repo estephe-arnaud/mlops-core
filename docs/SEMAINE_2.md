@@ -51,7 +51,6 @@
 └── workflows/
     └── ci.yml              # Workflow GitHub Actions complet
 
-.flake8                    # Configuration flake8
 .dockerignore              # Optimisation builds Docker (amélioré)
 pyproject.toml             # Dépendances dev ajoutées (flake8, black, isort)
 ```
@@ -80,12 +79,6 @@ Pipeline complet avec 3 jobs séquentiels :
 - Affichage des résultats de tous les jobs
 - Statut global du pipeline
 - Rapport dans GitHub Actions
-
-#### `.flake8` - Configuration Linter
-- **Longueur max** : 88 caractères (compatible Black)
-- **Règles strictes** : Détection d'erreurs critiques (E9, F63, F7, F82)
-- **Exclusions** : Compatible avec Black (E203, W503 ignorés)
-- **Exclusions répertoires** : .git, __pycache__, .venv, build, dist
 
 #### `pyproject.toml` - Dépendances Dev
 Ajout des dépendances de développement :

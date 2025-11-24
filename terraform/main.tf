@@ -33,10 +33,16 @@ resource "google_compute_firewall" "allow_ssh" {
   source_ranges = var.allowed_ssh_ips
   target_tags   = ["ssh-allowed"]
   description   = "Autorise SSH depuis les IPs spécifiées"
+  
+  # Activation du logging pour audit de sécurité
+  log_config {
+    metadata = "INCLUDE_ALL_METADATA"
+  }
 }
 
 # Règle pour autoriser HTTP (pour l'API FastAPI)
 # ⚠️ SÉCURITÉ : Utilise la variable allowed_http_ips pour contrôler l'accès
+# ⚠️ SÉCURITÉ CRITIQUE : allowed_http_ips doit être configuré explicitement (liste vide par défaut)
 resource "google_compute_firewall" "allow_http" {
   name    = "${var.network_name}-allow-http"
   network = google_compute_network.vpc_network.name
@@ -48,30 +54,41 @@ resource "google_compute_firewall" "allow_http" {
 
   source_ranges = var.allowed_http_ips
   target_tags   = ["http-server"]
-  description   = "Autorise HTTP/HTTPS pour l'API depuis les IPs configurées"
+  description   = "Autorise HTTP/HTTPS pour l'API depuis les IPs configurées. ⚠️ Configurez allowed_http_ips dans terraform.tfvars"
+  
+  # Activation du logging pour audit de sécurité
+  log_config {
+    metadata = "INCLUDE_ALL_METADATA"
+  }
 }
 
-# Règle pour autoriser le trafic interne
+# Règle pour autoriser le trafic interne (restreinte aux ports nécessaires)
+# ⚠️ SÉCURITÉ : Principe du moindre privilège - uniquement les ports nécessaires
 resource "google_compute_firewall" "allow_internal" {
   name    = "${var.network_name}-allow-internal"
   network = google_compute_network.vpc_network.name
 
+  # ICMP pour ping (utile pour le diagnostic réseau)
   allow {
     protocol = "icmp"
   }
 
+  # TCP : Ports spécifiques uniquement (API et SSH)
   allow {
     protocol = "tcp"
-    ports    = ["0-65535"]
+    ports    = ["8000", "22"] # API FastAPI (8000) et SSH (22)
   }
 
-  allow {
-    protocol = "udp"
-    ports    = ["0-65535"]
-  }
+  # UDP : Pas de ports UDP nécessaires pour cette infrastructure
+  # Si nécessaire, ajoutez des ports spécifiques ici
 
   source_ranges = ["10.0.1.0/24"]
-  description   = "Autorise tout le trafic interne au sous-réseau"
+  description   = "Autorise le trafic interne restreint (ports 8000, 22, ICMP uniquement)"
+  
+  # Activation du logging pour audit de sécurité
+  log_config {
+    metadata = "INCLUDE_ALL_METADATA"
+  }
 }
 
 # ============================================================================
@@ -109,6 +126,15 @@ resource "google_project_iam_member" "monitoring_writer" {
   member  = "serviceAccount:${google_service_account.api_service_account.email}"
 }
 
+# Rôle pour Secret Manager (accès aux secrets)
+# ⚠️ SÉCURITÉ : Ajouté conditionnellement si secret_manager_api_key_name est configuré
+resource "google_project_iam_member" "secret_manager_accessor" {
+  count   = var.secret_manager_api_key_name != "" ? 1 : 0
+  project = var.project_id
+  role    = "roles/secretmanager.secretAccessor"
+  member  = "serviceAccount:${google_service_account.api_service_account.email}"
+}
+
 # ============================================================================
 # BUCKET GCS POUR LES MODÈLES
 # ============================================================================
@@ -116,7 +142,7 @@ resource "google_project_iam_member" "monitoring_writer" {
 resource "google_storage_bucket" "models_bucket" {
   name          = var.bucket_name != "" ? var.bucket_name : "${var.project_id}-ml-models"
   location      = var.region
-  force_destroy = true # Permet la suppression même si le bucket contient des objets
+  force_destroy = var.force_destroy_bucket # ⚠️ SÉCURITÉ : Configurable via variable (false par défaut)
 
   uniform_bucket_level_access = true
 
@@ -179,28 +205,23 @@ resource "google_compute_instance" "api_server" {
     email  = google_service_account.api_service_account.email
     # ⚠️ SÉCURITÉ : Scopes spécifiques au lieu de "cloud-platform" (accès complet)
     # cloud-platform donne accès à TOUS les services GCP - trop large !
-    scopes = [
+    scopes = concat([
       "https://www.googleapis.com/auth/devstorage.read_write", # GCS (lecture/écriture)
       "https://www.googleapis.com/auth/logging.write",         # Logs
       "https://www.googleapis.com/auth/monitoring.write"       # Monitoring
-    ]
+    ], var.secret_manager_api_key_name != "" ? [
+      "https://www.googleapis.com/auth/cloud-platform"         # Secret Manager (nécessite cloud-platform pour les secrets)
+    ] : [])
   }
 
   metadata = {
-    startup-script = <<-EOF
-      #!/bin/bash
-      # Script de démarrage pour installer Docker et l'API
-      apt-get update
-      apt-get install -y docker.io docker-compose
-      systemctl start docker
-      systemctl enable docker
-      
-      # Ajouter l'utilisateur au groupe docker
-      usermod -aG docker $USER
-      
-      # Logs
-      echo "VM démarrée avec succès" >> /var/log/startup.log
-    EOF
+    startup-script = templatefile("${path.root}/scripts/startup-script.sh.tpl", {
+      bucket_name                 = google_storage_bucket.models_bucket.name
+      docker_image                = var.docker_image
+      secret_manager_api_key_name = var.secret_manager_api_key_name
+      project_id                  = var.project_id
+      auto_deploy_api             = var.auto_deploy_api
+    })
   }
 
   labels = var.tags

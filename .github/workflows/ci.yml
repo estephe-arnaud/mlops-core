@@ -36,7 +36,7 @@ jobs:
         run: poetry install --no-interaction --no-root
 
       - name: 🔍 Lint with flake8
-        run: poetry run flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        run: poetry run flake8 . --exclude=.venv,venv,__pycache__,.git,.env,build,dist,*.egg-info,.pytest_cache,.mypy_cache,poetry.lock --count --select=E9,F63,F7,F82 --show-source --statistics
 
       - name: 🎨 Check code formatting with Black
         run: poetry run black --check .

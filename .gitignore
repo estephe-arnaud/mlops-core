@@ -168,6 +168,8 @@ mlruns/
 *.tfstate.*
 *.tfvars
 !terraform.tfvars.example
+backend.tf
+!backend.tf.example
 .terraform/
 .terraform.lock.hcl
 crash.log

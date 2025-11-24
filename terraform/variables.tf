@@ -58,9 +58,9 @@ variable "service_account_name" {
 }
 
 variable "enable_public_ip" {
-  description = "Activer une IP publique pour la VM"
+  description = "Activer une IP publique pour la VM. ⚠️ SÉCURITÉ : Désactivé par défaut. Activez uniquement si nécessaire et utilisez un Load Balancer en production."
   type        = bool
-  default     = true
+  default     = false # ⚠️ SÉCURITÉ : Désactivé par défaut pour réduire la surface d'attaque
 }
 
 variable "allowed_ssh_ips" {
@@ -70,9 +70,15 @@ variable "allowed_ssh_ips" {
 }
 
 variable "allowed_http_ips" {
-  description = "Liste des IPs autorisées pour HTTP/HTTPS (CIDR). Par défaut, toutes les IPs pour une API publique."
+  description = "Liste des IPs autorisées pour HTTP/HTTPS (CIDR). ⚠️ SÉCURITÉ CRITIQUE : Cette variable DOIT être configurée explicitement dans terraform.tfvars. Liste vide par défaut (deny by default). Pour une API publique, utilisez un Load Balancer avec Cloud Armor plutôt que d'exposer directement la VM."
   type        = list(string)
-  default     = ["0.0.0.0/0"] # Pour une API publique. Restreignez si l'API est privée.
+  default     = [] # ⚠️ SÉCURITÉ : Liste vide par défaut (deny by default). Configurez explicitement dans terraform.tfvars. Ne JAMAIS utiliser ["0.0.0.0/0"] en production sans protection (Load Balancer + WAF).
+}
+
+variable "force_destroy_bucket" {
+  description = "Permet la suppression du bucket même s'il contient des objets. ⚠️ DANGEREUX en production - peut causer une perte irréversible de données. Utilisez false en production."
+  type        = bool
+  default     = false # ⚠️ SÉCURITÉ : Désactivé par défaut pour protéger les données
 }
 
 variable "tags" {
@@ -83,4 +89,22 @@ variable "tags" {
     environment = "dev"
     managed_by  = "terraform"
   }
+}
+
+variable "docker_image" {
+  description = "Image Docker complète pour l'API (ex: gcr.io/PROJECT-ID/iris-api:latest ou docker.io/USER/iris-api:latest)"
+  type        = string
+  default     = "iris-api:latest"
+}
+
+variable "secret_manager_api_key_name" {
+  description = "Nom du secret dans Secret Manager pour l'API_KEY. Si vide, l'API_KEY doit être fournie via métadonnées VM (non recommandé)."
+  type        = string
+  default     = ""
+}
+
+variable "auto_deploy_api" {
+  description = "Déployer automatiquement l'API au démarrage de la VM via le startup-script"
+  type        = bool
+  default     = true
 }

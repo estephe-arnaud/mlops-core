@@ -1,284 +1,174 @@
-# 🌸 Projet 1 MLOps : Pipeline Local & CI/CD Complet
+# 🚀 MLOps Core - Pipeline End-to-End
 
-## 📋 Vue d'Ensemble
+Pipeline MLOps complet : De l'entraînement (MLflow) au déploiement (Terraform/GCP) avec versioning DVC et pipeline CI/CD.
 
-**Projet** : API Classification Iris - Formation MLOps (Semaines 1-4)  
-**Technologies** : Python, FastAPI, Docker, GitHub Actions, Terraform, MLflow, DVC  
-**Objectif** : Maîtriser le packaging, les API et l'automatisation de base pour le déploiement de modèles ML  
+## 📋 Vue d'ensemble
 
-## 🎯 Objectifs du Projet 1
+**Projet** : Pipeline MLOps end-to-end de l'entraînement au déploiement en production  
+**Technologies** : Python, FastAPI, MLflow, DVC, Docker, Terraform, GCP, GitHub Actions  
+**Statut** : ✅ Prêt pour la production
 
-Ce projet couvre les **4 premières semaines** de la formation MLOps et vise à :
+## ✨ Fonctionnalités
 
-- ✅ **Semaine 1** : Docker, FastAPI & Tests unitaires
-- ✅ **Semaine 2** : CI/CD avec GitHub Actions  
-- ✅ **Semaine 3** : Infrastructure as Code (Terraform)
-- 🔄 **Semaine 4** : MLOps local (MLflow + DVC)
+- 🔐 **Authentification API** : API keys avec Secret Manager GCP
+- 🛡️ **Sécurité renforcée** : Rate limiting, firewall restrictif, moindre privilège IAM
+- 🚀 **Déploiement automatisé** : Infrastructure as Code avec Terraform
+- 🐳 **Containerisation** : Docker multi-stage optimisé
+- 🔄 **CI/CD** : GitHub Actions pour build/test/push automatique
+- 📊 **Monitoring** : Health checks, logging structuré
 
-## 📊 Résumé du Projet
+## 🏗️ Architecture
 
-**Projet** : API Classification Iris - Semaine 1 MLOps  
-**Technologies** : Python, FastAPI, Docker, Poetry, pytest  
-**Objectif** : Conteneuriser et exposer un modèle ML via API + tests unitaires  
-
-### 📁 Structure Complète
-
-```
-mlops-core/
-├── 📄 Fichiers Principaux
-│   ├── pyproject.toml            # Configuration Poetry (unique)
-│   ├── Dockerfile               # Image Docker
-│   ├── docker-compose.yml       # Orchestration Docker
-│   ├── Makefile                 # Commandes automatisées
-│   ├── .cursorignore            # Configuration Cursor IDE
-│   └── README.md                # Documentation principale
-│
-├── 📦 Code Source
-│   ├── src/
-│   │   ├── application/
-│   │   │   ├── __init__.py
-│   │   │   └── app.py           # API FastAPI principale
-│   │   └── training/
-│   │       ├── __init__.py
-│   │       └── train_model.py   # Script d'entraînement ML
-│
-├── 🧪 Tests
-│   ├── tests/
-│   │   ├── __init__.py
-│   │   ├── test_api.py          # Tests API FastAPI
-│   │   └── test_model.py        # Tests modèle ML
-│
-├── 🛠️ Scripts (optimisés)
-│   ├── scripts/
-│   │   ├── setup.sh      # Installation Poetry
-│   │   └── validate_project.sh  # Validation complète
-│
-├── ⚙️ Configuration
-│   ├── .gitignore              # Fichiers ignorés Git
-│   ├── .dockerignore           # Fichiers ignorés Docker
-│   ├── .cursorignore           # Fichiers ignorés Cursor IDE
-│   └── env.example             # Variables d'environnement
-│
-├── 📚 Documentation
-│   ├── docs/
-│   │   ├── SEMAINE_1.md        # Semaine 1 (terminée)
-│   │   ├── SEMAINE_2.md        # Semaine 2 (planifiée)
-│   │   ├── SEMAINE_3.md        # Semaine 3 (planifiée)
-│   │   └── SEMAINE_4.md        # Semaine 4 (planifiée)
-│   └── env.example             # Template variables
-│
-└── 📦 Modèles (générés)
-    └── models/                  # Modèles sauvegardés
-        ├── iris_model.pkl      # Modèle entraîné
-        └── model_metadata.json # Métadonnées modèle
+```mermaid
+graph TB
+    A[GitHub Repository<br/>Code Source] -->|Push| B[GitHub Actions<br/>CI/CD Pipeline]
+    B -->|Build & Push| C[Docker Registry<br/>GCR/Artifact Registry]
+    B -->|Run Tests| D[Tests Unitaires<br/>pytest]
+    
+    E[Terraform<br/>Infrastructure as Code] -->|Provision| F[GCP Resources]
+    F --> G[VPC Network]
+    F --> H[Compute Engine VM]
+    F --> I[Cloud Storage<br/>Models Bucket]
+    F --> J[Secret Manager<br/>API Keys]
+    
+    C -->|Pull Image| H
+    I -->|Download Models| H
+    J -->|Retrieve Secrets| H
+    
+    H -->|Runs| K[FastAPI Container<br/>Docker]
+    K -->|Serves| L[API Endpoints<br/>/predict, /health]
+    
+    M[Client Applications] -->|HTTPS| L
+    
+    style A fill:#e1f5ff
+    style B fill:#fff4e1
+    style C fill:#e8f5e9
+    style E fill:#f3e5f5
+    style H fill:#ffebee
+    style K fill:#e0f2f1
+    style L fill:#fff9c4
 ```
 
-## 🎓 Compétences Développées
-
-### Docker
-- ✅ Dockerfile optimisé
-- ✅ Gestion des dépendances
-- ✅ Health checks
-- ✅ Variables d'environnement
-
-### FastAPI
-- ✅ API REST moderne
-- ✅ Validation Pydantic
-- ✅ Documentation automatique
-- ✅ Gestion d'erreurs
-
-### Tests
-- ✅ Tests unitaires pytest
-- ✅ Tests d'intégration
-- ✅ Mocks et fixtures
-
-### Poetry
-- ✅ Gestion unique des dépendances
-- ✅ Environnements virtuels
-- ✅ Configuration pyproject.toml
-- ✅ Scripts personnalisés
-
-## 🚀 Démarrage Rapide
+## 🚀 Démarrage rapide
 
 ### Prérequis
 
 - Python 3.11+
-- Poetry (installé automatiquement)
-- Docker
-- Docker Compose (optionnel)
+- Docker & Docker Compose
+- Terraform >= 1.0
+- Google Cloud SDK (pour le déploiement)
 
-### Installation avec Poetry (Recommandé)
+### Installation locale
 
 ```bash
 # Cloner le repository
-git clone https://github.com/estephe-arnaud/mlops-core
+git clone https://github.com/mlarnes/mlops-core
 cd mlops-core
 
-# Installation automatique avec Poetry
+# Installation automatique
 make install
 
 # Entraîner le modèle
 make train
 
-# Lancer l'API
+# Lancer l'API en développement
 make run
 ```
 
-### Avec Docker
+L'API sera disponible sur http://localhost:8000
+
+### Déploiement sur GCP
+
+Voir la [documentation complète de déploiement](./docs/SEMAINE_3.md) pour les instructions détaillées.
+
+**Résumé** :
+1. Configurer `terraform/terraform.tfvars`
+2. Créer le secret API_KEY dans Secret Manager
+3. Uploader le script de déploiement dans GCS
+4. `terraform apply`
+
+## 📡 API Endpoints
+
+| Endpoint | Méthode | Auth | Description |
+|----------|---------|------|-------------|
+| `/` | GET | ❌ | Informations API |
+| `/health` | GET | ❌ | Health check |
+| `/predict` | POST | ✅ | Prédiction iris (rate limit: 10/min) |
+| `/model/info` | GET | ✅ | Informations modèle (rate limit: 20/min) |
+| `/docs` | GET | ❌ | Documentation Swagger |
+
+### Exemple d'utilisation
 
 ```bash
-# Build de l'image
-docker build -t iris-api .
-
-# Lancer le conteneur
-docker run -p 127.0.0.1:8000:8000 iris-api
-
-# Ou avec Docker Compose
-docker-compose up --build
-```
-
-## 📊 API Endpoints
-
-### Documentation Interactive
-- **Swagger UI** : http://localhost:8000/docs
-- **ReDoc** : http://localhost:8000/redoc
-
-### Endpoints Disponibles
-
-| Endpoint | Méthode | Description |
-|----------|---------|-------------|
-| `/` | GET | Informations générales sur l'API |
-| `/health` | GET | État de santé de l'API |
-| `/predict` | POST | Prédiction de la classe d'iris |
-| `/model/info` | GET | Informations sur le modèle |
-
-### Exemple d'Utilisation
-
-```bash
-# Test de santé
+# Health check
 curl http://localhost:8000/health
 
-# Prédiction
+# Prédiction (avec API key)
 curl -X POST "http://localhost:8000/predict" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "sepal_length": 5.1,
-       "sepal_width": 3.5,
-       "petal_length": 1.4,
-       "petal_width": 0.2
-     }'
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-api-key" \
+  -d '{
+    "sepal_length": 5.1,
+    "sepal_width": 3.5,
+    "petal_length": 1.4,
+    "petal_width": 0.2
+  }'
 ```
 
-## 🧪 Tests
-
-### Exécution des Tests
+## 🛠️ Commandes principales
 
 ```bash
-# Avec Make (recommandé)
-make test              # Tous les tests
-
-# Avec Poetry
-poetry run pytest
-poetry run pytest tests/test_api.py
+make install      # Installation complète
+make train        # Entraîner le modèle
+make test         # Exécuter les tests
+make lint         # Vérifier la qualité du code
+make format       # Formater le code
+make run          # Lancer l'API (dev)
+make build        # Build Docker
+make help         # Voir toutes les commandes
 ```
 
-## 🛠️ Commandes Make Disponibles
+## 🔒 Sécurité
 
-Le projet inclut un Makefile avec des commandes utiles :
+- ✅ **Authentification** : API keys via Secret Manager
+- ✅ **Rate limiting** : Protection contre abus (10-30 req/min selon endpoint)
+- ✅ **Firewall** : Deny by default, accès restreint par IP
+- ✅ **IAM** : Principe du moindre privilège
+- ✅ **Secrets** : Aucun secret hardcodé, gestion via Secret Manager
+- ✅ **Logging** : Audit complet des accès
 
-```bash
-# Installation et configuration
-make install          # Installer Poetry et les dépendances
-make dev-setup        # Configuration complète pour le développement
+## 📚 Documentation
 
-# Modèle ML
-make train            # Entraîner le modèle
+- 📖 [Semaine 1 : Docker & FastAPI](./docs/SEMAINE_1.md) - ✅ Terminé
+- 📖 [Semaine 2 : CI/CD GitHub Actions](./docs/SEMAINE_2.md) - ✅ Terminé
+- 📖 [Semaine 3 : Infrastructure Terraform & Déploiement](./docs/SEMAINE_3.md) - ✅ Terminé
+- 📖 [Semaine 4 : MLOps local (MLflow + DVC)](./docs/SEMAINE_4.md) - 📋 Planifié
 
-# Tests
-make test             # Exécuter tous les tests
+## 🏗️ Structure du projet
 
-# API
-make run              # Lancer l'API en mode développement
-make run-prod         # Lancer l'API en mode production
-
-# Docker
-make build            # Construire l'image Docker
-make run-docker       # Lancer avec Docker
-make run-docker-bg    # Lancer avec Docker en arrière-plan
-make stop-docker      # Arrêter le conteneur Docker
-
-# Qualité du code
-make format           # Formater le code (Black + isort)
-make lint             # Vérifier la qualité du code (flake8 + black + isort)
-
-# Nettoyage
-make clean            # Nettoyer les fichiers temporaires
-make clean-models     # Nettoyer les modèles entraînés
-
-# Utilitaires
-make health           # Vérifier la santé de l'API
-make docs             # Afficher les liens de documentation
-make help             # Afficher toutes les commandes
+```
+mlops-core/
+├── src/                    # Code source
+│   ├── application/        # API FastAPI
+│   └── training/           # Scripts d'entraînement
+├── tests/                  # Tests unitaires
+├── scripts/                # Scripts utilitaires & déploiement
+├── terraform/              # Infrastructure as Code
+├── docs/                   # Documentation détaillée
+└── models/                 # Modèles ML (gitignored)
 ```
 
-## 📚 Documentation par Semaine
+## 🔗 Ressources
 
-### 🟢 [Semaine 1 : Docker, FastAPI & Tests](./docs/SEMAINE_1.md)
-- **Objectif** : Conteneuriser et exposer un modèle ML localement via API + premiers tests unitaires
-- **Technologies** : Docker, FastAPI, pytest
-- **Durée** : 20h
-- **Status** : ✅ **TERMINÉ**
+- [Documentation API](http://localhost:8000/docs)
+- [Guide de déploiement complet](./docs/SEMAINE_3.md)
+- [FastAPI Documentation](https://fastapi.tiangolo.com/)
+- [Terraform GCP Provider](https://registry.terraform.io/providers/hashicorp/google/latest)
 
-### 🟢 [Semaine 2 : CI/CD (GitHub Actions)](./docs/SEMAINE_2.md)
-- **Objectif** : Automatiser le processus de build/test/push de l'image Docker sur push GitHub
-- **Technologies** : GitHub Actions, Docker Registry
-- **Durée** : 20h
-- **Status** : ✅ **TERMINÉ**
+## 📝 Licence
 
-### 🟢 [Semaine 3 : Infrastructure as Code (Terraform)](./docs/SEMAINE_3.md)
-- **Objectif** : Provisionner une infrastructure cloud simple sur GCP via Terraform
-- **Technologies** : Terraform, GCP, IAM
-- **Durée** : 20h
-- **Status** : ✅ **TERMINÉ**
-
-### 🟡 [Semaine 4 : MLOps local (MLflow + DVC)](./docs/SEMAINE_4.md)
-- **Objectif** : Traquer et versionner les expériences ML localement pour la reproductibilité
-- **Technologies** : MLflow, DVC
-- **Durée** : 20h
-- **Status** : 📋 **PLANNIFIÉ**
-
-## 📈 Métriques du Projet
-
-| Catégorie | Quantité |
-|-----------|----------|
-| **Fichiers créés** | 20+ |
-| **Lignes de code** | 1000+ |
-| **Tests unitaires** | 15+ |
-| **Endpoints API** | 4 |
-| **Commandes Make** | 20+ |
-| **Scripts utilitaires** | 2 |
-
-## 🔗 Liens Utiles
-
-- **API** : http://localhost:8000
-- **Documentation** : http://localhost:8000/docs
-- **Santé** : http://localhost:8000/health
-- **ReDoc** : http://localhost:8000/redoc
-
-## 📚 Ressources
-
-- [FastAPI Documentation](https://fastapi.tiangolo.com/fr/)
-- [Docker Getting Started](https://docs.docker.com/get-started/)
-- [pytest Documentation](https://docs.pytest.org/)
-- [scikit-learn Iris Dataset](https://scikit-learn.org/stable/modules/generated/sklearn.datasets.load_iris.html)
-
-## 👥 Auteur
-
-Formation MLOps - Projet 1 (Semaines 1-4)  
-**Objectif** : Maîtriser le packaging, les API et l'automatisation de base pour le déploiement de modèles ML
+Formation MLOps - Projet éducatif
 
 ---
 
-**🎉 Projet 1 en cours de développement !**
-
-Ce projet fait partie de la formation MLOps complète et couvre les fondations essentielles pour le déploiement de modèles ML en production.
+**Status** : ✅ Production-ready | **Version** : 1.0.0
