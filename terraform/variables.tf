@@ -108,3 +108,74 @@ variable "auto_deploy_api" {
   type        = bool
   default     = true
 }
+
+# ============================================================================
+# SECRET MANAGER
+# ============================================================================
+
+variable "create_secret_manager_secret" {
+  description = "Créer le secret Secret Manager via Terraform. Si true, api_key_value doit être fourni (via variable ou data source)."
+  type        = bool
+  default     = false
+}
+
+variable "api_key_value" {
+  description = "Valeur de l'API_KEY pour créer le secret dans Secret Manager. ⚠️ SENSIBLE : Ne pas commiter dans terraform.tfvars. Utilisez une variable d'environnement ou un fichier séparé."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+# ============================================================================
+# KMS (Key Management Service)
+# ============================================================================
+
+variable "enable_kms_encryption" {
+  description = "Activer le chiffrement KMS pour le bucket GCS. Si true, kms_key_name doit être configuré."
+  type        = bool
+  default     = false
+}
+
+variable "kms_key_name" {
+  description = "Nom complet de la clé KMS pour chiffrer le bucket (ex: projects/PROJECT/locations/LOCATION/keyRings/RING/cryptoKeys/KEY). Nécessite enable_kms_encryption = true."
+  type        = string
+  default     = ""
+}
+
+# ============================================================================
+# LOAD BALANCER
+# ============================================================================
+
+variable "enable_load_balancer" {
+  description = "Activer un Load Balancer HTTP(S) pour l'API. Recommandé en production pour remplacer l'IP publique directe."
+  type        = bool
+  default     = false
+}
+
+variable "load_balancer_name" {
+  description = "Nom du Load Balancer"
+  type        = string
+  default     = "mlops-api-lb"
+}
+
+variable "enable_cloud_armor" {
+  description = "Activer Cloud Armor pour protection DDoS sur le Load Balancer. Nécessite enable_load_balancer = true."
+  type        = bool
+  default     = false
+}
+
+# ============================================================================
+# MONITORING
+# ============================================================================
+
+variable "enable_monitoring_alerts" {
+  description = "Activer les alertes Cloud Monitoring pour la VM"
+  type        = bool
+  default     = false
+}
+
+variable "notification_channels" {
+  description = "Liste des canaux de notification pour les alertes (ex: emails). Format: [\"email:admin@example.com\"]"
+  type        = list(string)
+  default     = []
+}

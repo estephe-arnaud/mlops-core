@@ -56,31 +56,36 @@ Ce guide complet vous accompagne dans la compréhension, la sécurisation et le 
 
 ## 📊 État Actuel du Projet
 
-### Score Global de Préparation : **7.5/10**
+### Score Global de Préparation : **9/10** ✅
 
 | Catégorie | Score | Statut |
 |-----------|-------|--------|
-| **Sécurité** | 8/10 | ✅ Excellente |
-| **Configuration** | 7/10 | ✅ Bonne |
-| **Déploiement** | 6/10 | ⚠️ Nécessite amélioration |
-| **Monitoring** | 5/10 | ⚠️ À améliorer |
+| **Sécurité** | 9/10 | ✅ Excellente |
+| **Configuration** | 9/10 | ✅ Excellente |
+| **Déploiement** | 9/10 | ✅ Excellent |
+| **Monitoring** | 8/10 | ✅ Très bon |
 
 ### ✅ Points Forts Actuels
 
 1. **Sécurité Réseau** : Firewalls configurés avec "deny by default"
-2. **Authentification API** : Système d'API keys implémenté
+2. **Authentification API** : Système d'API keys implémenté avec Secret Manager
 3. **Rate Limiting** : Protection contre les abus (10 req/min)
 4. **IAM** : Service account avec permissions minimales
 5. **Dockerfile Sécurisé** : Utilisateur non-root
 6. **Logging** : Activé sur les firewalls pour audit
 7. **Variables Sécurisées** : Valeurs par défaut restrictives
+8. **Secret Manager** : Création et gestion via Terraform ✅
+9. **Chiffrement KMS** : Support pour Customer-Managed Encryption Keys ✅
+10. **Load Balancer** : Support avec Cloud Armor pour DDoS protection ✅
+11. **Monitoring** : Alertes Cloud Monitoring configurées ✅
 
-### ⚠️ Points à Améliorer
+### ✅ Améliorations Implémentées
 
-1. **Déploiement Automatique** : Startup script incomplet
-2. **Gestion des Secrets** : Pas d'intégration Secret Manager
-3. **Monitoring** : Pas d'alertes configurées
-4. **Chiffrement** : Pas de KMS explicite pour le bucket
+1. **Déploiement Automatique** : ✅ Startup script complet avec gestion d'erreurs
+2. **Gestion des Secrets** : ✅ Intégration complète Secret Manager via Terraform
+3. **Monitoring** : ✅ Alertes Cloud Monitoring configurées (CPU, mémoire, instance down)
+4. **Chiffrement** : ✅ Support KMS explicite pour le bucket
+5. **Load Balancer** : ✅ Load Balancer HTTP avec Cloud Armor optionnel
 
 ---
 
@@ -117,65 +122,124 @@ Ce guide complet vous accompagne dans la compréhension, la sécurisation et le 
 - ✅ `force_destroy_bucket` : Variable ajoutée, désactivée par défaut
 - ✅ Backend Terraform : Configuration exemple fournie
 
-#### ⚠️ Améliorations Recommandées (Non Implémentées)
+#### ✅ Améliorations Implémentées
 
-**1. Gestion des Secrets avec Secret Manager**
+**1. Gestion des Secrets avec Secret Manager** ✅
 
-**Problème actuel** :
-- L'API_KEY doit être passée via métadonnées VM (non sécurisé)
-- Pas de rotation automatique
+**Implémenté** :
+- ✅ Création du secret Secret Manager via Terraform (`create_secret_manager_secret`)
+- ✅ Accès IAM automatique pour le service account
+- ✅ Support de la création manuelle ou automatique
+- ✅ Variable d'environnement `TF_VAR_api_key_value` pour sécurité maximale
 
-**Solution recommandée** :
-```bash
-# Créer le secret dans Secret Manager
-echo -n "$API_KEY" | gcloud secrets create mlops-api-key \
-  --data-file=- \
-  --replication-policy="automatic"
+**Configuration détaillée** : Voir la section [1.2 Stocker dans Secret Manager](#12-stocker-dans-secret-manager-recommandé) pour les instructions complètes avec les deux options (Terraform ou manuel).
 
-# Donner accès au service account
-gcloud secrets add-iam-policy-binding mlops-api-key \
-  --member="serviceAccount:mlops-api-sa@PROJECT.iam.gserviceaccount.com" \
-  --role="roles/secretmanager.secretAccessor"
-```
+**2. Chiffrement KMS pour le Bucket** ✅
 
-**2. Chiffrement KMS pour le Bucket**
+**Implémenté** :
+- ✅ Support du chiffrement KMS pour le bucket GCS
+- ✅ Variables `enable_kms_encryption` et `kms_key_name`
+- ✅ Configuration dynamique dans le bucket
 
-**Problème actuel** :
-- Utilise le chiffrement par défaut de GCP (acceptable mais pas explicite)
-
-**Solution recommandée** :
+**Configuration** :
 ```hcl
-# Dans terraform/main.tf
-resource "google_storage_bucket" "models_bucket" {
-  # ...
-  encryption {
-    default_kms_key_name = "projects/PROJECT/locations/LOCATION/keyRings/RING/cryptoKeys/KEY"
-  }
-}
+# Dans terraform.tfvars
+enable_kms_encryption = true
+kms_key_name = "projects/PROJECT/locations/LOCATION/keyRings/RING/cryptoKeys/KEY"
 ```
 
-**3. Load Balancer avec Cloud Armor**
+**3. Load Balancer avec Cloud Armor** ✅
 
-**Problème actuel** :
-- API exposée directement via firewall (si IP publique activée)
+**Qu'est-ce qu'un Load Balancer ?**
 
-**Solution recommandée** :
-- Utiliser un Load Balancer GCP avec Cloud Armor
-- Configurer `allowed_http_ips` avec les IPs du Load Balancer : `["130.211.0.0/22", "35.191.0.0/16"]`
+Un **Load Balancer** (répartiteur de charge) est un service qui :
+- ✅ **Reçoit le trafic** des utilisateurs sur une IP publique unique
+- ✅ **Répartit les requêtes** entre plusieurs serveurs (ou instances)
+- ✅ **Vérifie la santé** des serveurs (health checks)
+- ✅ **Améliore la sécurité** en masquant les IPs réelles des serveurs
+- ✅ **Gère la haute disponibilité** : si un serveur tombe, le trafic est redirigé vers les autres
 
-**4. Monitoring et Alertes**
+**Dans notre cas** (avec une seule VM) :
+- Le Load Balancer sert principalement de **point d'entrée sécurisé**
+- Il masque l'IP de la VM (on peut désactiver l'IP publique)
+- Il permet d'ajouter **Cloud Armor** pour la protection DDoS
+- Il facilite l'ajout de nouvelles VMs plus tard (scalabilité)
 
-**Problème actuel** :
-- Pas d'alertes configurées
-- Pas de dashboard de monitoring
+**Architecture** :
+```
+Utilisateurs → Load Balancer (IP publique) → VM (IP privée)
+                ↓
+            Cloud Armor (protection DDoS)
+```
 
-**Solution recommandée** :
-- Configurer Cloud Monitoring
-- Créer des alertes sur :
-  - Tentatives d'accès SSH échouées
-  - Trafic HTTP anormal
-  - Utilisation CPU/Mémoire élevée
-  - Erreurs API
+**Implémenté** :
+- ✅ Load Balancer HTTP avec instance group
+- ✅ Health check configuré
+- ✅ Cloud Armor Security Policy (optionnel)
+- ✅ Firewall rule pour autoriser le trafic du Load Balancer
+
+**Configuration** :
+```hcl
+# Dans terraform.tfvars
+enable_load_balancer = true
+enable_cloud_armor = true
+load_balancer_name = "mlops-api-lb"
+# Désactiver l'IP publique sur la VM (recommandé avec Load Balancer)
+enable_public_ip = false
+# Configurer allowed_http_ips avec les plages IP des Load Balancers GCP
+allowed_http_ips = ["130.211.0.0/22", "35.191.0.0/16"]
+```
+
+**Comment connaître les IPs des Load Balancers GCP** :
+
+Il y a **deux approches** pour configurer `allowed_http_ips` avec un Load Balancer :
+
+**Option 1 : Utiliser les plages IP connues des Load Balancers GCP** ✅ (Recommandé)
+
+Les plages IP suivantes sont **les mêmes pour tous les utilisateurs GCP dans le monde entier**. Ce sont les plages IP réservées par Google Cloud Platform pour leurs Load Balancers HTTP(S) :
+- `130.211.0.0/22` : Plage principale des Load Balancers GCP (globale)
+- `35.191.0.0/16` : Plage secondaire des Load Balancers GCP (globale)
+
+**⚠️ Important** : Ces plages IP sont **identiques pour tous les utilisateurs GCP**, peu importe votre localisation géographique ou votre projet. Tous les Load Balancers HTTP(S) de GCP utilisent des IPs dans ces plages.
+
+**Avantages** :
+- ✅ Fonctionne pour tous les Load Balancers GCP (pas seulement le vôtre)
+- ✅ Pas besoin de connaître l'IP spécifique à l'avance
+- ✅ Plus flexible si vous créez plusieurs Load Balancers
+- ✅ Fonctionne immédiatement, même avant de créer votre Load Balancer
+
+**Option 2 : Utiliser l'IP spécifique du Load Balancer** (Moins flexible)
+
+Si vous préférez utiliser uniquement l'IP de votre Load Balancer :
+
+```bash
+# 1. Après terraform apply, récupérer l'IP du Load Balancer
+cd terraform
+LOAD_BALANCER_IP=$(terraform output -raw load_balancer_ip)
+echo "Load Balancer IP: $LOAD_BALANCER_IP"
+
+# 2. Mettre à jour terraform.tfvars avec cette IP spécifique
+# allowed_http_ips = ["$LOAD_BALANCER_IP/32"]
+```
+
+**⚠️ Note** : L'Option 1 est recommandée car elle est plus simple et fonctionne immédiatement sans connaître l'IP à l'avance.
+
+**4. Monitoring et Alertes** ✅
+
+**Implémenté** :
+- ✅ Alertes Cloud Monitoring pour :
+  - CPU élevé (> 80%)
+  - Mémoire élevée (> 85%)
+  - Instance down
+- ✅ Canaux de notification email
+- ✅ Variables `enable_monitoring_alerts` et `notification_channels`
+
+**Configuration** :
+```hcl
+# Dans terraform.tfvars
+enable_monitoring_alerts = true
+notification_channels = ["email:admin@example.com"]
+```
 
 ---
 
@@ -247,23 +311,48 @@ gcloud version
 
 ### 3. Configurer GCP
 
+**⚠️ IMPORTANT** : Le `project-id` doit être **créé manuellement**. GCP ne génère pas automatiquement de project-id.
+
+**Option A : Créer un nouveau projet** (Recommandé pour commencer)
+
 ```bash
 # Se connecter à GCP
 gcloud auth login
 
-# Créer un projet GCP (ou utiliser un existant)
+# Créer un nouveau projet GCP
+# ⚠️ Le project-id doit être unique globalement et respecter : 6-30 caractères, lettres minuscules, chiffres, tirets
+# Exemple : mlops-project-2024, mon-projet-mlops, etc.
 gcloud projects create votre-projet-id --name="MLOps Project"
 
-# Sélectionner le projet
+# Sélectionner le projet créé
 gcloud config set project votre-projet-id
+```
 
-# Activer les APIs nécessaires
+**Option B : Utiliser un projet existant**
+
+```bash
+# Se connecter à GCP
+gcloud auth login
+
+# Lister les projets disponibles
+gcloud projects list
+
+# Sélectionner un projet existant
+gcloud config set project votre-projet-id-existant
+```
+
+**Ensuite, activer les APIs nécessaires** :
+
+```bash
+# Activer les APIs nécessaires (pour le projet sélectionné)
 gcloud services enable compute.googleapis.com
 gcloud services enable storage-component.googleapis.com
 gcloud services enable iam.googleapis.com
 gcloud services enable secretmanager.googleapis.com
 gcloud services enable containerregistry.googleapis.com
 ```
+
+**Note** : Le `project-id` que vous créez ou sélectionnez sera utilisé dans `terraform.tfvars` (variable `project_id`).
 
 ### 4. Vérifier les Permissions
 
@@ -292,26 +381,23 @@ docker --version
 
 #### 0.2 Configurer GCP
 
-```bash
-# Se connecter à GCP
-gcloud auth login
+Voir la section [Installation et Configuration - 3. Configurer GCP](#3-configurer-gcp) pour les instructions complètes.
 
-# Sélectionner le projet
+**Résumé rapide** :
+```bash
+# Se connecter et sélectionner le projet
+gcloud auth login
 gcloud config set project YOUR-PROJECT-ID
 
-# Activer les APIs nécessaires
-gcloud services enable compute.googleapis.com
-gcloud services enable storage-component.googleapis.com
-gcloud services enable iam.googleapis.com
-gcloud services enable secretmanager.googleapis.com
-gcloud services enable containerregistry.googleapis.com
+# Activer les APIs nécessaires (voir section 3 pour la liste complète)
+gcloud services enable compute.googleapis.com storage-component.googleapis.com iam.googleapis.com secretmanager.googleapis.com containerregistry.googleapis.com
 ```
 
 #### 0.3 Vérifier les Permissions
 
-Votre compte doit avoir :
-- `roles/owner` OU
-- `roles/editor` + `roles/iam.securityAdmin` + `roles/storage.admin`
+Voir la section [Installation et Configuration - 4. Vérifier les Permissions](#4-vérifier-les-permissions) pour les détails.
+
+**Résumé** : Votre compte doit avoir `roles/owner` OU `roles/editor` + `roles/iam.securityAdmin` + `roles/storage.admin`
 
 ---
 
@@ -319,27 +405,160 @@ Votre compte doit avoir :
 
 #### 1.1 Générer l'API Key
 
+**⚠️ IMPORTANT** : Générez l'API_KEY une seule fois au début. Cette clé sera utilisée dans les étapes suivantes.
+
 ```bash
 # Générer une clé API sécurisée (32 bytes = 64 caractères hex)
 API_KEY=$(openssl rand -hex 32)
 echo "API_KEY=$API_KEY"
-# ⚠️ SAUVEGARDEZ cette clé dans un endroit sûr !
+echo "⚠️ SAUVEGARDEZ cette clé dans un endroit sûr (password manager, etc.) !"
 ```
+
+**Note** : Cette clé sera utilisée dans l'étape 1.2 pour créer le secret dans Secret Manager.
 
 #### 1.2 Stocker dans Secret Manager (Recommandé)
 
+Vous avez deux options pour stocker l'API_KEY générée en 1.1 dans Secret Manager. Choisissez celle qui correspond le mieux à votre workflow.
+
+---
+
+##### **Option A : Création via Terraform (Recommandé)** ✅
+
+Cette option permet de créer et gérer le secret entièrement via Terraform, avec une meilleure traçabilité et automatisation.
+
+**Avantages** :
+- ✅ Gestion complète via Infrastructure as Code
+- ✅ Accès IAM configuré automatiquement
+- ✅ Traçabilité dans le state Terraform
+- ✅ Pas d'actions manuelles nécessaires
+
+**Méthode recommandée : Variable d'environnement** 🔒
+
+⚠️ **SÉCURITÉ CRITIQUE** : Ne JAMAIS mettre l'API_KEY directement dans `terraform.tfvars` (risque de commit accidentel).
+
 ```bash
-# Créer le secret
+# Utiliser l'API_KEY générée en 1.1
+# Exporter comme variable d'environnement Terraform
+export TF_VAR_api_key_value="$API_KEY"
+
+# Vérifier que la variable est bien définie
+echo "Variable définie : ${TF_VAR_api_key_value:0:10}..."  # Affiche seulement les 10 premiers caractères
+```
+
+**Configuration dans `terraform.tfvars`** :
+
+```hcl
+# Création du secret via Terraform
+create_secret_manager_secret = true
+secret_manager_api_key_name = "mlops-api-key"
+
+# ⚠️ api_key_value n'est PAS dans terraform.tfvars
+# Elle vient de la variable d'environnement TF_VAR_api_key_value
+```
+
+**Explication** :
+- Terraform lit automatiquement les variables d'environnement préfixées par `TF_VAR_`
+- `TF_VAR_api_key_value` sera utilisé pour créer le secret lors de `terraform apply`
+- La clé n'apparaît jamais dans les fichiers versionnés
+- Terraform créera automatiquement :
+  - Le secret dans Secret Manager
+  - La version du secret avec la valeur
+  - L'accès IAM pour le service account (`roles/secretmanager.secretAccessor`)
+
+**Alternative : Fichier séparé non versionné** (Moins recommandé)
+
+Si vous préférez utiliser un fichier (acceptable mais moins sécurisé) :
+
+```bash
+# 1. Créer un fichier secrets.tfvars (DOIT être dans .gitignore)
+cat > terraform/secrets.tfvars <<EOF
+api_key_value = "votre-cle-secrete-ici"
+EOF
+
+# 2. Vérifier que secrets.tfvars est dans .gitignore
+grep -q "secrets.tfvars" .gitignore || echo "secrets.tfvars" >> .gitignore
+
+# 3. Appliquer avec le fichier de secrets
+cd terraform
+terraform apply -var-file=secrets.tfvars
+```
+
+**Dans `terraform.tfvars`** :
+```hcl
+create_secret_manager_secret = true
+secret_manager_api_key_name = "mlops-api-key"
+# api_key_value est dans secrets.tfvars (non versionné)
+```
+
+---
+
+##### **Option B : Création manuelle** 🔧
+
+Cette option permet de créer le secret manuellement avant de déployer l'infrastructure Terraform.
+
+**Avantages** :
+- ✅ Contrôle total sur la création du secret
+- ✅ Peut être fait avant le déploiement Terraform
+- ✅ Utile pour les environnements où Terraform n'a pas accès à Secret Manager
+
+**Inconvénients** :
+- ⚠️ Actions manuelles nécessaires
+- ⚠️ Accès IAM doit être configuré (automatique via Terraform si `secret_manager_api_key_name` est défini)
+
+**Étapes** :
+
+```bash
+# Utiliser l'API_KEY générée en 1.1
+# Créer le secret dans Secret Manager
 echo -n "$API_KEY" | gcloud secrets create mlops-api-key \
   --data-file=- \
   --replication-policy="automatic" \
   --project=YOUR-PROJECT-ID
 
-# Vérifier
-gcloud secrets versions access latest --secret="mlops-api-key"
+# Vérifier que le secret a été créé
+gcloud secrets describe mlops-api-key --project=YOUR-PROJECT-ID
+
+# Vérifier la valeur (optionnel, pour test)
+gcloud secrets versions access latest --secret="mlops-api-key" --project=YOUR-PROJECT-ID
 ```
 
-**Note** : ✅ L'accès IAM au secret pour le service account est **automatiquement configuré par Terraform** si `secret_manager_api_key_name` est défini dans `terraform.tfvars`. Aucune action manuelle requise !
+**Configuration dans `terraform.tfvars`** :
+
+```hcl
+# Référencer le secret existant (ne pas créer)
+secret_manager_api_key_name = "mlops-api-key"
+# create_secret_manager_secret = false (ou omis, false par défaut)
+```
+
+**Note importante** : ✅ L'accès IAM au secret pour le service account est **automatiquement configuré par Terraform** si `secret_manager_api_key_name` est défini dans `terraform.tfvars`. Aucune action manuelle requise pour l'IAM !
+
+**Si vous devez configurer l'accès IAM manuellement** (non recommandé, Terraform le fait automatiquement) :
+
+```bash
+# Récupérer l'email du service account (après terraform apply)
+SERVICE_ACCOUNT=$(cd terraform && terraform output -raw service_account_email)
+
+# Donner accès au secret
+gcloud secrets add-iam-policy-binding mlops-api-key \
+  --member="serviceAccount:$SERVICE_ACCOUNT" \
+  --role="roles/secretmanager.secretAccessor" \
+  --project=YOUR-PROJECT-ID
+```
+
+---
+
+##### **Comparaison des Options**
+
+| Critère | Option A (Terraform) | Option B (Manuel) |
+|---------|---------------------|-------------------|
+| **Automatisation** | ✅ Complète | ⚠️ Partielle |
+| **Traçabilité** | ✅ Dans state Terraform | ⚠️ Manuelle |
+| **Sécurité** | ✅ Variable d'env | ✅ Gcloud CLI |
+| **IAM automatique** | ✅ Oui | ✅ Oui (via Terraform) |
+| **Complexité** | ⭐⭐ Simple | ⭐⭐⭐ Moyenne |
+| **Recommandation** | ✅ **Production** | ⚠️ **Développement/Test** |
+
+**Recommandation** : Utilisez l'**Option A** en production pour une meilleure automatisation et traçabilité.
 
 #### 1.3 Alternative : Variables d'Environnement (Moins Sécurisé)
 
@@ -455,14 +674,16 @@ cp terraform.tfvars.example terraform.tfvars
 
 #### 4.2 Éditer terraform.tfvars
 
-Ouvrez `terraform.tfvars` et configurez les valeurs suivantes :
+Ouvrez `terraform.tfvars` et configurez les valeurs. Le fichier `terraform.tfvars.example` contient des commentaires détaillés pour chaque section.
+
+**⚠️ Variables OBLIGATOIRES à configurer** :
 
 ```hcl
 # ============================================================================
 # CONFIGURATION OBLIGATOIRE
 # ============================================================================
 
-# ID du projet GCP (OBLIGATOIRE)
+# ⚠️ OBLIGATOIRE : ID du projet GCP (créé manuellement)
 project_id = "your-project-id"
 
 # Région et zone
@@ -470,68 +691,79 @@ region = "europe-west1"
 zone   = "europe-west1-a"
 
 # ============================================================================
-# CONFIGURATION DE LA VM
-# ============================================================================
-
-vm_name      = "iris-api-server"
-machine_type = "e2-standard-2"  # ⚠️ En production, utilisez au moins e2-standard-2
-vm_image     = "ubuntu-os-cloud/ubuntu-2204-lts"
-disk_size_gb = 20  # ⚠️ Augmenter pour la production
-
-# ============================================================================
-# CONFIGURATION DU BUCKET
-# ============================================================================
-
-# Nom du bucket (optionnel, sera généré si vide)
-bucket_name = "your-project-id-ml-models"
-
-# ⚠️ SÉCURITÉ : Désactivé par défaut pour protéger les données
-force_destroy_bucket = false
-
-# ============================================================================
 # CONFIGURATION RÉSEAU - SÉCURITÉ CRITIQUE
 # ============================================================================
 
-# IP publique : Désactivée par défaut (recommandé)
-# Activez uniquement si nécessaire et utilisez un Load Balancer en production
-enable_public_ip = false
-
-# ⚠️ SÉCURITÉ CRITIQUE : IPs autorisées pour SSH
-# Liste vide par défaut = deny by default
-# Configurez avec VOS IPs autorisées uniquement
+# ⚠️ OBLIGATOIRE : IPs autorisées pour SSH
+# Pour connaître votre IP publique : curl ifconfig.me
 allowed_ssh_ips = [
   "123.45.67.89/32",  # ⚠️ REMPLACEZ par votre IP publique réelle
 ]
 
-# ⚠️ SÉCURITÉ CRITIQUE : IPs autorisées pour HTTP
-# Liste vide par défaut = deny by default
-# 
+# ⚠️ OBLIGATOIRE : IPs autorisées pour HTTP
 # Option 1 : Si vous utilisez un Load Balancer GCP (RECOMMANDÉ)
 allowed_http_ips = [
-  "130.211.0.0/22",  # IPs des Load Balancers GCP
-  "35.191.0.0/16",   # IPs des Load Balancers GCP
+  "130.211.0.0/22",  # Plages IP des Load Balancers GCP (globales)
+  "35.191.0.0/16",
 ]
 
-# Option 2 : Si vous exposez directement (NON RECOMMANDÉ en production)
+# Option 2 : Si vous exposez directement la VM (NON RECOMMANDÉ)
 # allowed_http_ips = [
 #   "123.45.67.89/32",  # Votre IP uniquement
 # ]
 
 # ============================================================================
-# TAGS
+# CONFIGURATION DU DÉPLOIEMENT DE L'API
 # ============================================================================
 
-tags = {
-  project     = "mlops"
-  environment = "production"
-  managed_by  = "terraform"
-}
+# Image Docker (après build et push)
+docker_image = "gcr.io/your-project-id/iris-api:latest"
+
+# ============================================================================
+# SECRET MANAGER
+# ============================================================================
+
+# Option A : Création via Terraform (Recommandé)
+# 1. Exporter : export TF_VAR_api_key_value="votre-api-key"
+# 2. Configurer :
+create_secret_manager_secret = true
+secret_manager_api_key_name = "mlops-api-key"
+
+# Option B : Secret créé manuellement
+# secret_manager_api_key_name = "mlops-api-key"
+# create_secret_manager_secret = false
 ```
 
-⚠️ **Important** : 
+**Configuration optionnelle** (selon vos besoins) :
+
+```hcl
+# ============================================================================
+# LOAD BALANCER (Recommandé en production)
+# ============================================================================
+enable_load_balancer = true
+enable_cloud_armor = true
+load_balancer_name = "mlops-api-lb"
+# Si Load Balancer activé, désactiver l'IP publique sur la VM
+enable_public_ip = false
+
+# ============================================================================
+# MONITORING (Recommandé en production)
+# ============================================================================
+enable_monitoring_alerts = true
+notification_channels = ["email:admin@example.com"]
+
+# ============================================================================
+# KMS (Recommandé en production)
+# ============================================================================
+enable_kms_encryption = true
+kms_key_name = "projects/your-project-id/locations/europe-west1/keyRings/mlops-keyring/cryptoKeys/mlops-key"
+```
+
+**⚠️ Important** : 
 - Ne commitez JAMAIS `terraform.tfvars` (il est dans `.gitignore`)
-- ⚠️ **OBLIGATOIRE** : Configurez `allowed_ssh_ips` et `allowed_http_ips` avec vos IPs autorisées
-- La liste vide par défaut signifie "deny by default" (aucun accès)
+- ⚠️ **OBLIGATOIRE** : Configurez `project_id`, `allowed_ssh_ips` et `allowed_http_ips`
+- Consultez `terraform.tfvars.example` pour les commentaires détaillés sur chaque option
+- Pour Secret Manager : voir la section [1.2 Stocker dans Secret Manager](#12-stocker-dans-secret-manager-recommandé) pour les instructions complètes
 
 #### 4.3 (Optionnel) Configurer le Backend Terraform
 
@@ -619,6 +851,10 @@ terraform output vm_internal_ip
 # Voir l'IP externe (si activée)
 terraform output vm_external_ip
 
+# Voir l'IP du Load Balancer (si activé)
+terraform output load_balancer_ip
+terraform output load_balancer_url
+
 # Voir la commande SSH
 terraform output vm_ssh_command
 
@@ -628,20 +864,21 @@ terraform output bucket_name
 
 #### 5.5 Accès au Secret Manager
 
-✅ **Automatique** : Si vous avez configuré `secret_manager_api_key_name` dans `terraform.tfvars`, Terraform configure automatiquement l'accès IAM (`roles/secretmanager.secretAccessor`) pour le service account. Aucune action manuelle requise !
+✅ **Configuration automatique** : Terraform configure automatiquement l'accès IAM pour le service account, que vous utilisiez l'Option A (création via Terraform) ou l'Option B (création manuelle).
 
-**Note** : Si vous préférez configurer l'accès manuellement (non recommandé), vous pouvez utiliser :
+**Fonctionnement** : Si `secret_manager_api_key_name` est défini dans `terraform.tfvars`, Terraform ajoute automatiquement le rôle `roles/secretmanager.secretAccessor` au service account et configure les scopes nécessaires. **Aucune action manuelle requise !**
+
+**Vérification** (après `terraform apply`) :
 
 ```bash
-# Récupérer l'email du service account
-SERVICE_ACCOUNT=$(terraform output -raw service_account_email)
-
-# Donner accès au secret (si non configuré dans Terraform)
-gcloud secrets add-iam-policy-binding mlops-api-key \
-  --member="serviceAccount:$SERVICE_ACCOUNT" \
-  --role="roles/secretmanager.secretAccessor" \
-  --project=YOUR-PROJECT-ID
+# Vérifier que le service account a accès au secret
+SERVICE_ACCOUNT=$(cd terraform && terraform output -raw service_account_email)
+gcloud secrets get-iam-policy mlops-api-key \
+  --project=YOUR-PROJECT-ID \
+  | grep "$SERVICE_ACCOUNT"
 ```
+
+**Note** : Pour les détails complets sur la configuration des secrets, voir la section [1.2 Stocker dans Secret Manager](#12-stocker-dans-secret-manager-recommandé).
 
 ---
 
@@ -673,12 +910,19 @@ Assurez-vous que votre `terraform.tfvars` contient :
 # Image Docker complète
 docker_image = "gcr.io/YOUR-PROJECT-ID/iris-api:latest"
 
-# Nom du secret dans Secret Manager
+# Configuration Secret Manager
+# Voir section 1.2 pour les détails complets des deux options
 secret_manager_api_key_name = "mlops-api-key"
+# Option A : create_secret_manager_secret = true (avec TF_VAR_api_key_value exportée)
+# Option B : create_secret_manager_secret = false (secret créé manuellement)
 
 # Déploiement automatique activé
 auto_deploy_api = true
 ```
+
+**Important** : 
+- Si vous utilisez l'**Option A** : Assurez-vous d'avoir exporté `TF_VAR_api_key_value` avant `terraform apply` (voir [section 1.2](#12-stocker-dans-secret-manager-recommandé))
+- Si vous utilisez l'**Option B** : Assurez-vous que le secret `mlops-api-key` existe déjà dans Secret Manager (voir [section 1.2](#12-stocker-dans-secret-manager-recommandé))
 
 #### 6.3 Déploiement Automatique
 
@@ -690,9 +934,9 @@ Si `auto_deploy_api = true` dans `terraform.tfvars`, le startup-script :
 
 **Aucune action manuelle requise !** L'API sera déployée automatiquement au démarrage de la VM.
 
-#### 6.4 Vérifier le Déploiement (Optionnel)
+#### 6.4 Vérifier le Déploiement
 
-Si vous souhaitez vérifier manuellement :
+**Si `auto_deploy_api = true`** : Le déploiement est automatique. Vérifiez simplement que tout fonctionne :
 
 ```bash
 # Se connecter à la VM
@@ -716,11 +960,16 @@ cat /var/log/mlops-deploy.log
 journalctl -u mlops-api -f
 # Ou
 docker compose -f /opt/mlops-api/docker-compose.yml logs -f
+
+# Tester l'API depuis la VM
+curl http://localhost:8000/health
+
+# Tester avec API key
+export API_KEY=$(gcloud secrets versions access latest --secret="mlops-api-key" --project=YOUR-PROJECT-ID)
+curl -H "X-API-Key: $API_KEY" http://localhost:8000/health
 ```
 
-#### 6.5 Déploiement Manuel (Si auto_deploy_api = false)
-
-Si vous avez désactivé le déploiement automatique :
+**Si `auto_deploy_api = false`** : Déploiement manuel requis :
 
 ```bash
 # Se connecter à la VM
@@ -732,25 +981,14 @@ gcloud storage cp "gs://$BUCKET_NAME/scripts/deploy-api.sh" /tmp/deploy-api.sh
 
 # Exporter les variables
 export MODEL_BUCKET="$BUCKET_NAME"
-export API_KEY=$(gcloud secrets versions access latest --secret="mlops-api-key")
+export API_KEY=$(gcloud secrets versions access latest --secret="mlops-api-key" --project=YOUR-PROJECT-ID)
 export DOCKER_IMAGE="gcr.io/YOUR-PROJECT-ID/iris-api:latest"
 
 # Exécuter le script
 sudo bash /tmp/deploy-api.sh
-```
 
-#### 6.4 Vérifier le Déploiement
-
-```bash
 # Vérifier que le container tourne
 docker ps
-
-# Tester l'API depuis la VM
-curl http://localhost:8000/health
-
-# Tester avec API key
-export API_KEY=$(gcloud secrets versions access latest --secret="mlops-api-key")
-curl -H "X-API-Key: $API_KEY" http://localhost:8000/health
 ```
 
 ---
@@ -789,14 +1027,19 @@ done
 
 ```bash
 # Depuis votre machine locale
-# Récupérer l'IP de la VM
-VM_IP=$(cd terraform && terraform output -raw vm_external_ip)
 
-# Si IP publique activée
+# Option 1 : Si IP publique activée sur la VM
+VM_IP=$(cd terraform && terraform output -raw vm_external_ip)
 curl -H "X-API-Key: YOUR-API-KEY" http://$VM_IP:8000/health
 
-# Si Load Balancer configuré
-curl -H "X-API-Key: YOUR-API-KEY" https://your-load-balancer-ip/health
+# Option 2 : Si Load Balancer configuré (RECOMMANDÉ)
+# Récupérer l'IP du Load Balancer
+LOAD_BALANCER_IP=$(cd terraform && terraform output -raw load_balancer_ip)
+curl -H "X-API-Key: YOUR-API-KEY" http://$LOAD_BALANCER_IP/health
+
+# Ou utiliser l'URL complète
+LOAD_BALANCER_URL=$(cd terraform && terraform output -raw load_balancer_url)
+curl -H "X-API-Key: YOUR-API-KEY" $LOAD_BALANCER_URL/health
 ```
 
 #### 7.3 Test d'Authentification
@@ -959,33 +1202,33 @@ gcloud compute ssh iris-api-server \
 
 ### Court Terme (1-2 semaines)
 
-1. **Intégrer Secret Manager dans Terraform**
-   - Créer la ressource Secret Manager via Terraform
-   - Automatiser l'accès depuis le service account
+1. ✅ **Intégrer Secret Manager dans Terraform** - **FAIT**
+   - ✅ Création de la ressource Secret Manager via Terraform
+   - ✅ Automatisation de l'accès depuis le service account
 
 2. **Automatiser le Build/Push Docker**
    - Intégrer avec GitHub Actions
    - Build automatique à chaque push
 
-3. **Améliorer le Startup Script** ✅ **FAIT**
+3. ✅ **Améliorer le Startup Script** - **FAIT**
    - ✅ Script `deploy-api.sh` intégré dans le startup script Terraform via template
    - ✅ Gestion d'erreurs robuste ajoutée
    - ✅ Support de docker compose (plugin) et docker-compose (fallback)
    - ⚠️ **Action requise** : Uploader `scripts/deploy-api.sh` dans GCS avant le déploiement
 
-4. **Configurer Cloud Monitoring**
-   - Alertes sur métriques critiques
-   - Dashboard de monitoring
+4. ✅ **Configurer Cloud Monitoring** - **FAIT**
+   - ✅ Alertes sur métriques critiques (CPU, mémoire, instance down)
+   - 📋 Dashboard de monitoring (à créer manuellement via console GCP)
 
 ### Moyen Terme (1 mois)
 
-5. **Load Balancer avec Cloud Armor**
-   - Implémenter un Load Balancer GCP
-   - Configurer Cloud Armor pour protection DDoS
+5. ✅ **Load Balancer avec Cloud Armor** - **FAIT**
+   - ✅ Load Balancer GCP implémenté
+   - ✅ Cloud Armor configuré pour protection DDoS
 
-6. **Chiffrement KMS**
-   - Configurer Customer-Managed Encryption Keys
-   - Chiffrer le bucket GCS avec KMS
+6. ✅ **Chiffrement KMS** - **FAIT**
+   - ✅ Support Customer-Managed Encryption Keys
+   - ✅ Chiffrement du bucket GCS avec KMS (optionnel)
 
 7. **Backups Automatiques**
    - Configurer des backups réguliers du bucket
@@ -1031,9 +1274,18 @@ gcloud compute ssh iris-api-server \
   - [ ] Projet sélectionné
 
 - [ ] **Secrets**
-  - [ ] API_KEY générée
-  - [ ] API_KEY stockée dans Secret Manager
+  - [ ] API_KEY générée (`openssl rand -hex 32`)
+  - [ ] **Option A (Terraform)** :
+    - [ ] `TF_VAR_api_key_value` exportée comme variable d'environnement
+    - [ ] `create_secret_manager_secret = true` dans terraform.tfvars
+    - [ ] `secret_manager_api_key_name` configuré
+    - [ ] ⚠️ API_KEY **PAS** dans terraform.tfvars
+  - [ ] **OU Option B (Manuel)** :
+    - [ ] Secret créé manuellement via `gcloud secrets create`
+    - [ ] `secret_manager_api_key_name` configuré dans terraform.tfvars
+    - [ ] `create_secret_manager_secret = false` (ou omis)
   - [ ] ✅ Accès IAM configuré automatiquement par Terraform (si `secret_manager_api_key_name` est défini)
+  - [ ] Secret vérifié : `gcloud secrets describe mlops-api-key`
 
 - [ ] **Modèle ML**
   - [ ] Modèle entraîné localement
@@ -1275,10 +1527,10 @@ Ce guide vous a accompagné dans :
 
 ### Prochaines Étapes Recommandées
 
-1. **Implémenter les améliorations court terme** (Secret Manager, monitoring)
-2. **Tester en environnement de staging** avant production
-3. **Configurer le monitoring** et les alertes
-4. **Documenter les procédures** d'urgence
+1. **Tester en environnement de staging** avant production
+2. **Configurer le monitoring** et les alertes (déjà implémenté, à activer via `enable_monitoring_alerts = true`)
+3. **Documenter les procédures** d'urgence
+4. **Automatiser le build/push Docker** via CI/CD
 
 ### Support
 
@@ -1320,8 +1572,9 @@ Pour toute question ou problème :
 | **VPC Network** | ✅ | Réseau privé avec sous-réseau |
 | **Firewall Rules** | ✅ | SSH, HTTP, et trafic interne sécurisés |
 | **IAM** | ✅ | Service Account avec rôles appropriés |
-| **Sécurité** | ✅ | Firewalls restrictifs, authentification API, rate limiting |
-| **Déploiement** | ✅ | Guide complet de déploiement |
+| **Sécurité** | ✅ | Firewalls restrictifs, authentification API, rate limiting, Secret Manager, KMS |
+| **Déploiement** | ✅ | Guide complet de déploiement avec Load Balancer optionnel |
+| **Monitoring** | ✅ | Alertes Cloud Monitoring configurées |
 | **Documentation** | ✅ | Guide complet avec tutoriel pas-à-pas |
 
 ---
@@ -1334,3 +1587,11 @@ Pour toute question ou problème :
 **🎉 Semaine 3 terminée avec succès !**
 
 L'infrastructure Terraform est maintenant complètement configurée, sécurisée et prête pour le déploiement en production sur GCP. L'API est déployée et fonctionnelle avec toutes les mesures de sécurité en place.
+
+**✅ Toutes les améliorations recommandées ont été implémentées** :
+- Secret Manager avec création via Terraform
+- Chiffrement KMS pour le bucket
+- Load Balancer avec Cloud Armor
+- Monitoring avec alertes Cloud Monitoring
+
+Ces fonctionnalités sont activables via des variables dans `terraform.tfvars` (voir `terraform.tfvars.example` pour la configuration).

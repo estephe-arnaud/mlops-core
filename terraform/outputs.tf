@@ -68,3 +68,36 @@ output "zone" {
   description = "Zone des ressources"
   value       = var.zone
 }
+
+# ============================================================================
+# SECRET MANAGER OUTPUTS
+# ============================================================================
+
+output "secret_manager_secret_name" {
+  description = "Nom du secret Secret Manager créé"
+  value       = var.create_secret_manager_secret ? (var.secret_manager_api_key_name != "" ? var.secret_manager_api_key_name : "mlops-api-key") : null
+  sensitive   = false
+}
+
+# ============================================================================
+# LOAD BALANCER OUTPUTS
+# ============================================================================
+
+output "load_balancer_ip" {
+  description = "IP publique du Load Balancer (si activé)"
+  value       = var.enable_load_balancer ? google_compute_global_forwarding_rule.api_forwarding_rule[0].ip_address : null
+}
+
+output "load_balancer_url" {
+  description = "URL du Load Balancer (si activé)"
+  value       = var.enable_load_balancer ? "http://${google_compute_global_forwarding_rule.api_forwarding_rule[0].ip_address}" : null
+}
+
+# ============================================================================
+# MONITORING OUTPUTS
+# ============================================================================
+
+output "monitoring_enabled" {
+  description = "Indique si le monitoring est activé"
+  value       = var.enable_monitoring_alerts
+}

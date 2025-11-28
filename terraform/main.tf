@@ -129,10 +129,34 @@ resource "google_project_iam_member" "monitoring_writer" {
 # Rôle pour Secret Manager (accès aux secrets)
 # ⚠️ SÉCURITÉ : Ajouté conditionnellement si secret_manager_api_key_name est configuré
 resource "google_project_iam_member" "secret_manager_accessor" {
-  count   = var.secret_manager_api_key_name != "" ? 1 : 0
+  count   = var.secret_manager_api_key_name != "" || var.create_secret_manager_secret ? 1 : 0
   project = var.project_id
   role    = "roles/secretmanager.secretAccessor"
   member  = "serviceAccount:${google_service_account.api_service_account.email}"
+}
+
+# ============================================================================
+# SECRET MANAGER
+# ============================================================================
+
+# Création du secret Secret Manager via Terraform (si activé)
+resource "google_secret_manager_secret" "api_key" {
+  count     = var.create_secret_manager_secret ? 1 : 0
+  secret_id = var.secret_manager_api_key_name != "" ? var.secret_manager_api_key_name : "mlops-api-key"
+  project   = var.project_id
+
+  replication {
+    automatic = true
+  }
+
+  labels = var.tags
+}
+
+# Version du secret avec la valeur de l'API_KEY
+resource "google_secret_manager_secret_version" "api_key" {
+  count       = var.create_secret_manager_secret && var.api_key_value != "" ? 1 : 0
+  secret      = google_secret_manager_secret.api_key[0].id
+  secret_data = var.api_key_value
 }
 
 # ============================================================================
@@ -156,6 +180,14 @@ resource "google_storage_bucket" "models_bucket" {
     }
     action {
       type = "Delete"
+    }
+  }
+
+  # Chiffrement KMS (Customer-Managed Encryption Keys)
+  dynamic "encryption" {
+    for_each = var.enable_kms_encryption && var.kms_key_name != "" ? [1] : []
+    content {
+      default_kms_key_name = var.kms_key_name
     }
   }
 
@@ -209,7 +241,7 @@ resource "google_compute_instance" "api_server" {
       "https://www.googleapis.com/auth/devstorage.read_write", # GCS (lecture/écriture)
       "https://www.googleapis.com/auth/logging.write",         # Logs
       "https://www.googleapis.com/auth/monitoring.write"       # Monitoring
-    ], var.secret_manager_api_key_name != "" ? [
+    ], (var.secret_manager_api_key_name != "" || var.create_secret_manager_secret) ? [
       "https://www.googleapis.com/auth/cloud-platform"         # Secret Manager (nécessite cloud-platform pour les secrets)
     ] : [])
   }
@@ -218,7 +250,7 @@ resource "google_compute_instance" "api_server" {
     startup-script = templatefile("${path.root}/scripts/startup-script.sh.tpl", {
       bucket_name                 = google_storage_bucket.models_bucket.name
       docker_image                = var.docker_image
-      secret_manager_api_key_name = var.secret_manager_api_key_name
+      secret_manager_api_key_name = var.create_secret_manager_secret ? (var.secret_manager_api_key_name != "" ? var.secret_manager_api_key_name : "mlops-api-key") : var.secret_manager_api_key_name
       project_id                  = var.project_id
       auto_deploy_api             = var.auto_deploy_api
     })
@@ -228,4 +260,251 @@ resource "google_compute_instance" "api_server" {
 
   # Permet de redémarrer la VM même si elle est arrêtée
   allow_stopping_for_update = true
+}
+
+# ============================================================================
+# LOAD BALANCER ET CLOUD ARMOR
+# ============================================================================
+
+# Instance group pour le Load Balancer
+resource "google_compute_instance_group" "api_instances" {
+  count     = var.enable_load_balancer ? 1 : 0
+  name      = "${var.vm_name}-ig"
+  zone      = var.zone
+  instances = [google_compute_instance.api_server.id]
+
+  named_port {
+    name = "http"
+    port = 8000
+  }
+}
+
+# Health check pour le Load Balancer
+resource "google_compute_health_check" "api_health_check" {
+  count   = var.enable_load_balancer ? 1 : 0
+  name    = "${var.vm_name}-health-check"
+  project = var.project_id
+
+  http_health_check {
+    port         = 8000
+    request_path = "/health"
+  }
+
+  check_interval_sec  = 10
+  timeout_sec         = 5
+  healthy_threshold   = 2
+  unhealthy_threshold = 3
+}
+
+# Backend service
+resource "google_compute_backend_service" "api_backend" {
+  count         = var.enable_load_balancer ? 1 : 0
+  name          = "${var.vm_name}-backend"
+  project       = var.project_id
+  protocol      = "HTTP"
+  port_name     = "http"
+  timeout_sec   = 30
+  health_checks = [google_compute_health_check.api_health_check[0].id]
+
+  backend {
+    group                 = google_compute_instance_group.api_instances[0].id
+    balancing_mode        = "UTILIZATION"
+    capacity_scaler      = 1.0
+    max_utilization      = 0.8
+  }
+
+  # Cloud Armor security policy (si activé)
+  dynamic "security_policy" {
+    for_each = var.enable_load_balancer && var.enable_cloud_armor ? [1] : []
+    content {
+      name = google_compute_security_policy.cloud_armor_policy[0].name
+    }
+  }
+}
+
+# Cloud Armor Security Policy
+resource "google_compute_security_policy" "cloud_armor_policy" {
+  count   = var.enable_load_balancer && var.enable_cloud_armor ? 1 : 0
+  name    = "${var.vm_name}-armor-policy"
+  project = var.project_id
+
+  # Règle par défaut : autoriser tout (peut être restreint)
+  rule {
+    action   = "allow"
+    priority = "2147483647"
+    match {
+      versioned_expr = "SRC_IPS_V1"
+      config {
+        src_ip_ranges = ["*"]
+      }
+    }
+    description = "Règle par défaut : autoriser tout le trafic"
+  }
+
+  # Règle pour bloquer les IPs suspectes (exemple)
+  # rule {
+  #   action   = "deny(403)"
+  #   priority = "1000"
+  #   match {
+  #     versioned_expr = "SRC_IPS_V1"
+  #     config {
+  #       src_ip_ranges = ["1.2.3.4/32"]  # IPs à bloquer
+  #     }
+  #   }
+  #   description = "Bloquer les IPs suspectes"
+  # }
+}
+
+# URL Map
+resource "google_compute_url_map" "api_url_map" {
+  count           = var.enable_load_balancer ? 1 : 0
+  name            = "${var.vm_name}-url-map"
+  project         = var.project_id
+  default_service = google_compute_backend_service.api_backend[0].id
+}
+
+# Target HTTP Proxy
+resource "google_compute_target_http_proxy" "api_proxy" {
+  count   = var.enable_load_balancer ? 1 : 0
+  name    = "${var.vm_name}-http-proxy"
+  project = var.project_id
+  url_map = google_compute_url_map.api_url_map[0].id
+}
+
+# Forwarding Rule (IP publique du Load Balancer)
+resource "google_compute_global_forwarding_rule" "api_forwarding_rule" {
+  count     = var.enable_load_balancer ? 1 : 0
+  name      = var.load_balancer_name
+  project   = var.project_id
+  target    = google_compute_target_http_proxy.api_proxy[0].id
+  port_range = "80"
+  ip_protocol = "TCP"
+}
+
+# Firewall rule pour autoriser le trafic du Load Balancer vers la VM
+resource "google_compute_firewall" "allow_lb_to_vm" {
+  count   = var.enable_load_balancer ? 1 : 0
+  name    = "${var.network_name}-allow-lb"
+  network = google_compute_network.vpc_network.name
+
+  allow {
+    protocol = "tcp"
+    ports    = ["8000"]
+  }
+
+  # IPs des Load Balancers GCP
+  source_ranges = ["130.211.0.0/22", "35.191.0.0/16"]
+  target_tags   = ["http-server"]
+  description   = "Autorise le trafic des Load Balancers GCP vers la VM"
+  
+  log_config {
+    metadata = "INCLUDE_ALL_METADATA"
+  }
+}
+
+# ============================================================================
+# MONITORING ET ALERTES
+# ============================================================================
+
+# Notification Channel (email) - créé si des emails sont fournis
+resource "google_monitoring_notification_channel" "email" {
+  for_each     = var.enable_monitoring_alerts ? toset([for email in var.notification_channels : email if length(email) > 6 && substr(email, 0, 6) == "email:"]) : toset([])
+  display_name = "Email Alert Channel - ${replace(each.value, "email:", "")}"
+  type         = "email"
+  project      = var.project_id
+
+  labels = {
+    email_address = replace(each.value, "email:", "")
+  }
+}
+
+# Alerte : CPU élevé
+resource "google_monitoring_alert_policy" "high_cpu" {
+  count        = var.enable_monitoring_alerts ? 1 : 0
+  display_name = "High CPU Usage - ${var.vm_name}"
+  project      = var.project_id
+  combiner     = "OR"
+
+  conditions {
+    display_name = "CPU usage > 80%"
+
+    condition_threshold {
+      filter          = "resource.type = \"gce_instance\" AND resource.labels.instance_id = \"${google_compute_instance.api_server.instance_id}\""
+      duration        = "300s"
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0.8
+
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_MEAN"
+      }
+    }
+  }
+
+  notification_channels = [for nc in google_monitoring_notification_channel.email : nc.id]
+
+  alert_strategy {
+    auto_close = "1800s"
+  }
+}
+
+# Alerte : Mémoire élevée
+resource "google_monitoring_alert_policy" "high_memory" {
+  count        = var.enable_monitoring_alerts ? 1 : 0
+  display_name = "High Memory Usage - ${var.vm_name}"
+  project      = var.project_id
+  combiner     = "OR"
+
+  conditions {
+    display_name = "Memory usage > 85%"
+
+    condition_threshold {
+      filter          = "resource.type = \"gce_instance\" AND resource.labels.instance_id = \"${google_compute_instance.api_server.instance_id}\""
+      duration        = "300s"
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0.85
+
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_MEAN"
+      }
+    }
+  }
+
+  notification_channels = [for nc in google_monitoring_notification_channel.email : nc.id]
+
+  alert_strategy {
+    auto_close = "1800s"
+  }
+}
+
+# Alerte : Instance down (utilise l'uptime check ou la métrique d'uptime)
+resource "google_monitoring_alert_policy" "instance_down" {
+  count        = var.enable_monitoring_alerts ? 1 : 0
+  display_name = "Instance Down - ${var.vm_name}"
+  project      = var.project_id
+  combiner     = "OR"
+
+  conditions {
+    display_name = "Instance is down"
+
+    condition_threshold {
+      # Utilise la métrique uptime pour détecter si l'instance est down
+      filter          = "resource.type = \"gce_instance\" AND resource.labels.instance_id = \"${google_compute_instance.api_server.instance_id}\" AND metric.type = \"compute.googleapis.com/instance/uptime\""
+      duration        = "300s"
+      comparison      = "COMPARISON_LT"
+      threshold_value = 1
+
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_RATE"
+      }
+    }
+  }
+
+  notification_channels = [for nc in google_monitoring_notification_channel.email : nc.id]
+
+  alert_strategy {
+    auto_close = "3600s"
+  }
 }

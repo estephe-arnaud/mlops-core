@@ -1,21 +1,29 @@
 # 🚀 MLOps Core - Pipeline End-to-End
 
-Pipeline MLOps complet : De l'entraînement (MLflow) au déploiement (Terraform/GCP) avec versioning DVC et pipeline CI/CD.
+Automatisation du cycle: Orchestration, CI/CD, et Observalité du modèle en production.
 
 ## 📋 Vue d'ensemble
 
-**Projet** : Pipeline MLOps end-to-end de l'entraînement au déploiement en production  
+**Projet** : Automatisation complète du cycle de vie ML - Orchestration, CI/CD, et Observalité en production
+
+Ce projet couvre les trois piliers essentiels du MLOps :
+- **🔄 Orchestration** : Infrastructure as Code (Terraform), déploiement automatisé, gestion des ressources GCP
+- **⚙️ CI/CD** : Pipeline GitHub Actions pour build, test et déploiement automatique
+- **📊 Observalité** : Monitoring avec alertes Cloud Monitoring, logging structuré, health checks
+
 **Technologies** : Python, FastAPI, MLflow, DVC, Docker, Terraform, GCP, GitHub Actions  
 **Statut** : ✅ Prêt pour la production
 
 ## ✨ Fonctionnalités
 
-- 🔐 **Authentification API** : API keys avec Secret Manager GCP
+- 🔐 **Authentification API** : API keys avec Secret Manager GCP (création via Terraform)
 - 🛡️ **Sécurité renforcée** : Rate limiting, firewall restrictif, moindre privilège IAM
+- 🔒 **Chiffrement KMS** : Support Customer-Managed Encryption Keys pour le bucket GCS
+- ⚖️ **Load Balancer** : Load Balancer HTTP avec Cloud Armor pour protection DDoS
+- 📊 **Monitoring** : Alertes Cloud Monitoring (CPU, mémoire, instance down)
 - 🚀 **Déploiement automatisé** : Infrastructure as Code avec Terraform
 - 🐳 **Containerisation** : Docker multi-stage optimisé
 - 🔄 **CI/CD** : GitHub Actions pour build/test/push automatique
-- 📊 **Monitoring** : Health checks, logging structuré
 
 ## 🏗️ Architecture
 
@@ -30,6 +38,8 @@ graph TB
     F --> H[Compute Engine VM]
     F --> I[Cloud Storage<br/>Models Bucket]
     F --> J[Secret Manager<br/>API Keys]
+    F --> N[Load Balancer<br/>+ Cloud Armor]
+    F --> O[Cloud Monitoring<br/>Alertes]
     
     C -->|Pull Image| H
     I -->|Download Models| H
@@ -38,7 +48,9 @@ graph TB
     H -->|Runs| K[FastAPI Container<br/>Docker]
     K -->|Serves| L[API Endpoints<br/>/predict, /health]
     
-    M[Client Applications] -->|HTTPS| L
+    M[Client Applications] -->|HTTPS| N
+    N -->|HTTP| L
+    H -->|Metrics| O
     
     style A fill:#e1f5ff
     style B fill:#fff4e1
@@ -82,10 +94,15 @@ L'API sera disponible sur http://localhost:8000
 Voir la [documentation complète de déploiement](./docs/SEMAINE_3.md) pour les instructions détaillées.
 
 **Résumé** :
-1. Configurer `terraform/terraform.tfvars`
-2. Créer le secret API_KEY dans Secret Manager
+1. Configurer `terraform/terraform.tfvars` (voir `terraform/terraform.tfvars.example`)
+2. Optionnel : Créer le secret API_KEY via Terraform (`create_secret_manager_secret = true`)
 3. Uploader le script de déploiement dans GCS
 4. `terraform apply`
+
+**Fonctionnalités optionnelles** :
+- Load Balancer avec Cloud Armor (`enable_load_balancer = true`)
+- Chiffrement KMS (`enable_kms_encryption = true`)
+- Monitoring avec alertes (`enable_monitoring_alerts = true`)
 
 ## 📡 API Endpoints
 
@@ -130,12 +147,15 @@ make help         # Voir toutes les commandes
 
 ## 🔒 Sécurité
 
-- ✅ **Authentification** : API keys via Secret Manager
+- ✅ **Authentification** : API keys via Secret Manager (création via Terraform)
 - ✅ **Rate limiting** : Protection contre abus (10-30 req/min selon endpoint)
 - ✅ **Firewall** : Deny by default, accès restreint par IP
 - ✅ **IAM** : Principe du moindre privilège
 - ✅ **Secrets** : Aucun secret hardcodé, gestion via Secret Manager
+- ✅ **Chiffrement** : Support KMS pour Customer-Managed Encryption Keys
+- ✅ **Load Balancer** : Cloud Armor pour protection DDoS (optionnel)
 - ✅ **Logging** : Audit complet des accès
+- ✅ **Monitoring** : Alertes sur CPU, mémoire, instance down
 
 ## 📚 Documentation
 
