@@ -72,7 +72,8 @@ enable_public_ip = false
 #
 # ⚠️  NE JAMAIS utiliser "0.0.0.0/0" en production (permet SSH depuis n'importe où) !
 allowed_ssh_ips = [
-  # "123.45.67.89/32"  # ⚠️  DÉCOMMENTEZ et REMPLACEZ par votre IP publique réelle !
+  "VOTRE-IP-PUBLIQUE/32",  # ⚠️ REMPLACEZ par votre IP publique réelle (ex: "123.45.67.89/32")
+  # Récupérer votre IP : curl ifconfig.me
 ]
 
 # ⚠️ OBLIGATOIRE : IPs autorisées pour HTTP/HTTPS (CIDR notation)

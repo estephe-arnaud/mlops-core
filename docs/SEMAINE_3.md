@@ -313,69 +313,6 @@ exec -l $SHELL
 gcloud version
 ```
 
-### 3. Configurer GCP
-
-**⚠️ IMPORTANT** : Le `project-id` doit être **créé manuellement**. GCP ne génère pas automatiquement de project-id.
-
-**Option A : Créer un nouveau projet** (Recommandé pour commencer)
-
-```bash
-# Se connecter à GCP
-gcloud auth login
-
-# Créer un nouveau projet GCP
-# ⚠️ Le project-id doit être unique globalement et respecter : 6-30 caractères, lettres minuscules, chiffres, tirets
-# Exemple : mlops-project-2024, mon-projet-mlops, etc.
-gcloud projects create votre-projet-id --name="MLOps Project"
-
-# Sélectionner le projet créé
-gcloud config set project votre-projet-id
-```
-
-**Option B : Utiliser un projet existant**
-
-```bash
-# Se connecter à GCP
-gcloud auth login
-
-# Lister les projets disponibles
-gcloud projects list
-
-# Sélectionner un projet existant
-gcloud config set project votre-projet-id-existant
-```
-
-**Ensuite, activer les APIs nécessaires** :
-
-```bash
-# Activer les APIs nécessaires (pour le projet sélectionné)
-gcloud services enable compute.googleapis.com
-gcloud services enable storage-component.googleapis.com
-gcloud services enable iam.googleapis.com
-gcloud services enable secretmanager.googleapis.com
-gcloud services enable containerregistry.googleapis.com
-gcloud services enable artifactregistry.googleapis.com
-```
-
-**⚠️ IMPORTANT : Authentifier Terraform avec Google Cloud** :
-
-Terraform a besoin d'utiliser les credentials de votre compte pour accéder à GCP. Après `gcloud auth login`, vous devez également configurer l'authentification par défaut pour les applications :
-
-```bash
-# Authentifier Terraform avec Google Cloud
-gcloud auth application-default login
-```
-
-Cette commande configure les credentials par défaut que Terraform utilisera pour s'authentifier auprès de GCP. Vous devrez peut-être ouvrir un navigateur pour confirmer l'authentification.
-
-**Note** : Le `project-id` que vous créez ou sélectionnez sera utilisé dans `terraform.tfvars` (variable `project_id`).
-
-### 4. Vérifier les Permissions
-
-Votre compte doit avoir :
-- `roles/owner` OU
-- `roles/editor` + `roles/iam.securityAdmin` + `roles/storage.admin`
-
 ---
 
 ## 🚀 Tutoriel de Déploiement Complet
@@ -397,26 +334,21 @@ docker --version
 
 #### 0.2 Configurer GCP
 
-Voir la section [Installation et Configuration - 3. Configurer GCP](#3-configurer-gcp) pour les instructions complètes.
-
-**Résumé rapide** :
 ```bash
 # Se connecter et sélectionner le projet
 gcloud auth login
 gcloud config set project YOUR-PROJECT-ID
 
-# ⚠️ Authentifier Terraform avec Google Cloud
+# Authentifier Terraform avec Google Cloud
 gcloud auth application-default login
 
-# Activer les APIs nécessaires (voir section 3 pour la liste complète)
-gcloud services enable compute.googleapis.com storage-component.googleapis.com iam.googleapis.com secretmanager.googleapis.com containerregistry.googleapis.com
+# Activer les APIs nécessaires
+gcloud services enable compute.googleapis.com storage-component.googleapis.com iam.googleapis.com secretmanager.googleapis.com containerregistry.googleapis.com artifactregistry.googleapis.com
 ```
 
 #### 0.3 Vérifier les Permissions
 
-Voir la section [Installation et Configuration - 4. Vérifier les Permissions](#4-vérifier-les-permissions) pour les détails.
-
-**Résumé** : Votre compte doit avoir `roles/owner` OU `roles/editor` + `roles/iam.securityAdmin` + `roles/storage.admin`
+Votre compte doit avoir `roles/owner` OU `roles/editor` + `roles/iam.securityAdmin` + `roles/storage.admin`
 
 ---
 
@@ -638,7 +570,7 @@ gcloud storage ls gs://$BUCKET_NAME/
 docker build -t iris-api:latest .
 
 # Tester localement
-docker run -p 8000:8000 \
+docker run -p 127.0.0.1:8000:8000 \
   -e API_KEY="test-key" \
   -v $(pwd)/models:/app/models \
   iris-api:latest
@@ -716,7 +648,8 @@ zone   = "europe-west1-a"
 # ⚠️ OBLIGATOIRE : IPs autorisées pour SSH
 # Pour connaître votre IP publique : curl ifconfig.me
 allowed_ssh_ips = [
-  "123.45.67.89/32",  # ⚠️ REMPLACEZ par votre IP publique réelle
+  "VOTRE-IP-PUBLIQUE/32",  # ⚠️ REMPLACEZ par votre IP publique réelle (ex: "123.45.67.89/32")
+  # Récupérer votre IP : curl ifconfig.me
 ]
 
 # ⚠️ OBLIGATOIRE : IPs autorisées pour HTTP
