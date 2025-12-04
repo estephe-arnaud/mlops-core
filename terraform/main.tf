@@ -146,7 +146,7 @@ resource "google_secret_manager_secret" "api_key" {
   project   = var.project_id
 
   replication {
-    automatic = true
+    auto {}
   }
 
   labels = var.tags
@@ -247,7 +247,7 @@ resource "google_compute_instance" "api_server" {
   }
 
   metadata = {
-    startup-script = templatefile("${path.root}/scripts/startup-script.sh.tpl", {
+    startup-script = templatefile("${path.module}/../scripts/startup-script.sh.tpl", {
       bucket_name                 = google_storage_bucket.models_bucket.name
       docker_image                = var.docker_image
       secret_manager_api_key_name = var.create_secret_manager_secret ? (var.secret_manager_api_key_name != "" ? var.secret_manager_api_key_name : "mlops-api-key") : var.secret_manager_api_key_name
@@ -314,12 +314,7 @@ resource "google_compute_backend_service" "api_backend" {
   }
 
   # Cloud Armor security policy (si activé)
-  dynamic "security_policy" {
-    for_each = var.enable_load_balancer && var.enable_cloud_armor ? [1] : []
-    content {
-      name = google_compute_security_policy.cloud_armor_policy[0].name
-    }
-  }
+  security_policy = var.enable_load_balancer && var.enable_cloud_armor ? google_compute_security_policy.cloud_armor_policy[0].id : null
 }
 
 # Cloud Armor Security Policy
@@ -429,7 +424,7 @@ resource "google_monitoring_alert_policy" "high_cpu" {
     display_name = "CPU usage > 80%"
 
     condition_threshold {
-      filter          = "resource.type = \"gce_instance\" AND resource.labels.instance_id = \"${google_compute_instance.api_server.instance_id}\""
+      filter          = "resource.type = \"gce_instance\" AND resource.labels.instance_id = \"${google_compute_instance.api_server.instance_id}\" AND metric.type = \"compute.googleapis.com/instance/cpu/utilization\""
       duration        = "300s"
       comparison      = "COMPARISON_GT"
       threshold_value = 0.8
@@ -449,8 +444,11 @@ resource "google_monitoring_alert_policy" "high_cpu" {
 }
 
 # Alerte : Mémoire élevée
+# Note: Désactivée car GCP n'a pas de métrique directe pour le pourcentage de mémoire
+# Pour activer, il faudrait utiliser compute.googleapis.com/instance/memory/balloon/ram_used
+# avec un calcul de ratio (ram_used / ram_size), ce qui nécessite une configuration plus complexe
 resource "google_monitoring_alert_policy" "high_memory" {
-  count        = var.enable_monitoring_alerts ? 1 : 0
+  count        = 0  # Désactivé - métrique de pourcentage non disponible directement
   display_name = "High Memory Usage - ${var.vm_name}"
   project      = var.project_id
   combiner     = "OR"

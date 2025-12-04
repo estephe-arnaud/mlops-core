@@ -21,7 +21,7 @@ project_id = "votre-projet-gcp-id"
 
 # Région et zone GCP
 region = "europe-west1"
-zone   = "europe-west1-a"
+zone   = "europe-west1-b"
 
 # ============================================================================
 # CONFIGURATION DU BUCKET GCS
@@ -33,7 +33,7 @@ bucket_name = ""
 
 # ⚠️ SÉCURITÉ : Désactivé par défaut pour protéger les données
 # Si true, permet la suppression du bucket même s'il contient des objets
-force_destroy_bucket = false
+force_destroy_bucket = true
 
 # ============================================================================
 # CONFIGURATION DE LA VM
@@ -145,12 +145,12 @@ secret_manager_api_key_name = "mlops-api-key"
 # ============================================================================
 
 # Nom du secret dans Secret Manager
-secret_manager_api_key_name = "mlops-api-key"
+# secret_manager_api_key_name = "mlops-api-key"
 
 # Créer le secret via Terraform (Option A)
 # Si true, api_key_value doit être fourni via TF_VAR_api_key_value (variable d'environnement)
 # Si false, le secret doit être créé manuellement (Option B)
-create_secret_manager_secret = false
+# create_secret_manager_secret = false
 
 # ⚠️ SENSIBLE : Ne JAMAIS mettre api_key_value directement ici !
 # Utilisez plutôt : export TF_VAR_api_key_value="votre-cle"

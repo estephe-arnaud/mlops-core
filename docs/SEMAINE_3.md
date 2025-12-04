@@ -140,13 +140,17 @@ Ce guide complet vous accompagne dans la compréhension, la sécurisation et le 
 - ✅ Support du chiffrement KMS pour le bucket GCS
 - ✅ Variables `enable_kms_encryption` et `kms_key_name`
 - ✅ Configuration dynamique dans le bucket
+- ⚠️ **Désactivé par défaut** (`enable_kms_encryption = false`)
 
-**Configuration** :
+**Configuration** (optionnel, pour activer KMS) :
 ```hcl
 # Dans terraform.tfvars
+# ⚠️ Nécessite de créer la clé KMS au préalable et de configurer les permissions
 enable_kms_encryption = true
 kms_key_name = "projects/PROJECT/locations/LOCATION/keyRings/RING/cryptoKeys/KEY"
 ```
+
+**Note** : Par défaut, le bucket utilise le chiffrement géré par Google (GMEK). KMS (Customer-Managed Encryption Keys) est optionnel et nécessite une configuration supplémentaire.
 
 **3. Load Balancer avec Cloud Armor** ✅
 
@@ -350,7 +354,19 @@ gcloud services enable storage-component.googleapis.com
 gcloud services enable iam.googleapis.com
 gcloud services enable secretmanager.googleapis.com
 gcloud services enable containerregistry.googleapis.com
+gcloud services enable artifactregistry.googleapis.com
 ```
+
+**⚠️ IMPORTANT : Authentifier Terraform avec Google Cloud** :
+
+Terraform a besoin d'utiliser les credentials de votre compte pour accéder à GCP. Après `gcloud auth login`, vous devez également configurer l'authentification par défaut pour les applications :
+
+```bash
+# Authentifier Terraform avec Google Cloud
+gcloud auth application-default login
+```
+
+Cette commande configure les credentials par défaut que Terraform utilisera pour s'authentifier auprès de GCP. Vous devrez peut-être ouvrir un navigateur pour confirmer l'authentification.
 
 **Note** : Le `project-id` que vous créez ou sélectionnez sera utilisé dans `terraform.tfvars` (variable `project_id`).
 
@@ -388,6 +404,9 @@ Voir la section [Installation et Configuration - 3. Configurer GCP](#3-configure
 # Se connecter et sélectionner le projet
 gcloud auth login
 gcloud config set project YOUR-PROJECT-ID
+
+# ⚠️ Authentifier Terraform avec Google Cloud
+gcloud auth application-default login
 
 # Activer les APIs nécessaires (voir section 3 pour la liste complète)
 gcloud services enable compute.googleapis.com storage-component.googleapis.com iam.googleapis.com secretmanager.googleapis.com containerregistry.googleapis.com
@@ -753,10 +772,15 @@ enable_monitoring_alerts = true
 notification_channels = ["email:admin@example.com"]
 
 # ============================================================================
-# KMS (Recommandé en production)
+# KMS (Optionnel - Désactivé par défaut)
 # ============================================================================
-enable_kms_encryption = true
-kms_key_name = "projects/your-project-id/locations/europe-west1/keyRings/mlops-keyring/cryptoKeys/mlops-key"
+# ⚠️ KMS est désactivé par défaut. Le bucket utilise le chiffrement géré par Google (GMEK).
+# Pour activer KMS (Customer-Managed Encryption Keys), vous devez :
+# 1. Créer la clé KMS au préalable
+# 2. Configurer les permissions du service account Cloud Storage
+# 3. Décommenter et configurer :
+# enable_kms_encryption = true
+# kms_key_name = "projects/your-project-id/locations/europe-west1/keyRings/mlops-keyring/cryptoKeys/mlops-key"
 ```
 
 **⚠️ Important** : 
@@ -1228,7 +1252,8 @@ gcloud compute ssh iris-api-server \
 
 6. ✅ **Chiffrement KMS** - **FAIT**
    - ✅ Support Customer-Managed Encryption Keys
-   - ✅ Chiffrement du bucket GCS avec KMS (optionnel)
+   - ✅ Chiffrement du bucket GCS avec KMS (optionnel, désactivé par défaut)
+   - ⚠️ Par défaut, le bucket utilise le chiffrement géré par Google (GMEK)
 
 7. **Backups Automatiques**
    - Configurer des backups réguliers du bucket
@@ -1484,6 +1509,17 @@ gcloud services enable compute.googleapis.com
 gcloud services enable storage-component.googleapis.com
 gcloud services enable iam.googleapis.com
 ```
+
+### Erreur Terraform : "Error: google: could not find default credentials"
+
+Cette erreur indique que Terraform ne peut pas s'authentifier avec Google Cloud. Solution :
+
+```bash
+# Authentifier Terraform avec Google Cloud
+gcloud auth application-default login
+```
+
+**Note** : Cette commande doit être exécutée après `gcloud auth login` et configure les credentials par défaut que Terraform utilisera.
 
 ### Erreur Terraform : "Bucket name already exists"
 
