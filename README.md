@@ -6,10 +6,12 @@ Automatisation du cycle: Orchestration, CI/CD, et Observalité du modèle en pro
 
 **Projet** : Automatisation complète du cycle de vie ML - Orchestration, CI/CD, et Observalité en production
 
-Ce projet couvre les trois piliers essentiels du MLOps :
+Ce projet couvre les piliers essentiels du MLOps :
 - **🔄 Orchestration** : Infrastructure as Code (Terraform), déploiement automatisé, gestion des ressources GCP
 - **⚙️ CI/CD** : Pipeline GitHub Actions pour build, test et déploiement automatique
 - **📊 Observalité** : Monitoring avec alertes Cloud Monitoring, logging structuré, health checks
+- **🔬 Expérimentation** : MLflow pour le tracking des expériences ML
+- **📦 Versioning** : DVC pour le versioning des données et la reproductibilité
 
 **Technologies** : Python, FastAPI, MLflow, DVC, Docker, Terraform, GCP, GitHub Actions  
 **Statut** : ✅ Prêt pour la production
@@ -24,6 +26,8 @@ Ce projet couvre les trois piliers essentiels du MLOps :
 - 🚀 **Déploiement automatisé** : Infrastructure as Code avec Terraform
 - 🐳 **Containerisation** : Docker multi-stage optimisé
 - 🔄 **CI/CD** : GitHub Actions pour build/test/push automatique
+- 📊 **MLflow Tracking** : Tracking complet des expériences ML (paramètres, métriques, modèles)
+- 🔄 **DVC Pipeline** : Versioning des données et pipeline reproductible
 
 ## 🏗️ Architecture
 
@@ -134,6 +138,7 @@ curl -X POST "http://localhost:8000/predict" \
 
 ## 🛠️ Commandes principales
 
+### Développement
 ```bash
 make install      # Installation complète
 make train        # Entraîner le modèle
@@ -142,7 +147,25 @@ make lint         # Vérifier la qualité du code
 make format       # Formater le code
 make run          # Lancer l'API (dev)
 make build        # Build Docker
-make help         # Voir toutes les commandes
+```
+
+### MLflow (Semaine 4)
+```bash
+make mlflow-ui           # Lancer l'interface MLflow (http://localhost:5000)
+make mlflow-experiments  # Lister les expériences
+```
+
+### DVC (Semaine 4)
+```bash
+make dvc-init      # Initialiser DVC
+make dvc-repro     # Réexécuter le pipeline complet
+make dvc-status    # Vérifier l'état du pipeline
+make dvc-pipeline  # Visualiser le pipeline
+```
+
+### Aide
+```bash
+make help          # Voir toutes les commandes disponibles
 ```
 
 ## 🔒 Sécurité
@@ -162,28 +185,45 @@ make help         # Voir toutes les commandes
 - 📖 [Semaine 1 : Docker & FastAPI](./docs/SEMAINE_1.md) - ✅ Terminé
 - 📖 [Semaine 2 : CI/CD GitHub Actions](./docs/SEMAINE_2.md) - ✅ Terminé
 - 📖 [Semaine 3 : Infrastructure Terraform & Déploiement](./docs/SEMAINE_3.md) - ✅ Terminé
-- 📖 [Semaine 4 : MLOps local (MLflow + DVC)](./docs/SEMAINE_4.md) - 📋 Planifié
+- 📖 [Semaine 4 : MLOps local (MLflow + DVC)](./docs/SEMAINE_4.md) - ✅ Terminé
 
 ## 🏗️ Structure du projet
 
 ```
 mlops-core/
 ├── src/                    # Code source
-│   ├── application/        # API FastAPI
-│   └── core/              # Scripts d'entraînement
+│   ├── config.py         # Configuration centralisée (Pydantic)
+│   ├── data/             # Préparation des données
+│   ├── models/            # Définitions des modèles
+│   ├── training/          # Entraînement des modèles
+│   ├── evaluation/        # Évaluation des modèles
+│   └── serving/           # API de prédiction (FastAPI)
 ├── tests/                  # Tests unitaires
 ├── scripts/                # Scripts utilitaires & déploiement
 ├── terraform/              # Infrastructure as Code
 ├── docs/                   # Documentation détaillée
-└── models/                 # Modèles ML (gitignored)
+├── data/                   # Données versionnées (DVC)
+│   ├── raw/               # Dataset brut
+│   └── processed/         # Données traitées
+├── models/                 # Modèles ML (gitignored)
+├── mlruns/                 # MLflow tracking (gitignored)
+├── params.yaml            # Paramètres du pipeline (DVC)
+├── dvc.yaml               # Pipeline DVC
+└── .dvc/                   # Configuration DVC
 ```
 
 ## 🔗 Ressources
 
+### Documentation
 - [Documentation API](http://localhost:8000/docs)
 - [Guide de déploiement complet](./docs/SEMAINE_3.md)
+- [Guide MLflow & DVC](./docs/SEMAINE_4.md)
+
+### Technologies
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
 - [Terraform GCP Provider](https://registry.terraform.io/providers/hashicorp/google/latest)
+- [MLflow Documentation](https://mlflow.org/docs/latest/index.html)
+- [DVC Documentation](https://dvc.org/doc)
 
 ## 📝 Licence
 

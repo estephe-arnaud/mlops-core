@@ -50,12 +50,16 @@
 ```
 mlops-core/
 ├── src/
-│   ├── application/
-│   │   ├── __init__.py
-│   │   └── app.py            # API FastAPI principale
-│   └── core/
-│       ├── __init__.py
-│       └── train_model.py    # Script d'entraînement ML
+│   ├── config.py             # Configuration centralisée
+│   ├── data/
+│   │   └── prepare.py        # Préparation des données
+│   ├── training/
+│   │   └── train.py          # Entraînement du modèle
+│   ├── evaluation/
+│   │   └── evaluate.py       # Évaluation du modèle
+│   └── serving/
+│       ├── app.py            # API FastAPI
+│       └── security.py       # Sécurité API
 ├── pyproject.toml            # Configuration Poetry
 ├── Dockerfile                # Image Docker optimisée
 ├── docker-compose.yml        # Orchestration Docker
@@ -77,7 +81,7 @@ mlops-core/
 
 ### Fichiers Principaux
 
-#### `src/application/app.py` - API FastAPI
+#### `src/serving/app.py` - API FastAPI
 - **Endpoints** : 4 endpoints complets
   - `GET /` : Informations générales
   - `GET /health` : État de santé de l'API
@@ -87,7 +91,7 @@ mlops-core/
 - **Documentation** : Swagger UI (`/docs`) et ReDoc (`/redoc`)
 - **Gestion d'erreurs** : Codes HTTP appropriés (400, 503, etc.)
 
-#### `src/core/train_model.py` - Script d'Entraînement
+#### `src/training/train.py` - Script d'Entraînement
 - **Algorithme** : RandomForestClassifier (100 arbres)
 - **Dataset** : Iris (scikit-learn)
 - **Métriques** : Précision, classification report

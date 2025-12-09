@@ -1,0 +1,35 @@
+# Pipeline DVC pour le projet MLOps
+# Semaine 4 : Versioning des données et reproductibilité
+
+stages:
+  prepare:
+    cmd: poetry run python -m src.data.prepare
+    deps:
+      - src/data/prepare.py
+    outs:
+      - data/raw/iris.csv
+      - data/processed/train.csv
+      - data/processed/test.csv
+    params:
+      - data.test_size
+      - data.random_state
+
+  train:
+    cmd: poetry run python -m src.training.train
+    deps:
+      - data/processed/train.csv
+      - data/processed/test.csv
+      - src/training/train.py
+      - src/evaluation/evaluate.py
+    outs:
+      - models/iris_model.pkl
+      - models/model_metadata.json
+    metrics:
+      - models/model_metadata.json:
+          cache: false
+    params:
+      - train.n_estimators
+      - train.max_depth
+      - train.random_state
+      - train.test_size
+

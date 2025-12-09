@@ -135,7 +135,7 @@ dmypy.json
 # ============================================================================
 
 # Modèles ML
-models/
+/models/
 *.pkl
 *.joblib
 *.h5
@@ -144,7 +144,7 @@ models/
 *.tflite
 
 # Données
-data/
+/data/
 datasets/
 raw_data/
 processed_data/
@@ -158,6 +158,7 @@ mlruns/
 # DVC
 .dvc/
 .dvcignore
+# Note: dvc.lock et params.yaml doivent être versionnés (pas dans .gitignore)
 
 # ============================================================================
 # Terraform

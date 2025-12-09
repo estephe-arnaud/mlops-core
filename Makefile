@@ -1,7 +1,7 @@
 # Makefile pour le projet MLOps - Semaines 1-3
 # Usage: make <command>
 
-.PHONY: help install uninstall train test run build clean format lint ci terraform-init terraform-plan terraform-apply terraform-destroy terraform-output terraform-validate terraform-fmt terraform-refresh
+.PHONY: help install uninstall train test run build clean format lint ci terraform-init terraform-plan terraform-apply terraform-destroy terraform-output terraform-validate terraform-fmt terraform-refresh mlflow-ui mlflow-experiments dvc-init dvc-repro dvc-status dvc-push dvc-pull dvc-pipeline
 
 # Variables
 PYTHON := poetry run python
@@ -50,7 +50,7 @@ uninstall: ## Supprimer l'environnement Poetry
 # Entraînement du modèle
 train: ## Entraîner le modèle ML
 	@echo "🤖 Entraînement du modèle..."
-	$(PYTHON) -m src.core.train_model
+	$(PYTHON) -m src.training.train
 
 # Tests
 test: ## Exécuter tous les tests
@@ -60,11 +60,11 @@ test: ## Exécuter tous les tests
 # API
 run: ## Lancer l'API en mode développement
 	@echo "🚀 Lancement de l'API..."
-	poetry run uvicorn src.application.app:app --reload --host 127.0.0.1 --port 8000
+	poetry run uvicorn src.serving.app:app --reload --host 127.0.0.1 --port 8000
 
 run-prod: ## Lancer l'API en mode production
 	@echo "🚀 Lancement de l'API en production..."
-	poetry run uvicorn src.application.app:app --host 0.0.0.0 --port 8000
+	poetry run uvicorn src.serving.app:app --host 0.0.0.0 --port 8000
 
 # Docker
 build: ## Construire l'image Docker
@@ -166,3 +166,38 @@ terraform-output: ## Afficher les outputs Terraform
 terraform-refresh: ## Rafraîchir l'état Terraform
 	@echo "🔄 Rafraîchissement de l'état Terraform..."
 	@cd terraform && terraform refresh
+
+# MLflow (Semaine 4)
+mlflow-ui: ## Lancer l'interface MLflow UI
+	@echo "📊 Lancement de MLflow UI..."
+	@echo "Interface disponible sur: http://localhost:5000"
+	@poetry run mlflow ui --host 127.0.0.1 --port 5000
+
+mlflow-experiments: ## Lister les expériences MLflow
+	@echo "📊 Expériences MLflow:"
+	@poetry run mlflow experiments list || echo "Aucune expérience trouvée"
+
+# DVC (Semaine 4)
+dvc-init: ## Initialiser DVC dans le projet
+	@echo "🔄 Initialisation de DVC..."
+	@poetry run dvc init || echo "DVC déjà initialisé"
+
+dvc-repro: ## Réexécuter le pipeline DVC
+	@echo "🔄 Réexécution du pipeline DVC..."
+	@poetry run dvc repro
+
+dvc-status: ## Vérifier l'état du pipeline DVC
+	@echo "📊 État du pipeline DVC:"
+	@poetry run dvc status || echo "DVC non initialisé"
+
+dvc-push: ## Pousser les données versionnées (si remote configuré)
+	@echo "📤 Push des données DVC..."
+	@poetry run dvc push || echo "Aucun remote configuré"
+
+dvc-pull: ## Télécharger les données versionnées
+	@echo "📥 Pull des données DVC..."
+	@poetry run dvc pull || echo "Aucun remote configuré"
+
+dvc-pipeline: ## Afficher le pipeline DVC
+	@echo "📊 Pipeline DVC:"
+	@poetry run dvc dag || echo "Pipeline non configuré"

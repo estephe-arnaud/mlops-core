@@ -13,7 +13,8 @@ from typing import Dict, Optional
 import joblib
 import numpy as np
 from fastapi import Depends, FastAPI, HTTPException, Request
-from pydantic import BaseModel, ConfigDict
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
@@ -83,13 +84,47 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# Configuration CORS (à restreindre en production selon vos besoins)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # ⚠️ En production, spécifier les origines autorisées
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
+
+
+# Middleware pour ajouter les headers de sécurité HTTP
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """Ajoute les headers de sécurité HTTP à toutes les réponses"""
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
+
 
 # --- Pydantic models ---
 class IrisFeatures(BaseModel):
-    sepal_length: float
-    sepal_width: float
-    petal_length: float
-    petal_width: float
+    """Modèle Pydantic pour les features Iris avec validation de plage"""
+
+    sepal_length: float = Field(..., ge=0.0, le=20.0, description="Longueur du sépale (0-20 cm)")
+    sepal_width: float = Field(..., ge=0.0, le=20.0, description="Largeur du sépale (0-20 cm)")
+    petal_length: float = Field(..., ge=0.0, le=20.0, description="Longueur du pétale (0-20 cm)")
+    petal_width: float = Field(..., ge=0.0, le=20.0, description="Largeur du pétale (0-20 cm)")
+
+    @field_validator("sepal_length", "sepal_width", "petal_length", "petal_width")
+    @classmethod
+    def validate_not_nan_or_inf(cls, v: float) -> float:
+        """Valide que la valeur n'est pas NaN ou infinie"""
+        if not isinstance(v, (int, float)) or not (v == v):  # NaN check
+            raise ValueError("La valeur ne peut pas être NaN")
+        if abs(v) == float("inf"):
+            raise ValueError("La valeur ne peut pas être infinie")
+        return float(v)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -225,8 +260,9 @@ async def predict_iris(
 
     except Exception as exc:
         logger.exception("Erreur lors de la prédiction : %s", exc)
+        # ⚠️ SÉCURITÉ : Ne pas exposer les détails de l'exception à l'utilisateur
         raise HTTPException(
-            status_code=400, detail=f"Erreur lors de la prédiction : {exc}"
+            status_code=400, detail="Erreur lors de la prédiction. Veuillez vérifier vos données d'entrée."
         )
 
 
@@ -260,3 +296,4 @@ async def model_info(
         if metadata
         else getattr(model, "classes_", []),
     }
+

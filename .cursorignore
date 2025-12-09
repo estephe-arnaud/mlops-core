@@ -81,7 +81,7 @@ venv.bak/
 # MLOps - Modèles ML (générés)
 # ============================================================================
 
-models/
+/models/
 *.pkl
 *.joblib
 *.h5
@@ -92,8 +92,9 @@ models/
 # ============================================================================
 # MLOps - Données (potentiellement volumineuses)
 # ============================================================================
+# Note: data/ ignore seulement le répertoire à la racine, pas src/data/ (code source)
 
-data/
+/data/
 datasets/
 raw_data/
 processed_data/

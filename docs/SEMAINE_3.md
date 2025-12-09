@@ -104,7 +104,7 @@ Ce guide complet vous accompagne dans la compréhension, la sécurisation et le 
 
 **2. Authentification API**
 
-- ✅ Module `src/application/security.py` créé
+- ✅ Module `src/serving/security.py` créé
 - ✅ Vérification de l'API key via header `X-API-Key`
 - ✅ Support pour proxies (X-Forwarded-For, X-Real-IP)
 - ✅ Logging des tentatives d'accès non autorisées
@@ -1381,7 +1381,7 @@ gcloud projects get-iam-policy YOUR-PROJECT-ID \
 
 **Solutions** :
 
-Modifier les limites dans `src/application/app.py` :
+Modifier les limites dans `src/serving/app.py` :
 
 ```python
 # Augmenter la limite
