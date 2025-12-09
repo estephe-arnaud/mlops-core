@@ -27,21 +27,23 @@ def prepare_iris_data(
     """
     Prépare le dataset Iris et le divise en train/test
     Sauvegarde les fichiers dans data/processed/
-    
+
     Args:
         test_size: Proportion du dataset pour le test (surcharge params.yaml si fourni)
         random_state: Graine aléatoire (surcharge params.yaml si fourni)
-    
+
     Returns:
         Tuple[Path, Path]: Chemins vers les fichiers train.csv et test.csv
     """
     config = get_config()
     test_size = test_size if test_size is not None else config.data.test_size
-    random_state = random_state if random_state is not None else config.data.random_state
-    
+    random_state = (
+        random_state if random_state is not None else config.data.random_state
+    )
+
     logger.info("🌱 Chargement du dataset Iris...")
     logger.info(f"   Paramètres: test_size={test_size}, random_state={random_state}")
-    
+
     iris = load_iris()
 
     # Créer un DataFrame
@@ -91,4 +93,3 @@ def prepare_iris_data(
 
 if __name__ == "__main__":
     prepare_iris_data()
-

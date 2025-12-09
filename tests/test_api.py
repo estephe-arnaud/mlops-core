@@ -82,7 +82,7 @@ class TestAPI:
         assert response.status_code == 422  # Validation error
 
     def test_predict_negative_values(self):
-        """Test avec des valeurs négatives (devrait être accepté mais peut donner des prédictions bizarres)"""
+        """Test avec des valeurs négatives (devrait être rejeté par la validation Pydantic)"""
         test_data = {
             "sepal_length": -1.0,
             "sepal_width": 3.5,
@@ -91,16 +91,8 @@ class TestAPI:
         }
 
         response = client.post("/predict", json=test_data)
-        # L'API devrait accepter les valeurs négatives (validation Pydantic)
-        if response.status_code == 200:
-            data = response.json()
-            assert "prediction" in data
-        elif response.status_code == 503:
-            # Modèle non chargé
-            pass
-        else:
-            # Autre erreur
-            assert response.status_code in [200, 503]
+        # L'API devrait rejeter les valeurs négatives (validation Pydantic avec ge=0.0)
+        assert response.status_code == 422  # Validation error
 
     def test_predict_string_values(self):
         """Test avec des valeurs string (devrait échouer)"""

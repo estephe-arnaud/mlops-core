@@ -26,14 +26,14 @@ def evaluate_model(
 ) -> Tuple[Dict, Dict]:
     """
     Évalue un modèle et retourne les métriques et métadonnées
-    
+
     Args:
         model: Modèle entraîné
         X_test: Features de test
         y_test: Labels de test
         iris_metadata: Métadonnées du dataset (feature_names, target_names)
         use_mlflow: Logger les métriques dans MLflow
-        
+
     Returns:
         Tuple[Dict, Dict]: (métriques, métadonnées)
     """
@@ -56,7 +56,11 @@ def evaluate_model(
     logger.info(f"   Recall (weighted): {recall:.3f}")
     logger.info(f"   F1-Score (weighted): {f1:.3f}")
     logger.info("\n📋 Rapport de classification :")
-    logger.info(classification_report(y_test, y_pred, target_names=iris_metadata["target_names"]))
+    logger.info(
+        classification_report(
+            y_test, y_pred, target_names=iris_metadata["target_names"]
+        )
+    )
 
     # Logger les métriques dans MLflow
     if use_mlflow:
@@ -99,4 +103,3 @@ def evaluate_model(
     }
 
     return metrics, metadata
-

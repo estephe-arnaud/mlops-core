@@ -102,7 +102,9 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers[
+        "Strict-Transport-Security"
+    ] = "max-age=31536000; includeSubDomains"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     return response
 
@@ -111,10 +113,18 @@ async def add_security_headers(request: Request, call_next):
 class IrisFeatures(BaseModel):
     """Modèle Pydantic pour les features Iris avec validation de plage"""
 
-    sepal_length: float = Field(..., ge=0.0, le=20.0, description="Longueur du sépale (0-20 cm)")
-    sepal_width: float = Field(..., ge=0.0, le=20.0, description="Largeur du sépale (0-20 cm)")
-    petal_length: float = Field(..., ge=0.0, le=20.0, description="Longueur du pétale (0-20 cm)")
-    petal_width: float = Field(..., ge=0.0, le=20.0, description="Largeur du pétale (0-20 cm)")
+    sepal_length: float = Field(
+        ..., ge=0.0, le=20.0, description="Longueur du sépale (0-20 cm)"
+    )
+    sepal_width: float = Field(
+        ..., ge=0.0, le=20.0, description="Largeur du sépale (0-20 cm)"
+    )
+    petal_length: float = Field(
+        ..., ge=0.0, le=20.0, description="Longueur du pétale (0-20 cm)"
+    )
+    petal_width: float = Field(
+        ..., ge=0.0, le=20.0, description="Largeur du pétale (0-20 cm)"
+    )
 
     @field_validator("sepal_length", "sepal_width", "petal_length", "petal_width")
     @classmethod
@@ -262,7 +272,8 @@ async def predict_iris(
         logger.exception("Erreur lors de la prédiction : %s", exc)
         # ⚠️ SÉCURITÉ : Ne pas exposer les détails de l'exception à l'utilisateur
         raise HTTPException(
-            status_code=400, detail="Erreur lors de la prédiction. Veuillez vérifier vos données d'entrée."
+            status_code=400,
+            detail="Erreur lors de la prédiction. Veuillez vérifier vos données d'entrée.",
         )
 
 
@@ -296,4 +307,3 @@ async def model_info(
         if metadata
         else getattr(model, "classes_", []),
     }
-

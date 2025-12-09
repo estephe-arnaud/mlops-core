@@ -18,15 +18,10 @@ class BaseConfig(BaseModel):
     """Configuration de base avec paramètres communs"""
 
     test_size: float = Field(
-        default=0.2, 
-        gt=0.0, 
-        lt=1.0, 
-        description="Proportion du dataset pour le test"
+        default=0.2, gt=0.0, lt=1.0, description="Proportion du dataset pour le test"
     )
     random_state: int = Field(
-        default=42, 
-        ge=0, 
-        description="Graine aléatoire pour la reproductibilité"
+        default=42, ge=0, description="Graine aléatoire pour la reproductibilité"
     )
 
 
@@ -39,10 +34,11 @@ class DataConfig(BaseConfig):
 class TrainConfig(BaseConfig):
     """Configuration pour l'entraînement du modèle"""
 
-    n_estimators: int = Field(default=100, gt=0, description="Nombre d'arbres dans la forêt")
+    n_estimators: int = Field(
+        default=100, gt=0, description="Nombre d'arbres dans la forêt"
+    )
     max_depth: Optional[int] = Field(
-        default=None,
-        description="Profondeur maximale des arbres (None = illimitée)"
+        default=None, description="Profondeur maximale des arbres (None = illimitée)"
     )
 
 
@@ -120,4 +116,3 @@ def get_config(reload: bool = False) -> Config:
     if _config is None or reload:
         _config = load_config()
     return _config
-

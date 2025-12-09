@@ -33,36 +33,44 @@ def load_data(
 ) -> Tuple[pd.DataFrame, pd.DataFrame, dict]:
     """
     Charge les données depuis CSV (DVC pipeline) ou scikit-learn
-    
+
     Returns:
         Tuple[train_df, test_df, iris_metadata]
     """
     train_path = Path("data/processed/train.csv")
     test_path = Path("data/processed/test.csv")
-    
+
     if train_path.exists() and test_path.exists():
         logger.info("   📂 Chargement depuis les fichiers CSV (DVC pipeline)...")
         train_df = pd.read_csv(train_path)
         test_df = pd.read_csv(test_path)
         iris = load_iris()  # Pour les métadonnées
-        return train_df, test_df, {
-            "feature_names": iris.feature_names.tolist(),
-            "target_names": iris.target_names.tolist(),
-        }
+        return (
+            train_df,
+            test_df,
+            {
+                "feature_names": list(iris.feature_names),
+                "target_names": list(iris.target_names),
+            },
+        )
     else:
         logger.info("   📦 Chargement depuis scikit-learn...")
         iris = load_iris()
         df = pd.DataFrame(iris.data, columns=iris.feature_names)
         df["target"] = iris.target
-        
+
         train_df, test_df = train_test_split(
             df, test_size=test_size, random_state=random_state, stratify=df["target"]
         )
-        
-        return train_df, test_df, {
-            "feature_names": iris.feature_names.tolist(),
-            "target_names": iris.target_names.tolist(),
-        }
+
+        return (
+            train_df,
+            test_df,
+            {
+                "feature_names": list(iris.feature_names),
+                "target_names": list(iris.target_names),
+            },
+        )
 
 
 def train_model(
@@ -87,9 +95,13 @@ def train_model(
         Tuple[RandomForestClassifier, dict]: Modèle entraîné et métadonnées
     """
     config = get_config()
-    n_estimators = n_estimators if n_estimators is not None else config.train.n_estimators
+    n_estimators = (
+        n_estimators if n_estimators is not None else config.train.n_estimators
+    )
     max_depth = max_depth if max_depth is not None else config.train.max_depth
-    random_state = random_state if random_state is not None else config.train.random_state
+    random_state = (
+        random_state if random_state is not None else config.train.random_state
+    )
     test_size = test_size if test_size is not None else config.train.test_size
 
     # Configuration MLflow
@@ -99,10 +111,14 @@ def train_model(
 
     logger.info("🌱 Chargement du dataset Iris...")
     train_df, test_df, iris_metadata = load_data(test_size, random_state)
-    
+
     # Séparer features et target
-    feature_cols = ["sepal length (cm)", "sepal width (cm)", 
-                   "petal length (cm)", "petal width (cm)"]
+    feature_cols = [
+        "sepal length (cm)",
+        "sepal width (cm)",
+        "petal length (cm)",
+        "petal width (cm)",
+    ]
     X_train = train_df[feature_cols].values
     y_train = train_df["target"].values
     X_test = test_df[feature_cols].values
@@ -150,20 +166,29 @@ def train_model(
 
     # Sauvegarde via MLflow
     if use_mlflow:
+        # Créer un exemple d'input pour la signature du modèle
+        # Utiliser le premier échantillon de test comme exemple
+        input_example = X_test[0:1]  # Shape: (1, 4) - un échantillon avec 4 features
+
         mlflow.sklearn.log_model(
-            model, "model", registered_model_name="IrisClassifier"
+            model,
+            "model",
+            registered_model_name="IrisClassifier",
+            input_example=input_example,
         )
-        logger.info("📊 Modèle enregistré dans MLflow")
+        logger.info("📊 Modèle enregistré dans MLflow avec signature")
 
     # Sauvegarde des métadonnées
-    metadata.update({
-        "model_type": "RandomForestClassifier",
-        "n_estimators": n_estimators,
-        "max_depth": max_depth,
-        "random_state": random_state,
-        "n_features": n_features,
-        "n_samples": n_samples,
-    })
+    metadata.update(
+        {
+            "model_type": "RandomForestClassifier",
+            "n_estimators": n_estimators,
+            "max_depth": max_depth,
+            "random_state": random_state,
+            "n_features": n_features,
+            "n_samples": n_samples,
+        }
+    )
 
     metadata_path = models_dir / "model_metadata.json"
     with open(metadata_path, "w", encoding="utf-8") as f:
@@ -182,4 +207,3 @@ def train_model(
 if __name__ == "__main__":
     # Les paramètres seront automatiquement lus depuis params.yaml avec validation
     train_model()
-

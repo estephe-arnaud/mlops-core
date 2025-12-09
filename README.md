@@ -149,13 +149,13 @@ make run          # Lancer l'API (dev)
 make build        # Build Docker
 ```
 
-### MLflow (Semaine 4)
+### MLflow
 ```bash
 make mlflow-ui           # Lancer l'interface MLflow (http://localhost:5000)
 make mlflow-experiments  # Lister les expériences
 ```
 
-### DVC (Semaine 4)
+### DVC
 ```bash
 make dvc-init      # Initialiser DVC
 make dvc-repro     # Réexécuter le pipeline complet

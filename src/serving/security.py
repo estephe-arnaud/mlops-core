@@ -107,4 +107,3 @@ def get_remote_address(request: Request) -> str:
         return request.client.host
 
     return "unknown"
-
