@@ -144,10 +144,7 @@ dmypy.json
 *.tflite
 
 # Données
-*.csv
-datasets/
-raw_data/
-processed_data/
+/data/
 
 # Logs
 logs/
@@ -157,8 +154,6 @@ mlruns/
 
 # DVC
 .dvc/
-.dvcignore
-# Note: dvc.lock et params.yaml doivent être versionnés (pas dans .gitignore)
 
 # ============================================================================
 # Terraform
