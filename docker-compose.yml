@@ -4,10 +4,6 @@ services:
   iris-api:
     build: .
     ports:
-      # Syntaxe: [IP_HÔTE]:[PORT_HÔTE]:[PORT_CONTAINER]
-      # 127.0.0.1 = localhost uniquement (sécurisé)
-      # 8000 (gauche) = port sur la machine hôte
-      # 8000 (droite) = port dans le container
       - "127.0.0.1:8000:8000"
     volumes:
       - ./models:/app/models

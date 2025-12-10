@@ -196,7 +196,7 @@ mlflow-ui: ## Lancer l'interface MLflow UI
 
 mlflow-experiments: ## Lister les expériences MLflow
 	@echo "📊 Expériences MLflow:"
-	@poetry run mlflow experiments list || echo "Aucune expérience trouvée"
+	@poetry run mlflow experiments search 2>/dev/null || echo "Aucune expérience trouvée"
 
 # DVC
 dvc-init: ## Initialiser DVC dans le projet
