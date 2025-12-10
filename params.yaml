@@ -2,12 +2,9 @@
 # Utilisé pour configurer les hyperparamètres et les paramètres de données
 
 data:
-  test_size: 0.2
-  random_state: 42
+  test_size: 0.2  # Proportion du dataset pour le test (0.0 < test_size < 1.0)
+  random_state: 42  # Graine aléatoire pour la reproductibilité
 
 train:
-  n_estimators: 100
-  max_depth: null  # null = illimitée
-  random_state: 42
-  test_size: 0.2
-
+  n_estimators: 100  # Nombre d'arbres dans la forêt (doit être > 0)
+  max_depth: null  # Profondeur maximale des arbres (null = illimitée)

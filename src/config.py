@@ -93,9 +93,12 @@ def load_config(config_path: Optional[str] = None) -> Config:
     except yaml.YAMLError as e:
         logger.error(f"Erreur de parsing YAML: {e}")
         raise
+    except ValidationError as e:
+        logger.error(f"Erreur de validation Pydantic: {e}")
+        raise
     except Exception as e:
-        logger.warning(f"Erreur de validation, utilisation des valeurs par défaut: {e}")
-        return Config()
+        logger.error(f"Erreur inattendue lors du chargement de la configuration: {e}")
+        raise
 
 
 # Instance globale de configuration (chargée au premier import)

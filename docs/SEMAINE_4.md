@@ -114,9 +114,9 @@ stages:
     - src/evaluation/evaluate.py
     outs:
     - models/iris_model.pkl
-    - models/model_metadata.json
+    - models/metadata.json
     metrics:
-    - metrics/accuracy.json
+    - models/metrics.json
 ```
 
 ## 🛠️ Outils à Utiliser
@@ -340,8 +340,8 @@ Le fichier `dvc.yaml` définit le pipeline :
 - Commande : `poetry run python -m src.training.train`
 - Dépendances : `data/processed/train.csv`, `data/processed/test.csv`, `src/training/train.py`, `src/evaluation/evaluate.py`, `src/config.py`
 - Paramètres : `train.n_estimators`, `train.max_depth`, `train.random_state`, `train.test_size` (depuis `params.yaml`)
-- Sorties : `models/iris_model.pkl`, `models/model_metadata.json`
-- Métriques : `models/model_metadata.json`
+- Sorties : `models/iris_model.pkl`, `models/metadata.json`
+- Métriques : `models/metrics.json`
 
 #### Commandes DVC
 

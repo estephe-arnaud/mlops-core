@@ -1,5 +1,4 @@
 # Pipeline DVC pour le projet MLOps
-# Semaine 4 : Versioning des données et reproductibilité
 
 stages:
   prepare:
@@ -23,13 +22,12 @@ stages:
       - src/evaluation/evaluate.py
     outs:
       - models/iris_model.pkl
-      - models/model_metadata.json
+      - models/metadata.json
     metrics:
-      - models/model_metadata.json:
-          cache: false
+      - models/metrics.json
     params:
       - train.n_estimators
       - train.max_depth
-      - train.random_state
-      - train.test_size
+      - data.random_state
+      - data.test_size
 

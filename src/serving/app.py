@@ -39,11 +39,13 @@ async def lifespan(app: FastAPI):
     # Configuration : chemin vers le dossier contenant le modèle (modifiable via ENV)
     model_dir = Path(os.getenv("MODEL_DIR", "models"))
     model_path = model_dir / "iris_model.pkl"
-    metadata_path = model_dir / "model_metadata.json"
+    metadata_path = model_dir / "metadata.json"
+    metrics_path = model_dir / "metrics.json"
 
     # Par défaut on met None (évite globals)
     app.state.model = None
     app.state.metadata = None
+    app.state.metrics = None
 
     try:
         if not model_path.exists():
@@ -53,7 +55,7 @@ async def lifespan(app: FastAPI):
         app.state.model = joblib.load(model_path)
         logger.info("✅ Modèle chargé avec succès : %s", model_path)
 
-        # Chargement des métadatas si présentes
+        # Chargement des métadonnées si présentes
         if metadata_path.exists():
             with metadata_path.open("r", encoding="utf-8") as f:
                 app.state.metadata = json.load(f)
@@ -61,10 +63,19 @@ async def lifespan(app: FastAPI):
         else:
             logger.info("ℹ️ Pas de fichier metadata trouvé à %s", metadata_path)
 
+        # Chargement des métriques si présentes
+        if metrics_path.exists():
+            with metrics_path.open("r", encoding="utf-8") as f:
+                app.state.metrics = json.load(f)
+            logger.info("✅ Métriques chargées : %s", metrics_path)
+        else:
+            logger.info("ℹ️ Pas de fichier metrics trouvé à %s", metrics_path)
+
     except Exception as exc:
         logger.exception("❌ Erreur lors du chargement du modèle/métadonnées : %s", exc)
         app.state.model = None
         app.state.metadata = None
+        app.state.metrics = None
 
     yield  # l'app est maintenant prête
 
@@ -84,10 +95,27 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Configuration CORS (à restreindre en production selon vos besoins)
+# Configuration CORS
+# En production, utilisez une variable d'environnement pour restreindre les origines
+allowed_origins_raw = os.getenv("CORS_ORIGINS", "*")
+environment = os.getenv("ENVIRONMENT", "development").lower()
+
+# ⚠️ SÉCURITÉ : En production, rejeter si CORS_ORIGINS contient "*"
+if environment == "production" and "*" in allowed_origins_raw:
+    logger.critical(
+        "❌ SÉCURITÉ CRITIQUE : CORS autorise toutes les origines en production. "
+        "L'API ne peut pas démarrer. Configurez CORS_ORIGINS avec des origines spécifiques."
+    )
+    raise ValueError(
+        "CORS_ORIGINS ne peut pas contenir '*' en production. "
+        "Configurez des origines spécifiques (ex: 'https://example.com,https://app.example.com')"
+    )
+
+allowed_origins = allowed_origins_raw.split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # ⚠️ En production, spécifier les origines autorisées
+    allow_origins=allowed_origins,
     allow_credentials=False,
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
@@ -285,8 +313,9 @@ async def model_info(
     request: Request,
     api_key: str = Depends(verify_api_key),  # ⚠️ SÉCURITÉ : Authentification requise
 ):
-    """Renvoie les métadonnées du modèle si disponibles"""
+    """Renvoie les métadonnées et métriques du modèle si disponibles"""
     metadata = getattr(request.app.state, "metadata", None)
+    metrics = getattr(request.app.state, "metrics", None)
     model = getattr(request.app.state, "model", None)
 
     if metadata is None and model is None:
@@ -294,16 +323,22 @@ async def model_info(
             status_code=404, detail="Modèle et métadonnées non disponibles"
         )
 
-    # Construction d'une réponse prudente
+    # Construction d'une réponse
+    # Séparation claire : metrics.json = métriques, metadata.json = métadonnées
     return {
+        # Métadonnées du modèle (depuis metadata.json)
         "model_type": metadata.get("model_type")
         if metadata
         else getattr(model, "__class__", "Unknown").__name__,
-        "accuracy": metadata.get("accuracy") if metadata else "Unknown",
         "n_features": metadata.get("n_features") if metadata else "Unknown",
         "n_samples": metadata.get("n_samples") if metadata else "Unknown",
         "feature_names": metadata.get("feature_names", []) if metadata else [],
         "target_names": metadata.get("target_names", [])
         if metadata
         else getattr(model, "classes_", []),
+        # Métriques de performance (depuis metrics.json uniquement)
+        "accuracy": metrics.get("accuracy") if metrics else "Unknown",
+        "precision": metrics.get("precision") if metrics else "Unknown",
+        "recall": metrics.get("recall") if metrics else "Unknown",
+        "f1_score": metrics.get("f1_score") if metrics else "Unknown",
     }

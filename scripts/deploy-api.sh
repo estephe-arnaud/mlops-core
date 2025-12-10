@@ -53,7 +53,8 @@ if [ -n "$MODEL_BUCKET" ]; then
     if command -v gcloud &> /dev/null; then
         echo "Utilisation de gcloud storage..."
         gcloud storage cp "gs://$MODEL_BUCKET/iris_model.pkl" "$APP_DIR/models/" || echo "Modèle non trouvé dans le bucket"
-        gcloud storage cp "gs://$MODEL_BUCKET/model_metadata.json" "$APP_DIR/models/" || echo "Métadonnées non trouvées dans le bucket"
+        gcloud storage cp "gs://$MODEL_BUCKET/metadata.json" "$APP_DIR/models/" || echo "Métadonnées non trouvées dans le bucket"
+        gcloud storage cp "gs://$MODEL_BUCKET/metrics.json" "$APP_DIR/models/" || echo "Métriques non trouvées dans le bucket"
     else
         echo "⚠️  gcloud non trouvé. Installation de gsutil en fallback..."
         apt-get update
@@ -61,7 +62,8 @@ if [ -n "$MODEL_BUCKET" ]; then
             echo "❌ Impossible d'installer gsutil. Le modèle doit être présent localement."
         }
         gsutil cp "gs://$MODEL_BUCKET/iris_model.pkl" "$APP_DIR/models/" || echo "Modèle non trouvé dans le bucket"
-        gsutil cp "gs://$MODEL_BUCKET/model_metadata.json" "$APP_DIR/models/" || echo "Métadonnées non trouvées dans le bucket"
+        gsutil cp "gs://$MODEL_BUCKET/metadata.json" "$APP_DIR/models/" || echo "Métadonnées non trouvées dans le bucket"
+        gsutil cp "gs://$MODEL_BUCKET/metrics.json" "$APP_DIR/models/" || echo "Métriques non trouvées dans le bucket"
     fi
     
     chown -R "$APP_USER:$APP_USER" "$APP_DIR/models"
@@ -85,8 +87,8 @@ services:
     environment:
       - MODEL_DIR=/app/models
       - API_KEY=${API_KEY}
-      - LOG_LEVEL=INFO
       - ENVIRONMENT=production
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s

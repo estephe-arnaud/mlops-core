@@ -76,7 +76,8 @@ mlops-core/
 │
 └── models/                   # Modèles entraînés (générés)
     ├── iris_model.pkl
-    └── model_metadata.json
+    ├── metadata.json
+    └── metrics.json
 ```
 
 ### Fichiers Principaux
@@ -95,7 +96,7 @@ mlops-core/
 - **Algorithme** : RandomForestClassifier (100 arbres)
 - **Dataset** : Iris (scikit-learn)
 - **Métriques** : Précision, classification report
-- **Sauvegarde** : Modèle (.pkl) + métadonnées JSON
+- **Sauvegarde** : Modèle (.pkl) + métadonnées (metadata.json) + métriques (metrics.json)
 - **Précision typique** : ~95%
 
 #### `Dockerfile` - Image Docker

@@ -144,7 +144,7 @@ dmypy.json
 *.tflite
 
 # Données
-/data/
+*.csv
 datasets/
 raw_data/
 processed_data/

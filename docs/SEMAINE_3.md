@@ -535,7 +535,8 @@ make train
 ls -la models/
 # Devrait contenir :
 # - iris_model.pkl
-# - model_metadata.json
+# - metadata.json
+# - metrics.json
 ```
 
 #### 2.2 Uploader vers GCS
@@ -553,7 +554,8 @@ gcloud storage buckets create gs://$BUCKET_NAME \
 
 # Uploader le modèle
 gcloud storage cp models/iris_model.pkl gs://$BUCKET_NAME/
-gcloud storage cp models/model_metadata.json gs://$BUCKET_NAME/
+gcloud storage cp models/metadata.json gs://$BUCKET_NAME/
+gcloud storage cp models/metrics.json gs://$BUCKET_NAME/
 
 # Vérifier
 gcloud storage ls gs://$BUCKET_NAME/
@@ -1366,7 +1368,8 @@ gcloud storage ls gs://YOUR-PROJECT-ID-ml-models/
 
 # Télécharger manuellement
 gcloud storage cp gs://YOUR-PROJECT-ID-ml-models/iris_model.pkl /opt/mlops-api/models/
-gcloud storage cp gs://YOUR-PROJECT-ID-ml-models/model_metadata.json /opt/mlops-api/models/
+gcloud storage cp gs://YOUR-PROJECT-ID-ml-models/metadata.json /opt/mlops-api/models/
+gcloud storage cp gs://YOUR-PROJECT-ID-ml-models/metrics.json /opt/mlops-api/models/
 
 # Vérifier les permissions du service account
 gcloud projects get-iam-policy YOUR-PROJECT-ID \

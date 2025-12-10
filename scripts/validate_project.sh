@@ -98,10 +98,15 @@ if python3 -m src.training.train > /dev/null 2>&1; then
     else
         print_result 1 "Modèle non sauvegardé"
     fi
-    if [ -f "models/model_metadata.json" ]; then
+    if [ -f "models/metadata.json" ]; then
         print_result 0 "Métadonnées sauvegardées"
     else
         print_result 1 "Métadonnées non sauvegardées"
+    fi
+    if [ -f "models/metrics.json" ]; then
+        print_result 0 "Métriques sauvegardées"
+    else
+        print_result 1 "Métriques non sauvegardées"
     fi
 else
     print_result 1 "Échec de l'entraînement du modèle"

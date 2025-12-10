@@ -81,14 +81,19 @@ export DOCKER_IMAGE="${docker_image}"
 echo "Récupération de l'API_KEY depuis Secret Manager: ${secret_manager_api_key_name}"
 export API_KEY=$(gcloud secrets versions access latest --secret="${secret_manager_api_key_name}" --project="${project_id}" 2>/dev/null || echo "")
 if [ -z "$API_KEY" ]; then
-    echo "⚠️  Impossible de récupérer l'API_KEY depuis Secret Manager. L'API fonctionnera sans authentification."
+    echo "❌ ERREUR CRITIQUE : Impossible de récupérer l'API_KEY depuis Secret Manager."
+    echo "   Le secret '${secret_manager_api_key_name}' n'existe pas ou n'est pas accessible."
+    echo "   Vérifiez que le secret existe et que le service account a les permissions nécessaires."
+    exit 1
 fi
+echo "✅ API_KEY récupérée avec succès depuis Secret Manager"
 %{ else ~}
 # API_KEY non configurée via Secret Manager
-# Elle peut être fournie via métadonnées VM (non recommandé) ou laissée vide
+# ⚠️ SÉCURITÉ : En production, l'API_KEY doit être configurée via Secret Manager
+echo "⚠️  API_KEY non configurée via Secret Manager."
+echo "   Pour activer l'authentification en production, configurez secret_manager_api_key_name dans terraform.tfvars"
+echo "   L'API fonctionnera sans authentification (mode développement uniquement)."
 export API_KEY=""
-echo "⚠️  API_KEY non configurée via Secret Manager. L'API fonctionnera sans authentification (mode développement)."
-echo "   Pour activer l'authentification, configurez secret_manager_api_key_name dans terraform.tfvars"
 %{ endif ~}
 
 # Télécharger le script de déploiement depuis GCS

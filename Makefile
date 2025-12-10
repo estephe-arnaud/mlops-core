@@ -1,7 +1,7 @@
 # Makefile pour le projet MLOps - Semaines 1-3
 # Usage: make <command>
 
-.PHONY: help install uninstall train test run build clean format lint ci terraform-init terraform-plan terraform-apply terraform-destroy terraform-output terraform-validate terraform-fmt terraform-refresh mlflow-ui mlflow-experiments dvc-init dvc-repro dvc-status dvc-push dvc-pull dvc-pipeline
+.PHONY: help install uninstall train test run build clean clean-models clean-dvc format lint ci terraform-init terraform-plan terraform-apply terraform-destroy terraform-output terraform-validate terraform-fmt terraform-refresh mlflow-ui mlflow-experiments dvc-init dvc-repro dvc-status dvc-push dvc-pull dvc-pipeline
 
 # Variables
 PYTHON := poetry run python
@@ -109,10 +109,31 @@ clean: ## Nettoyer les fichiers temporaires
 	rm -rf .pytest_cache/
 	rm -rf dist/
 	rm -rf build/
+	@echo "🧹 Nettoyage DVC (fichiers de sortie)..."
+	rm -rf data/
+	rm -rf models/
+	@echo "🧹 Nettoyage MLflow..."
+	rm -rf mlruns/
+	@echo "🧹 Nettoyage cache DVC..."
+	rm -rf .dvc/cache
+	@echo "   Suppression du lock DVC..."
+	rm -f dvc.lock
+	@echo "✅ Nettoyage terminé !"
 
 clean-models: ## Nettoyer les modèles entraînés
 	@echo "🧹 Nettoyage des modèles..."
 	rm -rf models/
+
+clean-dvc: ## Nettoyer complètement DVC (cache + fichiers générés)
+	@echo "🧹 Nettoyage complet DVC..."
+	@echo "   Suppression des fichiers de sortie..."
+	rm -rf data/
+	rm -rf models/
+	@echo "   Suppression du cache DVC..."
+	rm -rf .dvc/cache
+	@echo "   Suppression du lock DVC..."
+	rm -f dvc.lock
+	@echo "✅ Nettoyage DVC terminé !"
 
 # Développement
 dev-setup: install train ## Configuration complète pour le développement
@@ -167,7 +188,7 @@ terraform-refresh: ## Rafraîchir l'état Terraform
 	@echo "🔄 Rafraîchissement de l'état Terraform..."
 	@cd terraform && terraform refresh
 
-# MLflow (Semaine 4)
+# MLflow
 mlflow-ui: ## Lancer l'interface MLflow UI
 	@echo "📊 Lancement de MLflow UI..."
 	@echo "Interface disponible sur: http://localhost:5000"
@@ -177,7 +198,7 @@ mlflow-experiments: ## Lister les expériences MLflow
 	@echo "📊 Expériences MLflow:"
 	@poetry run mlflow experiments list || echo "Aucune expérience trouvée"
 
-# DVC (Semaine 4)
+# DVC
 dvc-init: ## Initialiser DVC dans le projet
 	@echo "🔄 Initialisation de DVC..."
 	@poetry run dvc init || echo "DVC déjà initialisé"

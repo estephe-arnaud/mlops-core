@@ -33,7 +33,8 @@ bucket_name = ""
 
 # ⚠️ SÉCURITÉ : Désactivé par défaut pour protéger les données
 # Si true, permet la suppression du bucket même s'il contient des objets
-force_destroy_bucket = true
+# ⚠️ DANGEREUX en production - peut causer une perte irréversible de données
+force_destroy_bucket = false
 
 # ============================================================================
 # CONFIGURATION DE LA VM

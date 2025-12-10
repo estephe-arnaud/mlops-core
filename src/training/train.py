@@ -40,22 +40,20 @@ def load_data(
     train_path = Path("data/processed/train.csv")
     test_path = Path("data/processed/test.csv")
 
+    # Charger les métadonnées Iris une seule fois (utilisées dans les deux cas)
+    iris = load_iris()
+    iris_metadata = {
+        "feature_names": list(iris.feature_names),
+        "target_names": list(iris.target_names),
+    }
+
     if train_path.exists() and test_path.exists():
         logger.info("   📂 Chargement depuis les fichiers CSV (DVC pipeline)...")
         train_df = pd.read_csv(train_path)
         test_df = pd.read_csv(test_path)
-        iris = load_iris()  # Pour les métadonnées
-        return (
-            train_df,
-            test_df,
-            {
-                "feature_names": list(iris.feature_names),
-                "target_names": list(iris.target_names),
-            },
-        )
+        return train_df, test_df, iris_metadata
     else:
         logger.info("   📦 Chargement depuis scikit-learn...")
-        iris = load_iris()
         df = pd.DataFrame(iris.data, columns=iris.feature_names)
         df["target"] = iris.target
 
@@ -63,14 +61,7 @@ def load_data(
             df, test_size=test_size, random_state=random_state, stratify=df["target"]
         )
 
-        return (
-            train_df,
-            test_df,
-            {
-                "feature_names": list(iris.feature_names),
-                "target_names": list(iris.target_names),
-            },
-        )
+        return train_df, test_df, iris_metadata
 
 
 def train_model(
@@ -102,7 +93,8 @@ def train_model(
     random_state = (
         random_state if random_state is not None else config.train.random_state
     )
-    test_size = test_size if test_size is not None else config.train.test_size
+    # test_size est défini dans data, pas dans train (cohérent avec le pipeline DVC)
+    test_size = test_size if test_size is not None else config.data.test_size
 
     # Configuration MLflow
     if use_mlflow:
@@ -124,12 +116,11 @@ def train_model(
     X_test = test_df[feature_cols].values
     y_test = test_df["target"].values
 
-    # Hyperparamètres
+    # Hyperparamètres (test_size est un paramètre de données, pas d'entraînement)
     hyperparams = {
         "n_estimators": n_estimators,
         "max_depth": max_depth if max_depth else "None",
         "random_state": random_state,
-        "test_size": test_size,
     }
 
     # Calculer les dimensions (pour MLflow et métadonnées)
@@ -144,6 +135,8 @@ def train_model(
         mlflow.log_param("n_features", n_features)
         mlflow.log_param("n_samples", n_samples)
         mlflow.log_param("n_classes", len(iris_metadata["target_names"]))
+        # test_size est un paramètre de données, pas d'entraînement
+        mlflow.log_param("data.test_size", test_size)
 
     logger.info("🤖 Entraînement du modèle RandomForest...")
     logger.info(f"   Hyperparamètres: {hyperparams}")
@@ -178,7 +171,8 @@ def train_model(
         )
         logger.info("📊 Modèle enregistré dans MLflow avec signature")
 
-    # Sauvegarde des métadonnées
+    # Enrichir les métadonnées avec les informations du modèle
+    # Les métriques sont dans metrics.json (séparation claire)
     metadata.update(
         {
             "model_type": "RandomForestClassifier",
@@ -190,13 +184,18 @@ def train_model(
         }
     )
 
-    metadata_path = models_dir / "model_metadata.json"
+    metadata_path = models_dir / "metadata.json"
     with open(metadata_path, "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
 
+    # Sauvegarde des métriques (pour DVC tracking)
+    metrics_path = models_dir / "metrics.json"
+    with open(metrics_path, "w", encoding="utf-8") as f:
+        json.dump(metrics, f, indent=2)
+
     # Logger les métadonnées dans MLflow
     if use_mlflow:
-        mlflow.log_dict(metadata, "model_metadata.json")
+        mlflow.log_dict(metadata, "metadata.json")
         mlflow.end_run()
         logger.info(f"🔗 MLflow UI: mlflow ui (http://localhost:5000)")
 

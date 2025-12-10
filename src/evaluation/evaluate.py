@@ -84,22 +84,18 @@ def evaluate_model(
         np.savetxt(cm_path, cm, fmt="%d")
         mlflow.log_artifact(str(cm_path), "confusion_matrix")
 
-    # Métadonnées
-    metadata = {
+    # Métriques de performance (pour DVC tracking)
+    metrics = {
         "accuracy": float(accuracy),
         "precision": float(precision),
         "recall": float(recall),
         "f1_score": float(f1),
-        "feature_names": iris_metadata["feature_names"],
-        "target_names": iris_metadata["target_names"],
     }
 
-    # Métriques
-    metrics = {
-        "accuracy": accuracy,
-        "precision": precision,
-        "recall": recall,
-        "f1_score": f1,
+    # Métadonnées du dataset (sans métriques pour éviter redondance)
+    metadata = {
+        "feature_names": iris_metadata["feature_names"],
+        "target_names": iris_metadata["target_names"],
     }
 
     return metrics, metadata

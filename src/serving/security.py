@@ -45,15 +45,36 @@ def verify_api_key(
     """
     # Récupérer la clé API configurée
     valid_api_key = get_api_key_from_env()
+    environment = os.getenv("ENVIRONMENT", "development").lower()
+
+    # En production, l'authentification est obligatoire
+    if environment == "production":
+        if not valid_api_key:
+            logger.error(
+                "❌ API_KEY non configurée en production. "
+                "L'authentification est obligatoire en production !"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Configuration de sécurité invalide : API_KEY manquante en production",
+            )
 
     # Si aucune clé API n'est configurée, désactiver l'authentification
-    # (utile pour le développement local)
+    # (uniquement en développement)
     if not valid_api_key:
-        logger.warning(
-            "⚠️ API_KEY non configurée dans les variables d'environnement. "
-            "L'authentification est désactivée. Configurez API_KEY en production !"
-        )
-        return "no-auth"  # Permet l'accès si pas de clé configurée
+        if environment != "production":
+            logger.warning(
+                "⚠️ API_KEY non configurée dans les variables d'environnement. "
+                "L'authentification est désactivée (mode développement uniquement). "
+                "Configurez API_KEY en production !"
+            )
+            return "no-auth"  # Permet l'accès si pas de clé configurée (dev uniquement)
+        else:
+            # Ne devrait jamais arriver ici (déjà géré ci-dessus), mais sécurité supplémentaire
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Configuration de sécurité invalide",
+            )
 
     # Si une clé est requise mais non fournie
     if not api_key:
