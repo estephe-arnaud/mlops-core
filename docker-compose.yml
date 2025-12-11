@@ -4,9 +4,15 @@ services:
   iris-api:
     build: .
     ports:
-      - "127.0.0.1:8000:8000"
+      - "${API_PORT:-127.0.0.1:8000}:8000"
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - API_KEY=${API_KEY:-}
+      - MODEL_DIR=/app/models
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     volumes:
-      - ./models:/app/models
+      - ./models:/app/models:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]

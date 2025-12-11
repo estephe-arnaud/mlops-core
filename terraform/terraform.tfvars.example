@@ -1,12 +1,11 @@
 # ============================================================================
-# Configuration Terraform pour MLOps - Exemple
+# Configuration Terraform pour MLOps
 # ============================================================================
 # 
 # INSTRUCTIONS :
-# 1. Copiez ce fichier vers terraform.tfvars
-# 2. Remplissez les valeurs obligatoires (marquées ⚠️ OBLIGATOIRE)
-# 3. Configurez les options selon vos besoins
-# 4. ⚠️  Ne commitez JAMAIS terraform.tfvars (il contient des informations sensibles)
+# 1. Copier vers terraform.tfvars
+# 2. Remplir les valeurs obligatoires (marquées ⚠️)
+# 3. ⚠️ Ne jamais commiter terraform.tfvars (contient des secrets)
 #
 # ============================================================================
 
@@ -15,8 +14,6 @@
 # ============================================================================
 
 # ⚠️ OBLIGATOIRE : ID du projet GCP
-# Le project-id doit être créé manuellement (gcloud projects create)
-# Voir docs/SEMAINE_3.md section "3. Configurer GCP" pour les détails
 project_id = "votre-projet-gcp-id"
 
 # Région et zone GCP
@@ -27,13 +24,10 @@ zone   = "europe-west1-b"
 # CONFIGURATION DU BUCKET GCS
 # ============================================================================
 
-# Nom du bucket GCS (optionnel, sera généré automatiquement si vide)
-# Le nom doit être unique globalement sur GCP
+# Nom du bucket (optionnel, généré automatiquement si vide)
 bucket_name = ""
 
-# ⚠️ SÉCURITÉ : Désactivé par défaut pour protéger les données
-# Si true, permet la suppression du bucket même s'il contient des objets
-# ⚠️ DANGEREUX en production - peut causer une perte irréversible de données
+# ⚠️ SÉCURITÉ : Désactivé par défaut (protège les données)
 force_destroy_bucket = false
 
 # ============================================================================
@@ -41,186 +35,95 @@ force_destroy_bucket = false
 # ============================================================================
 
 vm_name      = "iris-api-server"
-machine_type = "e2-micro"  # e2-micro est dans le free tier (pour tests)
-                            # En production, utilisez au moins e2-standard-2
+machine_type = "e2-micro"  # e2-micro (free tier) → e2-standard-2 (production)
 vm_image     = "ubuntu-os-cloud/ubuntu-2204-lts"
 disk_size_gb = 10
 
-# Nom du réseau VPC
-network_name = "mlops-vpc"
-
-# Nom du compte de service
-service_account_name = "mlops-api-sa"
+network_name          = "mlops-vpc"
+service_account_name  = "mlops-api-sa"
 
 # ============================================================================
 # CONFIGURATION RÉSEAU - SÉCURITÉ CRITIQUE
 # ============================================================================
 
-# IP publique : Désactivée par défaut (recommandé)
-# Activez uniquement si nécessaire et utilisez un Load Balancer en production
+# IP publique : Désactivée par défaut (recommandé avec Load Balancer)
 enable_public_ip = false
 
-# ⚠️ OBLIGATOIRE : IPs autorisées pour SSH (CIDR notation)
-# La liste vide par défaut = deny by default (aucun accès SSH)
-# Vous DEVEZ configurer cette variable avec vos IPs autorisées !
-#
-# Pour connaître votre IP publique : curl ifconfig.me
-#
-# Exemples :
-# - Pour une IP spécifique : ["123.45.67.89/32"]
-# - Pour plusieurs IPs : ["123.45.67.89/32", "98.76.54.32/32"]
-# - Pour un réseau d'entreprise : ["10.0.0.0/8"]
-#
-# ⚠️  NE JAMAIS utiliser "0.0.0.0/0" en production (permet SSH depuis n'importe où) !
+# ⚠️ OBLIGATOIRE : IPs autorisées pour SSH (CIDR)
+# Récupérer votre IP : curl ifconfig.me
 allowed_ssh_ips = [
-  "VOTRE-IP-PUBLIQUE/32",  # ⚠️ REMPLACEZ par votre IP publique réelle (ex: "123.45.67.89/32")
-  # Récupérer votre IP : curl ifconfig.me
+  "VOTRE-IP-PUBLIQUE/32",  # Exemple : "123.45.67.89/32"
 ]
 
-# ⚠️ OBLIGATOIRE : IPs autorisées pour HTTP/HTTPS (CIDR notation)
-# La liste vide par défaut = deny by default (aucun accès HTTP)
-# Vous DEVEZ configurer cette variable selon votre architecture !
-#
-# Option 1 : Si vous utilisez un Load Balancer GCP (RECOMMANDÉ en production)
-# Utilisez les plages IP connues des Load Balancers GCP (identiques pour tous les utilisateurs GCP)
+# ⚠️ OBLIGATOIRE : IPs autorisées pour HTTP/HTTPS (CIDR)
+# Option 1 : Load Balancer GCP (recommandé)
 allowed_http_ips = [
-  "130.211.0.0/22",  # Plage principale des Load Balancers GCP (globale)
-  "35.191.0.0/16",   # Plage secondaire des Load Balancers GCP (globale)
+  "130.211.0.0/22",  # Plages IP des Load Balancers GCP
+  "35.191.0.0/16",
 ]
 
-# Option 2 : Si vous exposez directement la VM (NON RECOMMANDÉ en production)
+# Option 2 : Exposer directement la VM (non recommandé)
 # allowed_http_ips = [
-#   "123.45.67.89/32",  # Votre IP uniquement
+#   "VOTRE-IP-PUBLIQUE/32",
 # ]
-#
-# ⚠️ NE JAMAIS utiliser ["0.0.0.0/0"] en production sans protection (Load Balancer + Cloud Armor) !
 
 # ============================================================================
 # CONFIGURATION DU DÉPLOIEMENT DE L'API
 # ============================================================================
 
-# Image Docker complète pour l'API
+# Image Docker complète
 # Format : gcr.io/PROJECT-ID/iris-api:latest
 #          ou europe-west1-docker.pkg.dev/PROJECT-ID/repo/iris-api:latest
 docker_image = "gcr.io/votre-projet-gcp-id/iris-api:latest"
 
-# Déployer automatiquement l'API au démarrage de la VM
 auto_deploy_api = true
+
+# Origines CORS autorisées
+# Format : "https://example.com,https://app.example.com" (séparées par des virgules)
+# Développement local : "*" (par défaut, recommandé pour flexibilité)
+# ⚠️ PRODUCTION : Spécifier les origines exactes, ne pas utiliser "*"
+# Exemple pour un frontend sur example.com :
+cors_origins = "*"  # Dev local par défaut, changez pour la production
 
 # ============================================================================
 # SECRET MANAGER - Gestion de l'API_KEY
 # ============================================================================
 # 
-# Vous avez DEUX options pour gérer l'API_KEY dans Secret Manager.
-# Choisissez celle qui correspond le mieux à votre workflow.
-#
-# IMPORTANT : L'API_KEY doit être générée AVANT (voir docs/SEMAINE_3.md section 1.1)
-# Génération : API_KEY=$(openssl rand -hex 32)
-#
-# ----------------------------------------------------------------------------
-# OPTION A : Création via Terraform (Recommandé) ✅
-# ----------------------------------------------------------------------------
-# 
-# 1. Exporter l'API_KEY comme variable d'environnement Terraform :
-#    export TF_VAR_api_key_value="votre-api-key-secrete"
-#
-# 2. Configurer dans terraform.tfvars :
+# Option A : Création via Terraform (recommandé)
+# 1. Exporter : export TF_VAR_api_key_value="votre-api-key"
+# 2. Configurer :
 create_secret_manager_secret = true
-secret_manager_api_key_name = "mlops-api-key"
-# ⚠️ api_key_value n'est PAS dans terraform.tfvars (vient de TF_VAR_api_key_value)
-#
-# ----------------------------------------------------------------------------
-# OPTION B : Création manuelle 🔧
-# ----------------------------------------------------------------------------
-#
-# 1. Créer le secret manuellement :
-#    echo -n "$API_KEY" | gcloud secrets create mlops-api-key \
-#      --data-file=- --replication-policy="automatic" --project=votre-projet-gcp-id
-#
-# 2. Configurer dans terraform.tfvars :
-# secret_manager_api_key_name = "mlops-api-key"
-# create_secret_manager_secret = false  # (ou omis, false par défaut)
-#
-# ----------------------------------------------------------------------------
-# Note : L'accès IAM au secret est automatiquement configuré par Terraform
-#        si secret_manager_api_key_name est défini (dans les deux options).
-# ============================================================================
+secret_manager_api_key_name  = "mlops-api-key"
 
-# Nom du secret dans Secret Manager
-# secret_manager_api_key_name = "mlops-api-key"
-
-# Créer le secret via Terraform (Option A)
-# Si true, api_key_value doit être fourni via TF_VAR_api_key_value (variable d'environnement)
-# Si false, le secret doit être créé manuellement (Option B)
+# Option B : Création manuelle
+# 1. Créer : echo -n "$API_KEY" | gcloud secrets create mlops-api-key --data-file=-
+# 2. Configurer :
 # create_secret_manager_secret = false
-
-# ⚠️ SENSIBLE : Ne JAMAIS mettre api_key_value directement ici !
-# Utilisez plutôt : export TF_VAR_api_key_value="votre-cle"
-# api_key_value = ""  # Ne pas remplir ici, utiliser TF_VAR_api_key_value
+# secret_manager_api_key_name  = "mlops-api-key"
 
 # ============================================================================
-# CHIFFREMENT KMS (Key Management Service)
+# CHIFFREMENT KMS (optionnel)
 # ============================================================================
-# 
-# Activer le chiffrement KMS pour le bucket GCS (recommandé en production)
-# 
-# Prérequis : Créer la clé KMS avant d'activer cette option
-# 
-# Création de la clé KMS :
-# gcloud kms keyrings create mlops-keyring --location=europe-west1
-# gcloud kms keys create mlops-key --location=europe-west1 \
-#   --keyring=mlops-keyring --purpose=encryption
-#
-# Puis configurez :
+
 enable_kms_encryption = false
-# kms_key_name = "projects/votre-projet-gcp-id/locations/europe-west1/keyRings/mlops-keyring/cryptoKeys/mlops-key"
+# kms_key_name = "projects/PROJECT/locations/LOCATION/keyRings/RING/cryptoKeys/KEY"
 
 # ============================================================================
-# LOAD BALANCER ET CLOUD ARMOR
-# ============================================================================
-# 
-# Load Balancer : Point d'entrée sécurisé pour l'API
-# - Masque l'IP de la VM (on peut désactiver enable_public_ip)
-# - Permet d'ajouter Cloud Armor pour protection DDoS
-# - Facilite l'ajout de nouvelles VMs plus tard (scalabilité)
-#
-# Voir docs/SEMAINE_3.md section "3. Load Balancer avec Cloud Armor" pour les détails
-#
-# ----------------------------------------------------------------------------
-# Configuration recommandée avec Load Balancer :
-# ----------------------------------------------------------------------------
-# 1. Activer le Load Balancer
-# 2. Activer Cloud Armor (protection DDoS)
-# 3. Désactiver enable_public_ip sur la VM
-# 4. Configurer allowed_http_ips avec les plages IP des Load Balancers GCP
-#    (déjà configuré ci-dessus : 130.211.0.0/22, 35.191.0.0/16)
+# LOAD BALANCER ET CLOUD ARMOR (recommandé en production)
 # ============================================================================
 
-# Activer un Load Balancer HTTP(S) pour l'API (recommandé en production)
 enable_load_balancer = false
-load_balancer_name = "mlops-api-lb"
+load_balancer_name   = "mlops-api-lb"
 
-# Activer Cloud Armor pour protection DDoS (recommandé avec Load Balancer)
-# Nécessite enable_load_balancer = true
-enable_cloud_armor = false
+enable_cloud_armor = false  # Nécessite enable_load_balancer = true
 
 # ============================================================================
 # MONITORING ET ALERTES
 # ============================================================================
-# 
-# Activer les alertes Cloud Monitoring pour la VM
-# Alertes configurées :
-# - CPU élevé (> 80%)
-# - Mémoire élevée (> 85%)
-# - Instance down
-#
-# ============================================================================
 
-# Activer les alertes Cloud Monitoring
-enable_monitoring_alerts = false
+enable_monitoring_alerts = true  # ✅ Recommandé en production
 
 # Canaux de notification (emails)
-# Format : ["email:admin@example.com", "email:devops@example.com"]
 notification_channels = [
   # "email:admin@example.com"
 ]

@@ -10,6 +10,7 @@ APP_USER="mlops"
 DOCKER_IMAGE="${DOCKER_IMAGE:-iris-api:latest}"  # Utilise la variable d'environnement ou valeur par défaut
 MODEL_BUCKET="${MODEL_BUCKET:-}"  # Sera passé depuis Terraform
 API_KEY="${API_KEY:-}"  # Sera passé depuis Secret Manager ou metadata
+CORS_ORIGINS="${CORS_ORIGINS:-}"  # ⚠️ SÉCURITÉ : Doit être configuré explicitement en production
 
 # Logging
 LOG_FILE="/var/log/mlops-deploy.log"
@@ -71,6 +72,12 @@ else
     echo "⚠️  MODEL_BUCKET non configuré. Le modèle doit être présent localement."
 fi
 
+# ⚠️ SÉCURITÉ : Vérifier que CORS_ORIGINS est configuré en production
+if [ -z "$CORS_ORIGINS" ]; then
+    echo "⚠️  AVERTISSEMENT : CORS_ORIGINS non configuré. L'API utilisera '*' par défaut (non sécurisé en production)"
+    echo "   Configurez CORS_ORIGINS dans Terraform ou via les métadonnées de la VM"
+fi
+
 # Créer le fichier docker-compose.yml
 cat > "$APP_DIR/docker-compose.yml" <<EOF
 version: '3.8'
@@ -88,7 +95,7 @@ services:
       - MODEL_DIR=/app/models
       - API_KEY=${API_KEY}
       - ENVIRONMENT=production
-      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+      - CORS_ORIGINS=${CORS_ORIGINS:-}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s

@@ -75,6 +75,7 @@ echo "=========================================="
 # Exporter les variables d'environnement
 export MODEL_BUCKET="${bucket_name}"
 export DOCKER_IMAGE="${docker_image}"
+export CORS_ORIGINS="${cors_origins}"
 
 %{ if secret_manager_api_key_name != "" ~}
 # Récupérer l'API_KEY depuis Secret Manager

@@ -8,28 +8,11 @@ import pytest
 from fastapi import HTTPException, Request
 from fastapi.testclient import TestClient
 
-from src.serving.security import (
-    get_api_key_from_env,
-    get_remote_address,
-    verify_api_key,
-)
+from src.serving.security import get_remote_address, verify_api_key
 
 
 class TestSecurity:
     """Tests pour le module de sécurité"""
-
-    def test_get_api_key_from_env(self, monkeypatch):
-        """Test de récupération de l'API key depuis l'environnement"""
-        test_key = "test-api-key-12345"
-        monkeypatch.setenv("API_KEY", test_key)
-        result = get_api_key_from_env()
-        assert result == test_key
-
-    def test_get_api_key_from_env_not_set(self, monkeypatch):
-        """Test quand API_KEY n'est pas définie"""
-        monkeypatch.delenv("API_KEY", raising=False)
-        result = get_api_key_from_env()
-        assert result is None
 
     def test_get_remote_address_direct(self):
         """Test de récupération de l'adresse IP directe"""

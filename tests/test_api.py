@@ -343,3 +343,32 @@ class TestAPICORS:
         # CORS peut être configuré différemment selon l'environnement
         # On vérifie au moins que la requête ne plante pas
         assert response.status_code in [200, 405, 404]
+
+
+class TestAPIMetrics:
+    """Tests pour l'endpoint de métriques Prometheus"""
+
+    def test_metrics_endpoint(self, api_client):
+        """Test de l'endpoint /metrics (Prometheus)"""
+        response = api_client.get("/metrics")
+        assert response.status_code == 200
+        # Vérifier que c'est du texte Prometheus
+        assert "text/plain" in response.headers.get("content-type", "")
+        content = response.text
+        # Vérifier que le contenu contient des métriques Prometheus
+        assert "# HELP" in content or "# TYPE" in content
+        # Vérifier la présence de métriques spécifiques
+        assert "model_loaded" in content or "model_predictions_total" in content
+
+    def test_metrics_endpoint_no_auth_required(self, api_client):
+        """Test que /metrics n'exige pas d'authentification"""
+        response = api_client.get("/metrics")
+        assert response.status_code == 200
+
+    def test_metrics_with_model_loaded(self, api_client_with_model):
+        """Test des métriques avec modèle chargé"""
+        response = api_client_with_model.get("/metrics")
+        assert response.status_code == 200
+        content = response.text
+        # Vérifier que model_loaded est présent
+        assert "model_loaded" in content

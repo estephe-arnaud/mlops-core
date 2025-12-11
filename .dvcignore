@@ -1,16 +1,168 @@
-# Ignorer les fichiers Python compilés
+# ============================================================================
+# .dvcignore - Fichiers ignorés par DVC
+# DVC ignore les fichiers non pertinents pour le versioning des données
+# Aligné avec .gitignore pour cohérence
+# ============================================================================
+
+# ============================================================================
+# Python - Générés automatiquement
+# ============================================================================
+
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
+*$py.class
 *.pyc
+*.pyo
+*.pyd
 
-# Ignorer les environnements virtuels
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ============================================================================
+# Python - Tests et couverture
+# ============================================================================
+
+.cache/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+nosetests.xml
+
+# ============================================================================
+# Python - Environnements virtuels
+# ============================================================================
+
+.env
+.env.*
+!.env.example
 .venv/
 venv/
 env/
+ENV/
+env.bak/
+venv.bak/
 
-# Ignorer les fichiers de logs
+# ============================================================================
+# Fichiers sensibles et secrets
+# ============================================================================
+
+# Fichiers de configuration sensibles
+secrets.json
+config.json
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.jks
+credentials.json
+service-account*.json
+
+# ============================================================================
+# MLOps - Modèles ML (générés, non versionnés avec DVC)
+# ============================================================================
+
+/models/
+*.pkl
+*.joblib
+*.h5
+*.pb
+*.onnx
+*.tflite
+
+# ============================================================================
+# MLOps - Logs et tracking
+# ============================================================================
+
+logs/
 *.log
+mlruns/
+.mlflow
 
-# Ignorer les fichiers temporaires
+# ============================================================================
+# Terraform - Fichiers générés
+# ============================================================================
+
+*.tfstate
+*.tfstate.*
+*.tfvars
+!terraform.tfvars.example
+.terraform/
+.terraform.lock.hcl
+.terraformrc
+terraform.rc
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# ============================================================================
+# IDE et éditeurs
+# ============================================================================
+
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ============================================================================
+# OS - Fichiers système
+# ============================================================================
+
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ============================================================================
+# Git
+# ============================================================================
+
+.git/
+.gitignore
+
+# ============================================================================
+# Fichiers temporaires
+# ============================================================================
+
 *.tmp
 *.temp
+*.bak
+*.backup
+*.old
+*.orig

@@ -57,17 +57,17 @@ coverage.xml
 *.mo
 *.pot
 
-# Django stuff:
+# Django stuff
 *.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
 
-# Flask stuff:
+# Flask stuff
 instance/
 .webassets-cache
 
-# Scrapy stuff:
+# Scrapy stuff
 .scrapy
 
 # Sphinx documentation
@@ -105,12 +105,30 @@ celerybeat.pid
 
 # Environments
 .env
+.env.*
+!.env.example
 .venv
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+
+# ============================================================================
+# Fichiers sensibles et secrets
+# ============================================================================
+
+# Fichiers de configuration sensibles
+secrets.json
+config.json
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.jks
+credentials.json
+service-account*.json
 
 # Spyder project settings
 .spyderproject
@@ -143,14 +161,16 @@ dmypy.json
 *.onnx
 *.tflite
 
-# Données
+# Données (versionnées avec DVC)
 /data/
 
 # Logs
 logs/
+*.log
 
 # MLflow
 mlruns/
+.mlflow
 
 # DVC
 .dvc/

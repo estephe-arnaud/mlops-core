@@ -7,6 +7,7 @@ Lit les paramètres depuis params.yaml avec validation Pydantic
 
 import json
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -70,6 +71,9 @@ def train_model(
     random_state: Optional[int] = None,
     test_size: Optional[float] = None,
     use_mlflow: bool = True,
+    experiment_name: str = "iris-classification",
+    run_name: Optional[str] = None,
+    tags: Optional[dict] = None,
 ) -> Tuple[RandomForestClassifier, dict]:
     """
     Entraîne un modèle RandomForest sur le dataset Iris avec tracking MLflow
@@ -81,25 +85,26 @@ def train_model(
         random_state: Graine aléatoire pour la reproductibilité (surcharge params.yaml si fourni)
         test_size: Proportion du dataset pour le test (surcharge params.yaml si fourni)
         use_mlflow: Activer le tracking MLflow
+        experiment_name: Nom de l'experiment MLflow (par défaut: "iris-classification")
+        run_name: Nom du run MLflow (auto-généré si None)
+        tags: Tags MLflow (ex: {"experiment_type": "baseline", "status": "testing"})
 
     Returns:
         Tuple[RandomForestClassifier, dict]: Modèle entraîné et métadonnées
     """
     config = get_config()
-    n_estimators = (
-        n_estimators if n_estimators is not None else config.train.n_estimators
-    )
-    max_depth = max_depth if max_depth is not None else config.train.max_depth
-    random_state = (
-        random_state if random_state is not None else config.train.random_state
-    )
-    # test_size est défini dans data, pas dans train (cohérent avec le pipeline DVC)
-    test_size = test_size if test_size is not None else config.data.test_size
+    n_estimators = n_estimators or config.train.n_estimators
+    max_depth = max_depth or config.train.max_depth
+    random_state = random_state or config.train.random_state
+    test_size = test_size or config.data.test_size
 
     # Configuration MLflow
     if use_mlflow:
-        mlflow.set_experiment("iris-classification")
-        mlflow.start_run()
+        mlflow.set_experiment(experiment_name)
+        if run_name is None:
+            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+            run_name = f"n_est-{n_estimators}_maxd-{max_depth or 'None'}_{timestamp}"
+        mlflow.start_run(run_name=run_name)
 
     logger.info("🌱 Chargement du dataset Iris...")
     train_df, test_df, iris_metadata = load_data(test_size, random_state)
@@ -116,32 +121,43 @@ def train_model(
     X_test = test_df[feature_cols].values
     y_test = test_df["target"].values
 
-    # Hyperparamètres (test_size est un paramètre de données, pas d'entraînement)
+    # Hyperparamètres et dimensions
     hyperparams = {
         "n_estimators": n_estimators,
-        "max_depth": max_depth if max_depth else "None",
+        "max_depth": max_depth or "None",
         "random_state": random_state,
     }
-
-    # Calculer les dimensions (pour MLflow et métadonnées)
     n_features = X_train.shape[1]
     n_samples = len(X_train) + len(X_test)
 
-    # Logger les hyperparamètres dans MLflow
+    # Logging MLflow
     if use_mlflow:
         mlflow.log_params(hyperparams)
-        mlflow.log_param("algorithm", "RandomForestClassifier")
-        mlflow.log_param("dataset", "Iris")
-        mlflow.log_param("n_features", n_features)
-        mlflow.log_param("n_samples", n_samples)
-        mlflow.log_param("n_classes", len(iris_metadata["target_names"]))
-        # test_size est un paramètre de données, pas d'entraînement
-        mlflow.log_param("data.test_size", test_size)
+        mlflow.log_params(
+            {
+                "algorithm": "RandomForestClassifier",
+                "dataset": "Iris",
+                "n_features": n_features,
+                "n_samples": n_samples,
+                "n_classes": len(iris_metadata["target_names"]),
+                "data.test_size": test_size,
+            }
+        )
+        if tags:
+            for key, value in tags.items():
+                mlflow.set_tag(key, str(value))
+        mlflow.set_tags(
+            {
+                "model_type": "RandomForestClassifier",
+                "experiment_name": experiment_name,
+            }
+        )
 
-    logger.info("🤖 Entraînement du modèle RandomForest...")
-    logger.info(f"   Hyperparamètres: {hyperparams}")
+    logger.info(f"🤖 Entraînement RandomForest: {hyperparams}")
     model = RandomForestClassifier(
-        n_estimators=n_estimators, max_depth=max_depth, random_state=random_state
+        n_estimators=n_estimators,
+        max_depth=max_depth,
+        random_state=random_state,
     )
     model.fit(X_train, y_train)
 
@@ -150,29 +166,23 @@ def train_model(
         model, X_test, y_test, iris_metadata, use_mlflow=use_mlflow
     )
 
-    # Sauvegarde du modèle (méthode classique)
+    # Sauvegarde du modèle
     models_dir = Path("models")
     models_dir.mkdir(exist_ok=True)
     model_path = models_dir / "iris_model.pkl"
     joblib.dump(model, model_path)
-    logger.info(f"💾 Modèle sauvegardé dans : {model_path}")
+    logger.info(f"💾 Modèle sauvegardé: {model_path}")
 
-    # Sauvegarde via MLflow
     if use_mlflow:
-        # Créer un exemple d'input pour la signature du modèle
-        # Utiliser le premier échantillon de test comme exemple
-        input_example = X_test[0:1]  # Shape: (1, 4) - un échantillon avec 4 features
-
         mlflow.sklearn.log_model(
             model,
             "model",
             registered_model_name="IrisClassifier",
-            input_example=input_example,
+            input_example=X_test[0:1],
         )
-        logger.info("📊 Modèle enregistré dans MLflow avec signature")
+        logger.info("📊 Modèle enregistré dans MLflow")
 
-    # Enrichir les métadonnées avec les informations du modèle
-    # Les métriques sont dans metrics.json (séparation claire)
+    # Enrichir et sauvegarder les métadonnées
     metadata.update(
         {
             "model_type": "RandomForestClassifier",
@@ -184,25 +194,54 @@ def train_model(
         }
     )
 
-    metadata_path = models_dir / "metadata.json"
-    with open(metadata_path, "w", encoding="utf-8") as f:
-        json.dump(metadata, f, indent=2)
+    for filename, data in [("metadata.json", metadata), ("metrics.json", metrics)]:
+        path = models_dir / filename
+        path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
-    # Sauvegarde des métriques (pour DVC tracking)
-    metrics_path = models_dir / "metrics.json"
-    with open(metrics_path, "w", encoding="utf-8") as f:
-        json.dump(metrics, f, indent=2)
-
-    # Logger les métadonnées dans MLflow
     if use_mlflow:
         mlflow.log_dict(metadata, "metadata.json")
         mlflow.end_run()
-        logger.info(f"🔗 MLflow UI: mlflow ui (http://localhost:5000)")
+        logger.info("🔗 MLflow UI: mlflow ui")
 
     logger.info("✅ Entraînement terminé avec succès !")
     return model, metadata
 
 
 if __name__ == "__main__":
-    # Les paramètres seront automatiquement lus depuis params.yaml avec validation
-    train_model()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Entraîner le modèle avec MLflow")
+    parser.add_argument(
+        "--experiment-name", default="iris-classification", help="Nom experiment MLflow"
+    )
+    parser.add_argument("--run-name", help="Nom du run MLflow")
+    parser.add_argument("--n-estimators", type=int, help="Nombre d'arbres")
+    parser.add_argument("--max-depth", type=int, help="Profondeur maximale")
+    parser.add_argument("--test-size", type=float, help="Proportion test (0-1)")
+    parser.add_argument("--random-state", type=int, help="Graine aléatoire")
+    parser.add_argument(
+        "--tag", action="append", nargs=2, metavar=("KEY", "VALUE"), help="Tags MLflow"
+    )
+    parser.add_argument("--no-mlflow", action="store_true", help="Désactiver MLflow")
+
+    args = parser.parse_args()
+
+    # Validation
+    if args.test_size is not None and not 0 < args.test_size < 1:
+        parser.error("--test-size doit être entre 0 et 1")
+    if args.n_estimators is not None and args.n_estimators <= 0:
+        parser.error("--n-estimators doit être > 0")
+    if args.max_depth is not None and args.max_depth <= 0:
+        parser.error("--max-depth doit être > 0")
+
+    tags = dict(args.tag) if args.tag else {}
+    train_model(
+        n_estimators=args.n_estimators,
+        max_depth=args.max_depth,
+        random_state=args.random_state,
+        test_size=args.test_size,
+        use_mlflow=not args.no_mlflow,
+        experiment_name=args.experiment_name,
+        run_name=args.run_name,
+        tags=tags,
+    )

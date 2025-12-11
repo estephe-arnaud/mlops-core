@@ -1,56 +1,158 @@
-# Python
+# ============================================================================
+# Git
+# ============================================================================
+.git
+.gitignore
+.gitattributes
+
+# ============================================================================
+# Python - Générés et cache
+# ============================================================================
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
+*.pyc
+*.pyo
+*.pyd
 .Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
 
-# Virtual environments
+# ============================================================================
+# Environnements virtuels
+# ============================================================================
+.venv/
 venv/
 env/
 ENV/
-.venv/
+env.bak/
+venv.bak/
 
-# IDE
+# ============================================================================
+# Documentation (non nécessaire dans l'image)
+# ============================================================================
+docs/
+*.md
+!README.md
+
+# ============================================================================
+# Terraform (non nécessaire dans l'image)
+# ============================================================================
+terraform/
+*.tf
+*.tfvars
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+.terraformrc
+terraform.rc
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# ============================================================================
+# CI/CD (non nécessaire dans l'image)
+# ============================================================================
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# ============================================================================
+# IDE (non nécessaire dans l'image)
+# ============================================================================
 .vscode/
-.cursorignores
 .idea/
 *.swp
 *.swo
 *~
+.project
+.pydevproject
+.settings
 
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-*.log
+# ============================================================================
+# OS (non nécessaire dans l'image)
+# ============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-# Build artifacts
-build/
-dist/
-*.egg-info/
+# ============================================================================
+# MLOps spécifique
+# ============================================================================
 
-# Documentation
-docs/
-*.md
-
-# Git
-.git/
-.gitignore
-
-# CI/CD
-.github/
-
-# Project specific
-models/
+# Modèles ML (seront montés via volume ou téléchargés depuis GCS)
+/models/
 *.pkl
 *.joblib
+*.h5
+*.pb
+*.onnx
+*.tflite
 
-# Environment files
+# Données (versionnées avec DVC, non nécessaires dans l'image)
+/data/
+.dvc/
+dvc.yaml
+dvc.lock
+
+# MLflow (non nécessaire dans l'image)
+mlruns/
+.mlflow
+
+# Logs (seront générés au runtime)
+logs/
+*.log
+
+# Tests (non nécessaires dans l'image)
+tests/
+*.test.py
+
+# ============================================================================
+# Fichiers de configuration locaux et sensibles
+# ============================================================================
 .env
-.env.local
-*.env
+.env.*
+!.env.example
+secrets.json
+config.json
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.jks
+credentials.json
+service-account*.json
 
-# OS
-.DS_Store
-Thumbs.db
+# ============================================================================
+# Fichiers temporaires
+# ============================================================================
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig

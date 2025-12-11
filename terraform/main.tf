@@ -253,7 +253,10 @@ resource "google_compute_instance" "api_server" {
       secret_manager_api_key_name = var.create_secret_manager_secret ? (var.secret_manager_api_key_name != "" ? var.secret_manager_api_key_name : "mlops-api-key") : var.secret_manager_api_key_name
       project_id                  = var.project_id
       auto_deploy_api             = var.auto_deploy_api
+      cors_origins                = var.cors_origins
     })
+    # Métadonnées pour récupération par le script de déploiement
+    cors_origins = var.cors_origins
   }
 
   labels = var.tags

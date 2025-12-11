@@ -109,6 +109,12 @@ variable "auto_deploy_api" {
   default     = true
 }
 
+variable "cors_origins" {
+  description = "Origines CORS autorisées (séparées par des virgules). ⚠️ SÉCURITÉ : En production, ne pas utiliser '*'. Exemple : 'https://example.com,https://app.example.com'. Pour dev local : '*' (recommandé)"
+  type        = string
+  default     = "*"  # Valeur par défaut pour développement local (plus flexible)
+}
+
 # ============================================================================
 # SECRET MANAGER
 # ============================================================================
@@ -169,9 +175,9 @@ variable "enable_cloud_armor" {
 # ============================================================================
 
 variable "enable_monitoring_alerts" {
-  description = "Activer les alertes Cloud Monitoring pour la VM"
+  description = "Activer les alertes Cloud Monitoring pour la VM. ✅ Recommandé en production."
   type        = bool
-  default     = false
+  default     = true  # ⚠️ Activé par défaut pour production-ready
 }
 
 variable "notification_channels" {
