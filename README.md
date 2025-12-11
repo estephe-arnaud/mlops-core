@@ -53,34 +53,34 @@ graph TB
     N -->|HTTP| L
     H -->|Metrics| O
     
-    %% Source & CI/CD (Bleu doux)
-    style A fill:#90caf9,stroke:#1565c0,stroke-width:2px
-    style B fill:#64b5f6,stroke:#1976d2,stroke-width:2px
-    style C fill:#42a5f5,stroke:#1565c0,stroke-width:2px
+    %% Source & CI/CD (Bleu clair)
+    style A fill:#bbdefb,stroke:#1565c0,stroke-width:2px
+    style B fill:#90caf9,stroke:#1976d2,stroke-width:2px
+    style C fill:#64b5f6,stroke:#1565c0,stroke-width:2px
     
-    %% Tests & Monitoring (Violet doux)
-    style D fill:#ce93d8,stroke:#6a1b9a,stroke-width:2px
-    style O fill:#ba68c8,stroke:#7b1fa2,stroke-width:2px
+    %% Tests & Monitoring (Violet clair)
+    style D fill:#e1bee7,stroke:#6a1b9a,stroke-width:2px
+    style O fill:#ce93d8,stroke:#7b1fa2,stroke-width:2px
     
-    %% Infrastructure IaC (Orange doux)
-    style E fill:#ffb74d,stroke:#e65100,stroke-width:2px
-    style F fill:#ffcc80,stroke:#f57c00,stroke-width:2px
-    style J fill:#ffb74d,stroke:#e65100,stroke-width:2px
+    %% Infrastructure IaC (Orange clair)
+    style E fill:#ffe0b2,stroke:#e65100,stroke-width:2px
+    style F fill:#ffe0b2,stroke:#f57c00,stroke-width:2px
+    style J fill:#ffe0b2,stroke:#e65100,stroke-width:2px
     
-    %% GCP Network & Storage (Cyan doux)
-    style G fill:#4dd0e1,stroke:#006064,stroke-width:2px
-    style I fill:#80deea,stroke:#00838f,stroke-width:2px
-    style N fill:#4dd0e1,stroke:#00695c,stroke-width:2px
+    %% GCP Network & Storage (Cyan clair)
+    style G fill:#b2ebf2,stroke:#006064,stroke-width:2px
+    style I fill:#b2ebf2,stroke:#00838f,stroke-width:2px
+    style N fill:#b2ebf2,stroke:#00695c,stroke-width:2px
     
-    %% Compute & Runtime (Vert doux)
-    style H fill:#81c784,stroke:#1b5e20,stroke-width:2px
-    style K fill:#a5d6a7,stroke:#2e7d32,stroke-width:2px
+    %% Compute & Runtime (Vert clair)
+    style H fill:#c8e6c9,stroke:#1b5e20,stroke-width:2px
+    style K fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
     
-    %% API & Endpoints (Jaune doux)
-    style L fill:#ffd54f,stroke:#f57f17,stroke-width:2px
+    %% API & Endpoints (Jaune clair)
+    style L fill:#fff9c4,stroke:#f57f17,stroke-width:2px
     
-    %% Clients (Gris moyen)
-    style M fill:#bdbdbd,stroke:#616161,stroke-width:2px
+    %% Clients (Gris clair)
+    style M fill:#e0e0e0,stroke:#616161,stroke-width:2px
 ```
 
 ## 🚀 Démarrage rapide
