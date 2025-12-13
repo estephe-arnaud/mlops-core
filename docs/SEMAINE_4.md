@@ -640,13 +640,20 @@ ls -la mlruns/
 
 ```bash
 # 1. Configurer Terraform (voir docs/SEMAINE_3.md pour les détails)
-cd terraform
-terraform init
-terraform plan
-terraform apply
+make terraform-init
+# ou directement
+terraform -chdir=terraform init
+
+make terraform-plan
+# ou directement
+terraform -chdir=terraform plan
+
+make terraform-apply
+# ou directement
+terraform -chdir=terraform apply
 
 # 2. Récupérer le nom du bucket créé
-BUCKET_NAME=$(terraform output -raw bucket_name)
+BUCKET_NAME=$(terraform -chdir=terraform output -raw bucket_name)
 ```
 
 ### Étape 3 : Uploader les Fichiers vers GCS
@@ -718,7 +725,7 @@ make train
 
 # ⚠️ ÉTAPE 2 : Uploader mlruns/ vers GCS (après création du bucket)
 # Utiliser gcloud storage (recommandé par Google, plus moderne que gsutil)
-BUCKET_NAME=$(terraform output -raw bucket_name)
+BUCKET_NAME=$(terraform -chdir=terraform output -raw bucket_name)
 gcloud storage cp -r mlruns/ gs://$BUCKET_NAME/mlruns/
 
 # ⚠️ ÉTAPE 3 : MLFLOW_TRACKING_URI est configuré automatiquement par Terraform
@@ -736,7 +743,8 @@ gcloud storage cp -r mlruns/ gs://$BUCKET_NAME/mlruns/
 **Alternative : MLflow Tracking Server** :
 ```bash
 # Déployer un serveur MLflow (Cloud Run, VM, etc.)
-mlflow server --backend-store-uri gs://YOUR-BUCKET/mlruns/ --default-artifact-root gs://YOUR-BUCKET/mlruns/
+BUCKET_NAME=$(terraform -chdir=terraform output -raw bucket_name)
+mlflow server --backend-store-uri gs://$BUCKET_NAME/mlruns/ --default-artifact-root gs://$BUCKET_NAME/mlruns/
 
 # Configurer l'URI
 export MLFLOW_TRACKING_URI="http://mlflow-server:5000"

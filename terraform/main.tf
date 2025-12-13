@@ -248,15 +248,13 @@ resource "google_compute_instance" "api_server" {
 
   metadata = {
     startup-script = templatefile("${path.module}/../scripts/startup-script.sh.tpl", {
-      bucket_name                 = google_storage_bucket.models_bucket.name
       docker_image                = var.docker_image
       secret_manager_api_key_name = var.create_secret_manager_secret ? (var.secret_manager_api_key_name != "" ? var.secret_manager_api_key_name : "mlops-api-key") : var.secret_manager_api_key_name
       project_id                  = var.project_id
-      auto_deploy_api             = var.auto_deploy_api
       cors_origins                = var.cors_origins
       mlflow_tracking_uri         = var.mlflow_tracking_uri != "" ? var.mlflow_tracking_uri : "gs://${google_storage_bucket.models_bucket.name}/mlruns/"
     })
-    # Métadonnées pour récupération par le script de déploiement
+    # Métadonnées VM (peuvent être utilisées pour scripts ou monitoring)
     cors_origins        = var.cors_origins
     mlflow_tracking_uri = var.mlflow_tracking_uri != "" ? var.mlflow_tracking_uri : "gs://${google_storage_bucket.models_bucket.name}/mlruns/"
   }

@@ -218,8 +218,7 @@ Si vous préférez utiliser uniquement l'IP de votre Load Balancer :
 
 ```bash
 # 1. Après terraform apply, récupérer l'IP du Load Balancer
-cd terraform
-LOAD_BALANCER_IP=$(terraform output -raw load_balancer_ip)
+LOAD_BALANCER_IP=$(terraform -chdir=terraform output -raw load_balancer_ip)
 echo "Load Balancer IP: $LOAD_BALANCER_IP"
 
 # 2. Mettre à jour terraform.tfvars avec cette IP spécifique
@@ -335,9 +334,13 @@ docker --version
 #### 0.2 Configurer GCP
 
 ```bash
+# Variables d'environnement (définir au début)
+export PROJECT_ID="your-project-id"
+export REGION="europe-west1"
+
 # Se connecter et sélectionner le projet
 gcloud auth login
-gcloud config set project YOUR-PROJECT-ID
+gcloud config set project $PROJECT_ID
 
 # Authentifier Terraform avec Google Cloud
 gcloud auth application-default login
@@ -437,8 +440,7 @@ EOF
 grep -q "secrets.tfvars" .gitignore || echo "secrets.tfvars" >> .gitignore
 
 # 3. Appliquer avec le fichier de secrets
-cd terraform
-terraform apply -var-file=secrets.tfvars
+terraform -chdir=terraform apply -var-file=secrets.tfvars
 ```
 
 **Dans `terraform.tfvars`** :
@@ -471,13 +473,13 @@ Cette option permet de créer le secret manuellement avant de déployer l'infras
 echo -n "$API_KEY" | gcloud secrets create mlops-api-key \
   --data-file=- \
   --replication-policy="automatic" \
-  --project=YOUR-PROJECT-ID
+  --project=$PROJECT_ID
 
 # Vérifier que le secret a été créé
-gcloud secrets describe mlops-api-key --project=YOUR-PROJECT-ID
+gcloud secrets describe mlops-api-key --project=$PROJECT_ID
 
 # Vérifier la valeur (optionnel, pour test)
-gcloud secrets versions access latest --secret="mlops-api-key" --project=YOUR-PROJECT-ID
+gcloud secrets versions access latest --secret="mlops-api-key" --project=$PROJECT_ID
 ```
 
 **Configuration dans `terraform.tfvars`** :
@@ -494,13 +496,13 @@ secret_manager_api_key_name = "mlops-api-key"
 
 ```bash
 # Récupérer l'email du service account (après terraform apply)
-SERVICE_ACCOUNT=$(cd terraform && terraform output -raw service_account_email)
+SERVICE_ACCOUNT=$(terraform -chdir=terraform output -raw service_account_email)
 
 # Donner accès au secret
 gcloud secrets add-iam-policy-binding mlops-api-key \
   --member="serviceAccount:$SERVICE_ACCOUNT" \
   --role="roles/secretmanager.secretAccessor" \
-  --project=YOUR-PROJECT-ID
+  --project=$PROJECT_ID
 ```
 
 ---
@@ -520,7 +522,7 @@ gcloud secrets add-iam-policy-binding mlops-api-key \
 
 #### 1.3 Alternative : Variables d'Environnement (Moins Sécurisé)
 
-Si vous n'utilisez pas Secret Manager, vous pouvez stocker l'API_KEY dans un fichier `.env` (ne jamais commiter ce fichier).
+**Note** : En développement local, vous pouvez exporter les variables d'environnement directement ou les passer à docker-compose. En production, utilisez Secret Manager.
 
 ---
 
@@ -557,7 +559,7 @@ ls -la models/
 # terraform apply
 
 # ⚠️ ÉTAPE 2 : Récupérer le nom du bucket créé par Terraform
-BUCKET_NAME=$(terraform output -raw bucket_name)
+BUCKET_NAME=$(terraform -chdir=terraform output -raw bucket_name)
 
 # ⚠️ IMPORTANT : Uploader mlruns/ vers GCS (nécessaire pour que l'API charge le modèle)
 # L'API utilise runs:/<run_id>/model qui est résolu vers GCS via MLFLOW_TRACKING_URI
@@ -601,18 +603,22 @@ curl -H "X-API-Key: test-key" http://localhost:8000/health
 #### 3.2 Push vers Artifact Registry
 
 ```bash
+# Définir l'URI de l'image Docker
+export DOCKER_IMAGE_URI="europe-west1-docker.pkg.dev/$PROJECT_ID/mlops-repo/iris-api:latest"
+
 # Créer un repository Artifact Registry
 gcloud artifacts repositories create mlops-repo \
   --repository-format=docker \
-  --location=europe-west1 \
-  --description="MLOps API Docker repository"
+  --location=$REGION \
+  --description="MLOps API Docker repository" \
+  --project=$PROJECT_ID || true
 
 # Configurer Docker
-gcloud auth configure-docker europe-west1-docker.pkg.dev
+gcloud auth configure-docker $REGION-docker.pkg.dev
 
 # Tagger et push
-docker tag iris-api:latest europe-west1-docker.pkg.dev/YOUR-PROJECT-ID/mlops-repo/iris-api:latest
-docker push europe-west1-docker.pkg.dev/YOUR-PROJECT-ID/mlops-repo/iris-api:latest
+docker tag iris-api:latest $DOCKER_IMAGE_URI
+docker push $DOCKER_IMAGE_URI
 ```
 
 ---
@@ -622,8 +628,7 @@ docker push europe-west1-docker.pkg.dev/YOUR-PROJECT-ID/mlops-repo/iris-api:late
 #### 4.1 Créer le Fichier de Configuration
 
 ```bash
-cd terraform
-cp terraform.tfvars.example terraform.tfvars
+cp terraform/terraform.tfvars.example terraform/terraform.tfvars
 ```
 
 #### 4.2 Éditer terraform.tfvars
@@ -672,7 +677,8 @@ allowed_http_ips = [
 # ============================================================================
 
 # Image Docker (après build et push)
-docker_image = "europe-west1-docker.pkg.dev/YOUR-PROJECT-ID/mlops-repo/iris-api:latest"
+# Utiliser la variable DOCKER_IMAGE_URI définie lors du build
+docker_image = "$DOCKER_IMAGE_URI"
 
 # ============================================================================
 # SECRET MANAGER
@@ -731,22 +737,22 @@ Pour une meilleure sécurité et collaboration :
 
 ```bash
 # Créer le bucket pour le state
-gcloud storage buckets create gs://YOUR-PROJECT-ID-terraform-state \
-  --project=YOUR-PROJECT-ID \
-  --location=europe-west1
+gcloud storage buckets create gs://$PROJECT_ID-terraform-state \
+  --project=$PROJECT_ID \
+  --location=$REGION
 
 # Activer le versioning
-gcloud storage buckets update gs://YOUR-PROJECT-ID-terraform-state \
+gcloud storage buckets update gs://$PROJECT_ID-terraform-state \
   --versioning
 
 # Copier et configurer
-cp backend.tf.example backend.tf
+cp terraform/backend.tf.example terraform/backend.tf
 
-# Éditer backend.tf avec vos valeurs
-# backend.tf :
+# Éditer terraform/backend.tf avec vos valeurs
+# terraform/backend.tf :
 # terraform {
 #   backend "gcs" {
-#     bucket = "YOUR-PROJECT-ID-terraform-state"
+#     bucket = "$PROJECT_ID-terraform-state"
 #     prefix = "mlops-core/terraform/state"
 #   }
 # }
@@ -758,28 +764,32 @@ cp backend.tf.example backend.tf
 
 ### Étape 5 : Déploiement Terraform
 
-⚠️ **IMPORTANT** : Si vous utilisez `auto_deploy_api = true`, vous devez uploader le script `deploy-api.sh` dans GCS **après** la création du bucket mais **avant** que le startup-script ne s'exécute. Voir l'Étape 6.1 pour les détails.
+✅ **Note** : Le script de déploiement est intégré directement dans le startup-script. Le service est configuré et activé (démarrage au boot), mais non démarré automatiquement. Aucun upload manuel n'est nécessaire.
 
 #### 5.1 Initialisation
 
 ```bash
-cd terraform
-
-# Initialiser Terraform
-terraform init
+# Initialiser Terraform (depuis la racine du projet)
+make terraform-init
+# ou directement
+terraform -chdir=terraform init
 
 # Si vous utilisez un backend distant
-terraform init -migrate-state
+terraform -chdir=terraform init -migrate-state
 ```
 
 #### 5.2 Validation
 
 ```bash
 # Valider la syntaxe
-terraform validate
+make terraform-validate
+# ou directement
+terraform -chdir=terraform validate
 
 # Voir ce qui sera créé (sans créer)
-terraform plan
+make terraform-plan
+# ou directement
+terraform -chdir=terraform plan
 
 # Vérifier attentivement :
 # - Les IPs autorisées sont correctes
@@ -791,35 +801,31 @@ terraform plan
 
 ```bash
 # Appliquer la configuration
-terraform apply
+make terraform-apply
+# ou directement
+terraform -chdir=terraform apply
 
 # Confirmer avec "yes" quand demandé
 # ⚠️ Cette opération peut prendre 5-10 minutes
 ```
 
-⚠️ **Si `auto_deploy_api = true`** : Après `terraform apply`, le bucket est créé. Vous devez **immédiatement** uploader le script `deploy-api.sh` dans GCS avant que le startup-script de la VM ne s'exécute (voir Étape 6.1). Sinon, le déploiement automatique échouera.
+✅ **Le déploiement de l'API est entièrement automatique.** Le script de déploiement est intégré dans le startup-script, aucune action manuelle n'est requise.
 
 #### 5.4 Vérification Post-Déploiement
 
 ```bash
 # Voir tous les outputs
-terraform output
+make terraform-output
+# ou directement
+terraform -chdir=terraform output
 
-# Voir l'IP interne de la VM
-terraform output vm_internal_ip
-
-# Voir l'IP externe (si activée)
-terraform output vm_external_ip
-
-# Voir l'IP du Load Balancer (si activé)
-terraform output load_balancer_ip
-terraform output load_balancer_url
-
-# Voir la commande SSH
-terraform output vm_ssh_command
-
-# Voir le nom du bucket
-terraform output bucket_name
+# Voir un output spécifique
+terraform -chdir=terraform output vm_internal_ip
+terraform -chdir=terraform output vm_external_ip
+terraform -chdir=terraform output load_balancer_ip
+terraform -chdir=terraform output load_balancer_url
+terraform -chdir=terraform output vm_ssh_command
+terraform -chdir=terraform output bucket_name
 ```
 
 #### 5.5 Accès au Secret Manager
@@ -832,9 +838,9 @@ terraform output bucket_name
 
 ```bash
 # Vérifier que le service account a accès au secret
-SERVICE_ACCOUNT=$(cd terraform && terraform output -raw service_account_email)
+SERVICE_ACCOUNT=$(terraform -chdir=terraform output -raw service_account_email)
 gcloud secrets get-iam-policy mlops-api-key \
-  --project=YOUR-PROJECT-ID \
+  --project=$PROJECT_ID \
   | grep "$SERVICE_ACCOUNT"
 ```
 
@@ -844,31 +850,16 @@ gcloud secrets get-iam-policy mlops-api-key \
 
 ### Étape 6 : Préparer le Déploiement Automatique
 
-#### 6.1 Uploader le Script de Déploiement dans GCS
+✅ **Note** : Le script de déploiement est maintenant intégré directement dans le startup-script Terraform. Aucun upload manuel dans GCS n'est nécessaire.
 
-**⚠️ IMPORTANT** : Le startup-script Terraform télécharge automatiquement `deploy-api.sh` depuis GCS. Vous devez l'uploader avant le déploiement.
-
-```bash
-# Récupérer le nom du bucket depuis Terraform (après terraform apply)
-BUCKET_NAME=$(terraform output -raw bucket_name)
-
-# Créer le répertoire scripts dans le bucket
-gcloud storage buckets create "gs://$BUCKET_NAME" 2>/dev/null || true
-
-# Uploader le script de déploiement
-gcloud storage cp scripts/deploy-api.sh "gs://$BUCKET_NAME/scripts/deploy-api.sh"
-
-# Vérifier
-gcloud storage ls "gs://$BUCKET_NAME/scripts/"
-```
-
-#### 6.2 Configurer les Variables de Déploiement dans terraform.tfvars
+#### 6.1 Configurer les Variables de Déploiement dans terraform.tfvars
 
 Assurez-vous que votre `terraform.tfvars` contient :
 
 ```hcl
 # Image Docker complète
-docker_image = "europe-west1-docker.pkg.dev/YOUR-PROJECT-ID/mlops-repo/iris-api:latest"
+# Utiliser la variable DOCKER_IMAGE_URI définie lors du build
+docker_image = "$DOCKER_IMAGE_URI"
 
 # Configuration Secret Manager
 # Voir section 1.2 pour les détails complets des deux options
@@ -876,47 +867,53 @@ secret_manager_api_key_name = "mlops-api-key"
 # Option A : create_secret_manager_secret = true (avec TF_VAR_api_key_value exportée)
 # Option B : create_secret_manager_secret = false (secret créé manuellement)
 
-# Déploiement automatique activé
-auto_deploy_api = true
+# Note: Le service est configuré et activé (démarrage au boot), mais non démarré automatiquement
 ```
 
 **Important** : 
 - Si vous utilisez l'**Option A** : Assurez-vous d'avoir exporté `TF_VAR_api_key_value` avant `terraform apply` (voir [section 1.2](#12-stocker-dans-secret-manager-recommandé))
 - Si vous utilisez l'**Option B** : Assurez-vous que le secret `mlops-api-key` existe déjà dans Secret Manager (voir [section 1.2](#12-stocker-dans-secret-manager-recommandé))
 
-#### 6.3 Déploiement Automatique
+#### 6.2 Déploiement Automatique
 
-Si `auto_deploy_api = true` dans `terraform.tfvars`, le startup-script :
+Le startup-script :
 1. Installe Docker et docker compose (plugin)
-2. Télécharge `deploy-api.sh` depuis GCS
-3. Récupère l'API_KEY depuis Secret Manager
-4. Exécute le script de déploiement automatiquement
+2. Récupère l'API_KEY depuis Secret Manager
+3. Configure l'API (utilisateur, répertoires, docker-compose.yml, service systemd)
+4. **Active** le service systemd (démarrage automatique au boot)
 
-**Aucune action manuelle requise !** L'API sera déployée automatiquement au démarrage de la VM.
+**⚠️ Action requise** : Le service est activé mais **non démarré** automatiquement. Vous devez démarrer l'API manuellement après vérification de la configuration (voir section 6.3).
 
-#### 6.4 Vérifier le Déploiement
+#### 6.3 Vérifier et Démarrer l'API
 
-**Si `auto_deploy_api = true`** : Le déploiement est automatique. Vérifiez simplement que tout fonctionne :
+**Le service est configuré mais non démarré.** Vérifiez la configuration puis démarrez l'API :
 
 ```bash
 # Se connecter à la VM
-terraform output vm_ssh_command
+ZONE=$(terraform -chdir=terraform output -raw vm_zone)
+terraform -chdir=terraform output vm_ssh_command
 # Ou directement
-gcloud compute ssh iris-api-server --zone=europe-west1-a --project=YOUR-PROJECT-ID
+gcloud compute ssh iris-api-server --zone=$ZONE --project=$PROJECT_ID
 
 # Vérifier Docker
 docker --version
 docker compose version  # Note: "docker compose" (plugin), pas "docker-compose"
 
+# Vérifier que le service est configuré
+sudo systemctl status mlops-api
+ls -la /opt/mlops-api/
+
+# Démarrer l'API
+sudo systemctl start mlops-api
+
 # Vérifier que l'API tourne
+sudo systemctl status mlops-api
 docker ps
-systemctl status mlops-api
 
-# Voir les logs du déploiement
+# Voir les logs du déploiement (configuration)
 cat /var/log/startup.log
-cat /var/log/mlops-deploy.log
 
-# Voir les logs de l'API
+# Voir les logs de l'API (après démarrage)
 journalctl -u mlops-api -f
 # Ou
 docker compose -f /opt/mlops-api/docker-compose.yml logs -f
@@ -925,29 +922,28 @@ docker compose -f /opt/mlops-api/docker-compose.yml logs -f
 curl http://localhost:8000/health
 
 # Tester avec API key
-export API_KEY=$(gcloud secrets versions access latest --secret="mlops-api-key" --project=YOUR-PROJECT-ID)
+export API_KEY=$(gcloud secrets versions access latest --secret="mlops-api-key" --project=$PROJECT_ID)
 curl -H "X-API-Key: $API_KEY" http://localhost:8000/health
 ```
 
-**Si `auto_deploy_api = false`** : Déploiement manuel requis :
+**Pour arrêter/démarrer l'API manuellement** :
 
 ```bash
 # Se connecter à la VM
-gcloud compute ssh iris-api-server --zone=europe-west1-a --project=YOUR-PROJECT-ID
+ZONE=$(terraform -chdir=terraform output -raw vm_zone)
+gcloud compute ssh iris-api-server --zone=$ZONE --project=$PROJECT_ID
 
-# Télécharger le script depuis GCS
-BUCKET_NAME=$(gcloud compute instances describe iris-api-server --zone=europe-west1-a --format="get(metadata.items[key='bucket_name'].value)" 2>/dev/null || echo "YOUR-PROJECT-ID-ml-models")
-gcloud storage cp "gs://$BUCKET_NAME/scripts/deploy-api.sh" /tmp/deploy-api.sh
+# Arrêter l'API
+sudo systemctl stop mlops-api
 
-# Exporter les variables
-export MODEL_BUCKET="$BUCKET_NAME"
-export API_KEY=$(gcloud secrets versions access latest --secret="mlops-api-key" --project=YOUR-PROJECT-ID)
-export DOCKER_IMAGE="europe-west1-docker.pkg.dev/YOUR-PROJECT-ID/mlops-repo/iris-api:latest"
+# Démarrer l'API
+sudo systemctl start mlops-api
 
-# Exécuter le script
-sudo bash /tmp/deploy-api.sh
+# Redémarrer l'API (après modification de docker-compose.yml)
+sudo systemctl restart mlops-api
 
-# Vérifier que le container tourne
+# Vérifier le statut
+sudo systemctl status mlops-api
 docker ps
 ```
 
@@ -989,16 +985,16 @@ done
 # Depuis votre machine locale
 
 # Option 1 : Si IP publique activée sur la VM
-VM_IP=$(cd terraform && terraform output -raw vm_external_ip)
+VM_IP=$(terraform -chdir=terraform output -raw vm_external_ip)
 curl -H "X-API-Key: YOUR-API-KEY" http://$VM_IP:8000/health
 
 # Option 2 : Si Load Balancer configuré (RECOMMANDÉ)
 # Récupérer l'IP du Load Balancer
-LOAD_BALANCER_IP=$(cd terraform && terraform output -raw load_balancer_ip)
+LOAD_BALANCER_IP=$(terraform -chdir=terraform output -raw load_balancer_ip)
 curl -H "X-API-Key: YOUR-API-KEY" http://$LOAD_BALANCER_IP/health
 
 # Ou utiliser l'URL complète
-LOAD_BALANCER_URL=$(cd terraform && terraform output -raw load_balancer_url)
+LOAD_BALANCER_URL=$(terraform -chdir=terraform output -raw load_balancer_url)
 curl -H "X-API-Key: YOUR-API-KEY" $LOAD_BALANCER_URL/health
 ```
 
@@ -1101,59 +1097,74 @@ Via la console GCP :
 
 ### Commandes de Base
 
+> **💡 Note** : Toutes les commandes peuvent être exécutées depuis la racine du projet avec `make terraform-*` ou `terraform -chdir=terraform`.
+
 ```bash
 # Voir l'état actuel
-terraform show
+terraform -chdir=terraform show
 
 # Rafraîchir l'état (synchroniser avec GCP)
-terraform refresh
+terraform -chdir=terraform refresh
 
 # Valider la configuration
-terraform validate
+make terraform-validate
+# ou directement
+terraform -chdir=terraform validate
 
 # Formater les fichiers Terraform
-terraform fmt
+terraform -chdir=terraform fmt -recursive
 
 # Voir les outputs
-terraform output
+make terraform-output
+# ou directement
+terraform -chdir=terraform output
 
 # Voir les outputs en JSON
-terraform output -json
+terraform -chdir=terraform output -json
 
 # Voir un output spécifique
-terraform output vm_external_ip
-terraform output bucket_name
+terraform -chdir=terraform output vm_external_ip
+terraform -chdir=terraform output bucket_name
 ```
 
 ### Commandes de Déploiement
 
 ```bash
 # Initialiser Terraform
-terraform init
+make terraform-init
+# ou directement
+terraform -chdir=terraform init
 
 # Voir ce qui sera créé/modifié
-terraform plan
+make terraform-plan
+# ou directement
+terraform -chdir=terraform plan
 
 # Appliquer les changements
-terraform apply
+make terraform-apply
+# ou directement
+terraform -chdir=terraform apply
 
 # Appliquer sans confirmation (non recommandé)
-terraform apply -auto-approve
+terraform -chdir=terraform apply -auto-approve
 
 # Détruire l'infrastructure
-terraform destroy
+make terraform-destroy
+# ou directement
+terraform -chdir=terraform destroy
 ```
 
 ### Commandes de Connexion
 
 ```bash
 # Utiliser la commande SSH générée
-terraform output vm_ssh_command
+terraform -chdir=terraform output vm_ssh_command
 
 # Ou directement avec gcloud
+ZONE=$(terraform -chdir=terraform output -raw vm_zone)
 gcloud compute ssh iris-api-server \
-  --zone=europe-west1-a \
-  --project=YOUR-PROJECT-ID
+  --zone=$ZONE \
+  --project=$PROJECT_ID
 ```
 
 ---
@@ -1171,10 +1182,10 @@ gcloud compute ssh iris-api-server \
    - Build automatique à chaque push
 
 3. ✅ **Améliorer le Startup Script** - **FAIT**
-   - ✅ Script `deploy-api.sh` intégré dans le startup script Terraform via template
+   - ✅ Script de déploiement intégré directement dans le startup script Terraform
+   - ✅ Plus besoin d'uploader manuellement dans GCS - tout est versionné avec Terraform
    - ✅ Gestion d'erreurs robuste ajoutée
    - ✅ Support de docker compose (plugin) et docker-compose (fallback)
-   - ⚠️ **Action requise** : Uploader `scripts/deploy-api.sh` dans GCS avant le déploiement
 
 4. ✅ **Configurer Cloud Monitoring** - **FAIT**
    - ✅ Alertes sur métriques critiques (CPU, mémoire, instance down)
@@ -1264,9 +1275,9 @@ gcloud compute ssh iris-api-server \
   - [ ] `allowed_http_ips` configuré (ou Load Balancer)
   - [ ] `enable_public_ip` configuré selon besoins
   - [ ] `force_destroy_bucket = false`
-  - [ ] `docker_image` configuré (ex: `europe-west1-docker.pkg.dev/PROJECT-ID/mlops-repo/iris-api:latest`)
+  - [ ] `docker_image` configuré avec `$DOCKER_IMAGE_URI` (voir section Build et Push)
   - [ ] `secret_manager_api_key_name` configuré (ex: `mlops-api-key`)
-  - [ ] `auto_deploy_api` configuré (`true` pour déploiement automatique)
+  - [ ] Configuration Terraform validée
   - [ ] Backend Terraform configuré (optionnel)
 
 ### Déploiement
@@ -1276,11 +1287,11 @@ gcloud compute ssh iris-api-server \
   - [ ] `terraform plan` vérifié
   - [ ] `terraform apply` exécuté avec succès
   - [ ] Toutes les ressources créées
-  - [ ] Script `deploy-api.sh` uploadé dans GCS (si `auto_deploy_api = true`)
+  - [ ] ✅ Script de déploiement intégré dans le startup-script (aucun upload manuel nécessaire)
 
 - [ ] **Application**
-  - [ ] Si `auto_deploy_api = true` : Déploiement automatique vérifié via logs
-  - [ ] Si `auto_deploy_api = false` : Connexion SSH à la VM réussie
+  - [ ] Déploiement automatique vérifié via logs
+  - [ ] Connexion SSH à la VM réussie
   - [ ] Docker installé et fonctionnel
   - [ ] docker compose (plugin) disponible
   - [ ] Modèle téléchargé depuis GCS
@@ -1365,7 +1376,8 @@ gcloud secrets get-iam-policy mlops-api-key
 
 ```bash
 # Vérifier GCS
-gcloud storage ls gs://YOUR-PROJECT-ID-ml-models/
+BUCKET_NAME=$(terraform -chdir=terraform output -raw bucket_name)
+gcloud storage ls gs://$BUCKET_NAME/
 
 # Note : models/metadata.json et models/metrics.json sont inclus dans l'image Docker
 # Ils sont versionnés avec Git via DVC et n'ont pas besoin d'être téléchargés séparément
@@ -1378,7 +1390,7 @@ gcloud storage ls gs://YOUR-PROJECT-ID-ml-models/
 # Pas besoin de télécharger mlruns/ localement sur la VM
 
 # Vérifier les permissions du service account
-gcloud projects get-iam-policy YOUR-PROJECT-ID \
+gcloud projects get-iam-policy $PROJECT_ID \
   --flatten="bindings[].members" \
   --filter="bindings.members:serviceAccount:mlops-api-sa@*"
 ```
@@ -1417,8 +1429,9 @@ curl ifconfig.me
 gcloud compute firewall-rules describe mlops-vpc-allow-ssh
 
 # Vérifier que la VM a le tag ssh-allowed
+ZONE=$(terraform -chdir=terraform output -raw vm_zone)
 gcloud compute instances describe iris-api-server \
-  --zone=europe-west1-a \
+  --zone=$ZONE \
   --format="get(tags.items)"
 ```
 
@@ -1435,12 +1448,13 @@ gcloud compute instances describe iris-api-server \
 gcloud compute firewall-rules describe mlops-vpc-allow-http
 
 # Vérifier que la VM a le tag http-server
+ZONE=$(terraform -chdir=terraform output -raw vm_zone)
 gcloud compute instances describe iris-api-server \
-  --zone=europe-west1-a \
+  --zone=$ZONE \
   --format="get(tags.items)"
 
 # Vérifier que l'IP publique est activée (si nécessaire)
-terraform output vm_external_ip
+terraform -chdir=terraform output vm_external_ip
 ```
 
 ### Erreur Terraform : "API not enabled"

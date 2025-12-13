@@ -103,12 +103,6 @@ variable "secret_manager_api_key_name" {
   default     = ""
 }
 
-variable "auto_deploy_api" {
-  description = "Déployer automatiquement l'API au démarrage de la VM via le startup-script"
-  type        = bool
-  default     = true
-}
-
 variable "cors_origins" {
   description = "Origines CORS autorisées (séparées par des virgules). ⚠️ SÉCURITÉ : En production, ne pas utiliser '*'. Exemple : 'https://example.com,https://app.example.com'. Pour dev local : '*' (recommandé)"
   type        = string

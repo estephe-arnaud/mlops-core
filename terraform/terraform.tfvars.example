@@ -61,8 +61,8 @@ mlflow_tracking_uri = ""
 # Origines CORS (dev: "*", production: spécifier les domaines)
 cors_origins = "*"
 
-# Déploiement automatique de l'API au démarrage
-auto_deploy_api = true
+# Note: Le service est configuré et activé (démarrage au boot), mais non démarré automatiquement
+# Démarrer l'API après déploiement: systemctl start mlops-api
 
 # ============================================================================
 # CONFIGURATION AVANCÉE (valeurs par défaut généralement suffisantes)

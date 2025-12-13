@@ -185,7 +185,6 @@ site/
 
 .env
 .env.*
-!.env.example
 secrets.json
 config.json
 *.pem
