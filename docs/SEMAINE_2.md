@@ -1,5 +1,25 @@
 # 🟢 Semaine 2 : CI/CD (GitHub Actions)
 
+## 📋 Table des Matières
+
+1. [Objectif de la Semaine](#-objectif-de-la-semaine)
+2. [Tâches à Accomplir](#-tâches-à-accomplir)
+3. [Livrables Créés](#-livrables-créés)
+4. [Fonctionnalités Implémentées](#-fonctionnalités-implémentées)
+5. [Configuration du Pipeline CI/CD](#-configuration-du-pipeline-cicd)
+6. [Structure du Pipeline](#-structure-du-pipeline)
+7. [Gestion des Tags Docker](#-gestion-des-tags-docker)
+8. [Tester Localement](#-tester-localement)
+9. [Débogage](#-débogage)
+10. [Commandes Utiles GitHub CLI](#-commandes-utiles-github-cli)
+11. [Outils Utilisés](#-outils-utilisés)
+12. [Métriques](#-métriques)
+13. [Ressources](#-ressources)
+14. [Validation des Objectifs](#-validation-des-objectifs)
+15. [Prochaines Étapes](#-prochaines-étapes-semaine-3)
+
+---
+
 ## 🎯 Objectif de la Semaine
 
 **Automatiser le processus de build/test/push de l'image Docker sur push GitHub**

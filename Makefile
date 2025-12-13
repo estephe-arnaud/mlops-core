@@ -97,7 +97,7 @@ lint: ## Vérifier la qualité du code
 	$(ISORT) --check-only .
 
 # CI/CD 
-ci: lint test ## Exécuter les vérifications CI (lint + test)
+ci: lint format test ## Exécuter les vérifications CI (lint + format + test)
 	@echo "✅ Toutes les vérifications CI sont passées !"
 
 # Nettoyage

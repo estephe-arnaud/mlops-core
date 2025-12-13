@@ -4,6 +4,7 @@ Calcule les métriques et les log dans MLflow
 """
 
 import logging
+import tempfile
 from pathlib import Path
 from typing import Any, Dict, Tuple
 
@@ -22,17 +23,17 @@ logger = logging.getLogger(__name__)
 
 
 def evaluate_model(
-    model: Any, X_test: Any, y_test: Any, iris_metadata: Dict, use_mlflow: bool = True
+    model: Any, X_test: Any, y_test: Any, iris_metadata: Dict
 ) -> Tuple[Dict, Dict]:
     """
     Évalue un modèle et retourne les métriques et métadonnées
+    Les métriques sont automatiquement loggées dans MLflow
 
     Args:
         model: Modèle entraîné
         X_test: Features de test
         y_test: Labels de test
         iris_metadata: Métadonnées du dataset (feature_names, target_names)
-        use_mlflow: Logger les métriques dans MLflow
 
     Returns:
         Tuple[Dict, Dict]: (métriques, métadonnées)
@@ -63,26 +64,33 @@ def evaluate_model(
     )
 
     # Logger les métriques dans MLflow
-    if use_mlflow:
-        # Métriques globales
-        mlflow.log_metric("accuracy", accuracy)
-        mlflow.log_metric("precision_weighted", precision)
-        mlflow.log_metric("recall_weighted", recall)
-        mlflow.log_metric("f1_score_weighted", f1)
+    # Métriques globales
+    mlflow.log_metric("accuracy", accuracy)
+    mlflow.log_metric("precision_weighted", precision)
+    mlflow.log_metric("recall_weighted", recall)
+    mlflow.log_metric("f1_score_weighted", f1)
 
-        # Métriques par classe
-        for i, class_name in enumerate(iris_metadata["target_names"]):
-            mlflow.log_metric(f"precision_{class_name}", precision_per_class[i])
-            mlflow.log_metric(f"recall_{class_name}", recall_per_class[i])
-            mlflow.log_metric(f"f1_score_{class_name}", f1_per_class[i])
+    # Métriques par classe
+    for i, class_name in enumerate(iris_metadata["target_names"]):
+        mlflow.log_metric(f"precision_{class_name}", precision_per_class[i])
+        mlflow.log_metric(f"recall_{class_name}", recall_per_class[i])
+        mlflow.log_metric(f"f1_score_{class_name}", f1_per_class[i])
 
-        # Confusion matrix
-        cm = confusion_matrix(y_test, y_pred)
-        artifacts_dir = Path("mlruns/artifacts")
-        artifacts_dir.mkdir(parents=True, exist_ok=True)
-        cm_path = artifacts_dir / "confusion_matrix.txt"
-        np.savetxt(cm_path, cm, fmt="%d")
-        mlflow.log_artifact(str(cm_path), "confusion_matrix")
+    # Confusion matrix
+    cm = confusion_matrix(y_test, y_pred)
+    # Créer un fichier temporaire pour la confusion matrix
+    tmp_file_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".txt", delete=False
+        ) as tmp_file:
+            tmp_file_path = tmp_file.name
+            np.savetxt(tmp_file_path, cm, fmt="%d")
+        mlflow.log_artifact(tmp_file_path, "confusion_matrix")
+    finally:
+        # Nettoyer le fichier temporaire même en cas d'erreur
+        if tmp_file_path and Path(tmp_file_path).exists():
+            Path(tmp_file_path).unlink()
 
     # Métriques de performance (pour DVC tracking)
     metrics = {

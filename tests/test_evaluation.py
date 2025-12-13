@@ -2,9 +2,11 @@
 Tests unitaires pour le module d'évaluation (evaluation/evaluate.py)
 """
 
+import os
 import tempfile
 from pathlib import Path
 
+import mlflow
 import numpy as np
 import pytest
 from sklearn.datasets import load_iris
@@ -16,6 +18,16 @@ from src.evaluation.evaluate import evaluate_model
 
 class TestEvaluation:
     """Tests pour le module d'évaluation"""
+
+    @pytest.fixture(autouse=True)
+    def setup_mlflow(self):
+        """Fixture pour configurer MLflow pour tous les tests"""
+        temp_dir = tempfile.mkdtemp()
+        mlflow.set_tracking_uri(f"file://{temp_dir}/mlruns")
+        # Créer un experiment par défaut pour que mlflow.start_run() fonctionne
+        mlflow.set_experiment("test-experiment")
+        yield
+        # Nettoyage après les tests
 
     @pytest.fixture
     def trained_model_and_data(self):
@@ -39,9 +51,8 @@ class TestEvaluation:
         """Test d'évaluation basique du modèle"""
         model, X_test, y_test, iris_metadata = trained_model_and_data
 
-        metrics, metadata = evaluate_model(
-            model, X_test, y_test, iris_metadata, use_mlflow=False
-        )
+        with mlflow.start_run():
+            metrics, metadata = evaluate_model(model, X_test, y_test, iris_metadata)
 
         # Vérifier les métriques
         assert "accuracy" in metrics
@@ -71,9 +82,8 @@ class TestEvaluation:
         """Test que l'accuracy est dans une plage raisonnable"""
         model, X_test, y_test, iris_metadata = trained_model_and_data
 
-        metrics, _ = evaluate_model(
-            model, X_test, y_test, iris_metadata, use_mlflow=False
-        )
+        with mlflow.start_run():
+            metrics, _ = evaluate_model(model, X_test, y_test, iris_metadata)
 
         # Pour Iris avec RandomForest, l'accuracy devrait être > 0.8
         assert metrics["accuracy"] > 0.8
@@ -82,9 +92,8 @@ class TestEvaluation:
         """Test de la structure des métadonnées retournées"""
         model, X_test, y_test, iris_metadata = trained_model_and_data
 
-        metrics, metadata = evaluate_model(
-            model, X_test, y_test, iris_metadata, use_mlflow=False
-        )
+        with mlflow.start_run():
+            metrics, metadata = evaluate_model(model, X_test, y_test, iris_metadata)
 
         # Vérifier que metadata ne contient pas de métriques (séparation claire)
         assert "accuracy" not in metadata
@@ -97,20 +106,13 @@ class TestEvaluation:
         assert "target_names" in metadata
 
     def test_evaluate_model_with_mlflow(self, trained_model_and_data):
-        """Test d'évaluation avec MLflow (sans erreur)"""
+        """Test d'évaluation avec MLflow (toujours activé maintenant)"""
         model, X_test, y_test, iris_metadata = trained_model_and_data
 
-        # Test que la fonction ne plante pas avec MLflow activé
-        # (même si MLflow n'est pas configuré en test)
-        try:
-            metrics, metadata = evaluate_model(
-                model, X_test, y_test, iris_metadata, use_mlflow=True
-            )
-            # Si ça ne plante pas, c'est bon
-            assert "accuracy" in metrics
-        except Exception:
-            # Si MLflow n'est pas configuré, c'est acceptable en test
-            pytest.skip("MLflow non configuré pour les tests")
+        with mlflow.start_run():
+            metrics, metadata = evaluate_model(model, X_test, y_test, iris_metadata)
+        # Vérifier que les métriques sont loggées
+        assert "accuracy" in metrics
 
     def test_evaluate_model_perfect_predictions(self):
         """Test avec des prédictions parfaites (accuracy = 1.0)"""
@@ -128,9 +130,8 @@ class TestEvaluation:
             "target_names": list(iris.target_names),
         }
 
-        metrics, _ = evaluate_model(
-            model, X_test, y_test, iris_metadata, use_mlflow=False
-        )
+        with mlflow.start_run():
+            metrics, _ = evaluate_model(model, X_test, y_test, iris_metadata)
 
         # L'accuracy devrait être élevée (pas forcément 1.0 car test set différent)
         assert metrics["accuracy"] > 0.8
@@ -139,12 +140,10 @@ class TestEvaluation:
         """Test de cohérence des métriques"""
         model, X_test, y_test, iris_metadata = trained_model_and_data
 
-        metrics1, _ = evaluate_model(
-            model, X_test, y_test, iris_metadata, use_mlflow=False
-        )
-        metrics2, _ = evaluate_model(
-            model, X_test, y_test, iris_metadata, use_mlflow=False
-        )
+        with mlflow.start_run():
+            metrics1, _ = evaluate_model(model, X_test, y_test, iris_metadata)
+        with mlflow.start_run():
+            metrics2, _ = evaluate_model(model, X_test, y_test, iris_metadata)
 
         # Les métriques doivent être identiques pour les mêmes données
         assert abs(metrics1["accuracy"] - metrics2["accuracy"]) < 1e-6

@@ -1,5 +1,29 @@
 # 🟡 Semaine 4 : MLOps Local (MLflow + DVC)
 
+## 📋 Table des Matières
+
+1. [Objectif de la Semaine](#-objectif-de-la-semaine)
+2. [Tâches à Accomplir](#-tâches-à-accomplir)
+3. [Livrables Attendus](#-livrables-attendus)
+4. [Implémentation Prévue](#-implémentation-prévue)
+5. [Outils à Utiliser](#-outils-à-utiliser)
+6. [Métriques Attendues](#-métriques-attendues)
+7. [Ressources](#-ressources)
+8. [Progression](#-progression)
+9. [Objectifs de Validation](#-objectifs-de-validation)
+10. [Interface MLflow](#-interface-mlflow)
+11. [Pipeline DVC](#-pipeline-dvc)
+12. [Implémentation Complète](#-implémentation-complète)
+13. [Guide d'Utilisation](#-guide-dutilisation)
+14. [Exemples d'Expériences MLflow](#-exemples-dexpériences-mlflow)
+15. [Versioning des Données (DVC)](#-versioning-des-données-dvc)
+16. [Résultats Attendus](#-résultats-attendus)
+17. [Workflow Complet : Entraînement → Déploiement](#-workflow-complet-entraînement--déploiement)
+18. [Dépannage](#-dépannage)
+19. [Validation des Objectifs](#-validation-des-objectifs)
+
+---
+
 ## 🎯 Objectif de la Semaine
 
 **Traquer et versionner les expériences ML localement pour la reproductibilité**
@@ -113,10 +137,10 @@ stages:
     - src/training/train.py
     - src/evaluation/evaluate.py
     outs:
-    - models/iris_model.pkl
     - models/metadata.json
     metrics:
     - models/metrics.json
+    # Note : Le modèle ML est sauvegardé dans MLflow (mlruns/), pas dans models/
 ```
 
 ## 🛠️ Outils à Utiliser
@@ -156,34 +180,34 @@ stages:
 
 ## 📈 Progression
 
-### Phase 1 : MLflow (7h)
-- [ ] Installation et configuration MLflow
-- [ ] Intégration dans src/training/train.py
-- [ ] Logging des paramètres et métriques
-- [ ] Sauvegarde des modèles
-- [ ] Interface web MLflow UI
+### Phase 1 : MLflow (7h) ✅
+- [x] Installation et configuration MLflow
+- [x] Intégration dans src/training/train.py
+- [x] Logging des paramètres et métriques
+- [x] Sauvegarde des modèles
+- [x] Interface web MLflow UI
 
-### Phase 2 : DVC (7h)
-- [ ] Installation et initialisation DVC
-- [ ] Versioning du dataset
-- [ ] Création du pipeline dvc.yaml
-- [ ] Gestion des dépendances
-- [ ] Tests de reproductibilité
+### Phase 2 : DVC (7h) ✅
+- [x] Installation et initialisation DVC
+- [x] Versioning du dataset
+- [x] Création du pipeline dvc.yaml
+- [x] Gestion des dépendances
+- [x] Tests de reproductibilité
 
-### Phase 3 : Finalisation (6h)
-- [ ] Documentation complète
-- [ ] Schémas d'architecture
-- [ ] Vidéo de démonstration
-- [ ] Validation du Projet 1
+### Phase 3 : Finalisation (6h) ✅
+- [x] Documentation complète
+- [x] Schémas d'architecture
+- [x] Vidéo de démonstration (à faire selon besoins)
+- [x] Validation du Projet 1
 
 ## 🎯 Objectifs de Validation
 
-- [ ] MLflow UI accessible et fonctionnel
-- [ ] Expériences loggées avec paramètres/métriques
-- [ ] DVC pipeline reproductible
-- [ ] Dataset et modèles versionnés
-- [ ] Documentation complète
-- [ ] Vidéo de démonstration enregistrée
+- [x] MLflow UI accessible et fonctionnel
+- [x] Expériences loggées avec paramètres/métriques
+- [x] DVC pipeline reproductible
+- [x] Dataset et modèles versionnés
+- [x] Documentation complète
+- [ ] Vidéo de démonstration enregistrée (optionnel)
 
 ## 📊 Interface MLflow
 
@@ -270,11 +294,11 @@ Le script `src/training/train.py` a été modifié pour intégrer MLflow :
 ```python
 from src.training.train import train_model
 
-# Avec MLflow (par défaut)
+# MLflow est toujours activé
 model, metadata = train_model(n_estimators=100, max_depth=10)
 
-# Sans MLflow
-model, metadata = train_model(use_mlflow=False)
+# Le modèle est sauvegardé dans MLflow (mlruns/)
+# Les métadonnées (metadata.json) contiennent l'URI MLflow pour charger le modèle
 ```
 
 #### Interface MLflow UI
@@ -340,8 +364,9 @@ Le fichier `dvc.yaml` définit le pipeline :
 - Commande : `poetry run python -m src.training.train`
 - Dépendances : `data/processed/train.csv`, `data/processed/test.csv`, `src/training/train.py`, `src/evaluation/evaluate.py`, `src/config.py`
 - Paramètres : `train.n_estimators`, `train.max_depth`, `train.random_state`, `train.test_size` (depuis `params.yaml`)
-- Sorties : `models/iris_model.pkl`, `models/metadata.json`
+- Sorties : `models/metadata.json` (contient l'URI MLflow pour charger le modèle)
 - Métriques : `models/metrics.json`
+- **Modèle ML** : Sauvegardé dans MLflow (`mlruns/`), chargé via l'URI dans `metadata.json`
 
 #### Commandes DVC
 
@@ -372,6 +397,79 @@ make dvc-pipeline
 # Ou directement
 poetry run dvc dag
 ```
+
+#### Workflow Standard DVC avec Git
+
+**Principe** : DVC utilise un seul fichier `params.yaml` versionné dans Git. Les différentes configurations sont gérées via des branches Git.
+
+**Workflow recommandé** :
+
+1. **Créer une branche pour une nouvelle expérience** :
+```bash
+git checkout -b experiment/high-n-estimators
+```
+
+2. **Modifier params.yaml directement** :
+```yaml
+# params.yaml
+data:
+  test_size: 0.2
+  random_state: 42
+
+train:
+  n_estimators: 200  # Modifié pour l'expérience
+  max_depth: 10
+```
+
+3. **Exécuter le pipeline** :
+```bash
+make dvc-repro
+# ou directement: dvc repro
+```
+
+4. **MLflow track automatiquement les métriques** :
+```bash
+# Comparer dans MLflow UI
+make mlflow-ui
+# Ouvrir http://localhost:5000
+```
+
+5. **Commit si résultats intéressants** :
+```bash
+git add params.yaml dvc.lock
+git commit -m "Experiment: n_estimators=200, max_depth=10"
+git push origin experiment/high-n-estimators
+```
+
+6. **Revenir à main pour une autre expérience** :
+```bash
+git checkout main
+```
+
+**Tests rapides sans modifier params.yaml** :
+
+Pour des tests rapides sans créer de branche :
+```bash
+# Surcharger des paramètres spécifiques
+dvc repro -S train.n_estimators=200 -S train.max_depth=10
+```
+
+**Versioning des configurations** :
+
+- Chaque commit de `params.yaml` représente une version de configuration
+- Utiliser `git log params.yaml` pour voir l'historique des expériences
+- DVC suit automatiquement les changements de `params.yaml` via `dvc.lock`
+
+**Pourquoi un seul params.yaml ?**
+
+- ✅ Standard DVC : DVC lit toujours `params.yaml` par défaut
+- ✅ Versioning clair : Git gère l'historique des configurations
+- ✅ Reproductibilité : Chaque commit = configuration reproductible
+- ✅ Pas de duplication : Évite la désynchronisation entre fichiers
+
+**Alternative (non recommandée)** :
+
+Utiliser des branches Git est la pratique recommandée pour gérer différentes configurations de paramètres.
 
 ### Phase 3 : Intégration Complète ✅
 
@@ -518,6 +616,79 @@ git commit -m "Update dataset version"
 - ✅ Dépendances gérées automatiquement
 - ✅ Cache pour accélérer les réexécutions
 
+## 🚀 Workflow Complet : Entraînement → Déploiement
+
+### Étape 1 : Entraînement Local
+
+```bash
+# 1. Entraîner le modèle localement
+make train
+
+# 2. Vérifier les fichiers générés
+ls -la models/
+# - metadata.json (contient mlflow_run_id, mlflow_run_uri, etc.)
+# - metrics.json
+
+# 3. Vérifier MLflow local
+ls -la mlruns/
+# Structure : mlruns/<experiment_id>/<run_id>/artifacts/model/
+```
+
+### Étape 2 : Créer les Ressources GCP
+
+> ⚠️ **Important** : Créer d'abord les ressources GCP (bucket, VM, etc.) avant d'uploader les fichiers.
+
+```bash
+# 1. Configurer Terraform (voir docs/SEMAINE_3.md pour les détails)
+cd terraform
+terraform init
+terraform plan
+terraform apply
+
+# 2. Récupérer le nom du bucket créé
+BUCKET_NAME=$(terraform output -raw bucket_name)
+```
+
+### Étape 3 : Uploader les Fichiers vers GCS
+
+```bash
+# 1. Identifier le run_id à déployer
+cat models/metadata.json | grep mlflow_run_id
+
+# 2. Uploader mlruns/ vers GCS (⚠️ IMPORTANT : inclure le run spécifique)
+# Utiliser gcloud storage (recommandé par Google, plus moderne que gsutil)
+gcloud storage cp -r mlruns/ gs://$BUCKET_NAME/mlruns/
+
+# 3. Note: models/metadata.json et models/metrics.json sont inclus dans l'image Docker
+#    Ils sont versionnés avec Git via DVC et n'ont pas besoin d'être uploadés séparément
+#    Le modèle est chargé depuis MLflow via GCS en utilisant mlflow_run_id depuis metadata.json
+
+# 4. Vérifier
+gcloud storage ls gs://$BUCKET_NAME/
+gcloud storage ls gs://$BUCKET_NAME/mlruns/
+```
+
+### Étape 4 : Déploiement sur la VM
+
+```bash
+# 1. Note: models/metadata.json et models/metrics.json sont inclus dans l'image Docker
+#    Ils sont versionnés avec Git via DVC et n'ont pas besoin d'être téléchargés
+#    Le modèle est chargé depuis MLflow via GCS en utilisant mlflow_run_id depuis metadata.json
+
+# 2. MLFLOW_TRACKING_URI est configuré automatiquement par Terraform
+# (variable d'environnement passée au conteneur Docker)
+
+# 3. L'API charge automatiquement le modèle via runs:/<run_id>/model
+# MLflow télécharge temporairement depuis GCS dans son cache (~/.mlflow/cache)
+```
+
+**Comment ça fonctionne** :
+- `metadata.json` contient `mlflow_run_id`
+- L'API construit `runs:/<run_id>/model`
+- MLflow résout automatiquement vers GCS grâce à `MLFLOW_TRACKING_URI`
+- Le modèle est téléchargé temporairement dans le cache MLflow
+- Pas besoin de copier manuellement le modèle sur la VM
+
 ## 🔍 Dépannage
 
 ### MLflow UI ne démarre pas
@@ -530,6 +701,45 @@ lsof -i :5000
 
 # Utiliser un autre port
 poetry run mlflow ui --port 5001
+```
+
+### Configuration MLflow pour production (GCS backend)
+
+**Développement local** :
+```bash
+# MLflow utilise mlruns/ local (par défaut)
+make train
+```
+
+**Production avec GCS** :
+```bash
+# ⚠️ ÉTAPE 1 : Créer les ressources GCP d'abord (Terraform)
+# terraform apply
+
+# ⚠️ ÉTAPE 2 : Uploader mlruns/ vers GCS (après création du bucket)
+# Utiliser gcloud storage (recommandé par Google, plus moderne que gsutil)
+BUCKET_NAME=$(terraform output -raw bucket_name)
+gcloud storage cp -r mlruns/ gs://$BUCKET_NAME/mlruns/
+
+# ⚠️ ÉTAPE 3 : MLFLOW_TRACKING_URI est configuré automatiquement par Terraform
+# L'API chargera automatiquement depuis GCS via run_id dans metadata.json
+# MLflow télécharge temporairement le modèle dans son cache (~/.mlflow/cache)
+# Format utilisé : runs:/<run_id>/model (résolu automatiquement vers GCS)
+```
+
+**Comment ça fonctionne** :
+- L'API utilise `runs:/<run_id>/model` depuis `metadata.json`
+- MLflow résout automatiquement vers GCS grâce à `MLFLOW_TRACKING_URI`
+- Le modèle est téléchargé temporairement dans le cache MLflow (`~/.mlflow/cache`)
+- Pas besoin de copier manuellement le modèle sur la VM
+
+**Alternative : MLflow Tracking Server** :
+```bash
+# Déployer un serveur MLflow (Cloud Run, VM, etc.)
+mlflow server --backend-store-uri gs://YOUR-BUCKET/mlruns/ --default-artifact-root gs://YOUR-BUCKET/mlruns/
+
+# Configurer l'URI
+export MLFLOW_TRACKING_URI="http://mlflow-server:5000"
 ```
 
 ### DVC pipeline échoue

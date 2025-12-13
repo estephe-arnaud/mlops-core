@@ -93,13 +93,15 @@ echo "🤖 Test d'entraînement du modèle..."
 cd "$PROJECT_DIR"
 if python3 -m src.training.train > /dev/null 2>&1; then
     print_result 0 "Entraînement du modèle réussi"
-    if [ -f "models/iris_model.pkl" ]; then
-        print_result 0 "Modèle sauvegardé"
-    else
-        print_result 1 "Modèle non sauvegardé"
-    fi
+    # Vérifier que metadata.json contient les infos MLflow
     if [ -f "models/metadata.json" ]; then
         print_result 0 "Métadonnées sauvegardées"
+        # Vérifier que mlflow_run_id est présent (requis pour charger le modèle)
+        if grep -q "mlflow_run_id" "models/metadata.json"; then
+            print_result 0 "Référence MLflow (run_id) présente dans metadata.json"
+        else
+            print_result 1 "Référence MLflow (run_id) manquante dans metadata.json"
+        fi
     else
         print_result 1 "Métadonnées non sauvegardées"
     fi
@@ -107,6 +109,12 @@ if python3 -m src.training.train > /dev/null 2>&1; then
         print_result 0 "Métriques sauvegardées"
     else
         print_result 1 "Métriques non sauvegardées"
+    fi
+    # Vérifier que le modèle est dans MLflow (mlruns/)
+    if [ -d "mlruns" ] && [ "$(find mlruns -name 'model' -type d | wc -l)" -gt 0 ]; then
+        print_result 0 "Modèle enregistré dans MLflow"
+    else
+        print_result 1 "Modèle non trouvé dans MLflow"
     fi
 else
     print_result 1 "Échec de l'entraînement du modèle"

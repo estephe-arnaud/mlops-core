@@ -343,7 +343,14 @@ gcloud config set project YOUR-PROJECT-ID
 gcloud auth application-default login
 
 # Activer les APIs nécessaires
-gcloud services enable compute.googleapis.com storage-component.googleapis.com iam.googleapis.com secretmanager.googleapis.com containerregistry.googleapis.com artifactregistry.googleapis.com
+gcloud services enable \
+  compute.googleapis.com \
+  storage-component.googleapis.com \
+  iam.googleapis.com \
+  secretmanager.googleapis.com \
+  artifactregistry.googleapis.com \
+  monitoring.googleapis.com \
+  logging.googleapis.com
 ```
 
 #### 0.3 Vérifier les Permissions
@@ -506,7 +513,7 @@ gcloud secrets add-iam-policy-binding mlops-api-key \
 | **Traçabilité** | ✅ Dans state Terraform | ⚠️ Manuelle |
 | **Sécurité** | ✅ Variable d'env | ✅ Gcloud CLI |
 | **IAM automatique** | ✅ Oui | ✅ Oui (via Terraform) |
-| **Complexité** | ⭐⭐ Simple | ⭐⭐⭐ Moyenne |
+| **Complexité** | Simple | Moyenne |
 | **Recommandation** | ✅ **Production** | ⚠️ **Développement/Test** |
 
 **Recommandation** : Utilisez l'**Option A** en production pour une meilleure automatisation et traçabilité.
@@ -523,7 +530,7 @@ Si vous n'utilisez pas Secret Manager, vous pouvez stocker l'API_KEY dans un fic
 
 ```bash
 # Depuis le répertoire racine du projet
-cd /Users/earnaud/mlops-core
+cd mlops-core
 
 # Installer les dépendances si nécessaire
 poetry install
@@ -534,32 +541,42 @@ make train
 # Vérifier que les fichiers sont créés
 ls -la models/
 # Devrait contenir :
-# - iris_model.pkl
-# - metadata.json
+# - metadata.json (contient l'URI MLflow pour charger le modèle)
 # - metrics.json
+# Le modèle est sauvegardé dans MLflow (mlruns/), chargé via l'URI dans metadata.json
 ```
 
 #### 2.2 Uploader vers GCS
 
-> 💡 **Note** : Google recommande désormais d'utiliser `gcloud storage` au lieu de `gsutil` car ces commandes sont plus modernes et supportent les dernières fonctionnalités de Cloud Storage.
+> ⚠️ **Important** : Cette étape doit être effectuée **après** `terraform apply` pour que le bucket existe.
+
+> 💡 **Note** : Google recommande d'utiliser `gcloud storage` plutôt que `gsutil` car ces commandes sont plus modernes et supportent les dernières fonctionnalités de Cloud Storage.
 
 ```bash
-# Définir le nom du bucket (sera créé par Terraform, mais vous pouvez le créer manuellement)
-BUCKET_NAME="YOUR-PROJECT-ID-ml-models"
+# ⚠️ ÉTAPE 1 : Créer les ressources GCP d'abord (voir section Déploiement ci-dessous)
+# terraform apply
 
-# Créer le bucket (si pas encore créé)
-gcloud storage buckets create gs://$BUCKET_NAME \
-  --project=YOUR-PROJECT-ID \
-  --location=europe-west1
+# ⚠️ ÉTAPE 2 : Récupérer le nom du bucket créé par Terraform
+BUCKET_NAME=$(terraform output -raw bucket_name)
 
-# Uploader le modèle
-gcloud storage cp models/iris_model.pkl gs://$BUCKET_NAME/
-gcloud storage cp models/metadata.json gs://$BUCKET_NAME/
-gcloud storage cp models/metrics.json gs://$BUCKET_NAME/
+# ⚠️ IMPORTANT : Uploader mlruns/ vers GCS (nécessaire pour que l'API charge le modèle)
+# L'API utilise runs:/<run_id>/model qui est résolu vers GCS via MLFLOW_TRACKING_URI
+gcloud storage cp -r mlruns/ gs://$BUCKET_NAME/mlruns/
+
+# Note: models/metadata.json et models/metrics.json sont inclus dans l'image Docker
+# Ils sont versionnés avec Git via DVC et n'ont pas besoin d'être uploadés séparément
+# Le modèle est chargé depuis MLflow via GCS en utilisant mlflow_run_id depuis metadata.json
 
 # Vérifier
 gcloud storage ls gs://$BUCKET_NAME/
+gcloud storage ls gs://$BUCKET_NAME/mlruns/
 ```
+
+**Note** : 
+- Les fichiers `models/metadata.json` et `models/metrics.json` sont inclus dans l'image Docker (versionnés avec Git via DVC)
+- Le modèle est chargé dynamiquement depuis GCS via MLflow en utilisant `mlflow_run_id` depuis `metadata.json`
+- MLflow télécharge temporairement le modèle dans son cache (`~/.mlflow/cache`) lors du chargement
+- Pas besoin de copier manuellement le modèle ou les métadonnées sur la VM
 
 ---
 
@@ -581,23 +598,7 @@ docker run -p 127.0.0.1:8000:8000 \
 curl -H "X-API-Key: test-key" http://localhost:8000/health
 ```
 
-#### 3.2 Push vers Google Container Registry (GCR)
-
-```bash
-# Configurer Docker pour GCR
-gcloud auth configure-docker
-
-# Tagger l'image
-docker tag iris-api:latest gcr.io/YOUR-PROJECT-ID/iris-api:latest
-
-# Push
-docker push gcr.io/YOUR-PROJECT-ID/iris-api:latest
-
-# Vérifier
-gcloud container images list --repository=gcr.io/YOUR-PROJECT-ID
-```
-
-#### 3.3 Alternative : Artifact Registry (Recommandé)
+#### 3.2 Push vers Artifact Registry
 
 ```bash
 # Créer un repository Artifact Registry
@@ -671,7 +672,7 @@ allowed_http_ips = [
 # ============================================================================
 
 # Image Docker (après build et push)
-docker_image = "gcr.io/your-project-id/iris-api:latest"
+docker_image = "europe-west1-docker.pkg.dev/YOUR-PROJECT-ID/mlops-repo/iris-api:latest"
 
 # ============================================================================
 # SECRET MANAGER
@@ -867,7 +868,7 @@ Assurez-vous que votre `terraform.tfvars` contient :
 
 ```hcl
 # Image Docker complète
-docker_image = "gcr.io/YOUR-PROJECT-ID/iris-api:latest"
+docker_image = "europe-west1-docker.pkg.dev/YOUR-PROJECT-ID/mlops-repo/iris-api:latest"
 
 # Configuration Secret Manager
 # Voir section 1.2 pour les détails complets des deux options
@@ -941,7 +942,7 @@ gcloud storage cp "gs://$BUCKET_NAME/scripts/deploy-api.sh" /tmp/deploy-api.sh
 # Exporter les variables
 export MODEL_BUCKET="$BUCKET_NAME"
 export API_KEY=$(gcloud secrets versions access latest --secret="mlops-api-key" --project=YOUR-PROJECT-ID)
-export DOCKER_IMAGE="gcr.io/YOUR-PROJECT-ID/iris-api:latest"
+export DOCKER_IMAGE="europe-west1-docker.pkg.dev/YOUR-PROJECT-ID/mlops-repo/iris-api:latest"
 
 # Exécuter le script
 sudo bash /tmp/deploy-api.sh
@@ -1254,7 +1255,7 @@ gcloud compute ssh iris-api-server \
 
 - [ ] **Image Docker**
   - [ ] Image buildée et testée
-  - [ ] Image pushée vers GCR/Artifact Registry
+  - [ ] Image pushée vers Artifact Registry
   - [ ] Tag de version défini
 
 - [ ] **Configuration Terraform**
@@ -1263,7 +1264,7 @@ gcloud compute ssh iris-api-server \
   - [ ] `allowed_http_ips` configuré (ou Load Balancer)
   - [ ] `enable_public_ip` configuré selon besoins
   - [ ] `force_destroy_bucket = false`
-  - [ ] `docker_image` configuré (ex: `gcr.io/PROJECT-ID/iris-api:latest`)
+  - [ ] `docker_image` configuré (ex: `europe-west1-docker.pkg.dev/PROJECT-ID/mlops-repo/iris-api:latest`)
   - [ ] `secret_manager_api_key_name` configuré (ex: `mlops-api-key`)
   - [ ] `auto_deploy_api` configuré (`true` pour déploiement automatique)
   - [ ] Backend Terraform configuré (optionnel)
@@ -1366,10 +1367,15 @@ gcloud secrets get-iam-policy mlops-api-key
 # Vérifier GCS
 gcloud storage ls gs://YOUR-PROJECT-ID-ml-models/
 
-# Télécharger manuellement
-gcloud storage cp gs://YOUR-PROJECT-ID-ml-models/iris_model.pkl /opt/mlops-api/models/
-gcloud storage cp gs://YOUR-PROJECT-ID-ml-models/metadata.json /opt/mlops-api/models/
-gcloud storage cp gs://YOUR-PROJECT-ID-ml-models/metrics.json /opt/mlops-api/models/
+# Note : models/metadata.json et models/metrics.json sont inclus dans l'image Docker
+# Ils sont versionnés avec Git via DVC et n'ont pas besoin d'être téléchargés séparément
+# Le modèle est chargé depuis MLflow via GCS en utilisant mlflow_run_id depuis metadata.json
+# Si vous devez vérifier les métadonnées, elles sont dans l'image Docker à /app/models/
+
+# ⚠️ IMPORTANT : MLFLOW_TRACKING_URI est configuré automatiquement par Terraform
+# Le modèle est chargé via runs:/<run_id>/model, résolu automatiquement vers GCS
+# MLflow télécharge temporairement le modèle dans son cache (~/.mlflow/cache)
+# Pas besoin de télécharger mlruns/ localement sur la VM
 
 # Vérifier les permissions du service account
 gcloud projects get-iam-policy YOUR-PROJECT-ID \

@@ -73,9 +73,9 @@ echo "Déploiement automatique de l'API"
 echo "=========================================="
 
 # Exporter les variables d'environnement
-export MODEL_BUCKET="${bucket_name}"
 export DOCKER_IMAGE="${docker_image}"
 export CORS_ORIGINS="${cors_origins}"
+export MLFLOW_TRACKING_URI="${mlflow_tracking_uri}"
 
 %{ if secret_manager_api_key_name != "" ~}
 # Récupérer l'API_KEY depuis Secret Manager

@@ -61,4 +61,3 @@ def setup_rate_limiting(app):
     """Configure le rate limiting"""
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-

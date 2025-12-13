@@ -11,8 +11,7 @@ services:
       - MODEL_DIR=/app/models
       - CORS_ORIGINS=${CORS_ORIGINS:-*}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-    volumes:
-      - ./models:/app/models:ro
+      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI:-}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]

@@ -73,4 +73,3 @@ class TestMetrics:
         # Vérifier que les métriques sont enregistrées
         content = generate_latest().decode("utf-8")
         assert "api_errors_total" in content
-

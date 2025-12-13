@@ -7,6 +7,7 @@ import os
 import tempfile
 from pathlib import Path
 
+import mlflow
 import pytest
 from fastapi.testclient import TestClient
 from sklearn.datasets import load_iris
@@ -20,7 +21,7 @@ def trained_model():
     """
     Fixture pour un modèle entraîné (session scope pour éviter de réentraîner)
     """
-    # Créer un répertoire temporaire pour les modèles
+    # Créer un répertoire temporaire pour les modèles et MLflow
     temp_dir = tempfile.mkdtemp()
     original_dir = os.getcwd()
 
@@ -28,8 +29,11 @@ def trained_model():
         os.chdir(temp_dir)
         os.makedirs("models", exist_ok=True)
 
-        # Entraîner le modèle sans MLflow pour accélérer les tests
-        model, metadata = train_model(use_mlflow=False)
+        # Configurer MLflow pour utiliser un répertoire temporaire
+        mlflow.set_tracking_uri(f"file://{temp_dir}/mlruns")
+
+        # Entraîner le modèle avec MLflow (toujours activé maintenant)
+        model, metadata = train_model(experiment_name="test-experiment")
 
         yield model, metadata
 

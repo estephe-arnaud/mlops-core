@@ -254,9 +254,11 @@ resource "google_compute_instance" "api_server" {
       project_id                  = var.project_id
       auto_deploy_api             = var.auto_deploy_api
       cors_origins                = var.cors_origins
+      mlflow_tracking_uri         = var.mlflow_tracking_uri != "" ? var.mlflow_tracking_uri : "gs://${google_storage_bucket.models_bucket.name}/mlruns/"
     })
     # Métadonnées pour récupération par le script de déploiement
-    cors_origins = var.cors_origins
+    cors_origins        = var.cors_origins
+    mlflow_tracking_uri = var.mlflow_tracking_uri != "" ? var.mlflow_tracking_uri : "gs://${google_storage_bucket.models_bucket.name}/mlruns/"
   }
 
   labels = var.tags

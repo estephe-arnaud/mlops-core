@@ -1,137 +1,101 @@
 # ============================================================================
-# Configuration Terraform pour MLOps
+# Configuration Terraform pour MLOps Core
 # ============================================================================
 # 
 # INSTRUCTIONS :
-# 1. Copier vers terraform.tfvars
+# 1. Copier vers terraform.tfvars : cp terraform.tfvars.example terraform.tfvars
 # 2. Remplir les valeurs obligatoires (marquées ⚠️)
 # 3. ⚠️ Ne jamais commiter terraform.tfvars (contient des secrets)
 #
 # ============================================================================
 
 # ============================================================================
-# CONFIGURATION OBLIGATOIRE
+# ⚠️ CONFIGURATION OBLIGATOIRE
 # ============================================================================
 
-# ⚠️ OBLIGATOIRE : ID du projet GCP
-project_id = "votre-projet-gcp-id"
+# ID du projet GCP
+project_id = "your-project-id"
 
-# Région et zone GCP
-region = "europe-west1"
-zone   = "europe-west1-b"
-
-# ============================================================================
-# CONFIGURATION DU BUCKET GCS
-# ============================================================================
-
-# Nom du bucket (optionnel, généré automatiquement si vide)
-bucket_name = ""
-
-# ⚠️ SÉCURITÉ : Désactivé par défaut (protège les données)
-force_destroy_bucket = false
-
-# ============================================================================
-# CONFIGURATION DE LA VM
-# ============================================================================
-
-vm_name      = "iris-api-server"
-machine_type = "e2-micro"  # e2-micro (free tier) → e2-standard-2 (production)
-vm_image     = "ubuntu-os-cloud/ubuntu-2204-lts"
-disk_size_gb = 10
-
-network_name          = "mlops-vpc"
-service_account_name  = "mlops-api-sa"
-
-# ============================================================================
-# CONFIGURATION RÉSEAU - SÉCURITÉ CRITIQUE
-# ============================================================================
-
-# IP publique : Désactivée par défaut (recommandé avec Load Balancer)
-enable_public_ip = false
-
-# ⚠️ OBLIGATOIRE : IPs autorisées pour SSH (CIDR)
-# Récupérer votre IP : curl ifconfig.me
+# IPs autorisées pour SSH (récupérer votre IP : curl ifconfig.me)
 allowed_ssh_ips = [
   "VOTRE-IP-PUBLIQUE/32",  # Exemple : "123.45.67.89/32"
 ]
 
-# ⚠️ OBLIGATOIRE : IPs autorisées pour HTTP/HTTPS (CIDR)
-# Option 1 : Load Balancer GCP (recommandé)
+# IPs autorisées pour HTTP/HTTPS (Load Balancer GCP recommandé)
 allowed_http_ips = [
-  "130.211.0.0/22",  # Plages IP des Load Balancers GCP
+  "130.211.0.0/22",  # Plages IP des Load Balancers GCP (globales)
   "35.191.0.0/16",
 ]
 
-# Option 2 : Exposer directement la VM (non recommandé)
-# allowed_http_ips = [
-#   "VOTRE-IP-PUBLIQUE/32",
-# ]
+# Image Docker (URI complète depuis Artifact Registry)
+docker_image = "europe-west1-docker.pkg.dev/YOUR_PROJECT_ID/mlops-repo/iris-api:latest"
 
 # ============================================================================
-# CONFIGURATION DU DÉPLOIEMENT DE L'API
+# SECRET MANAGER - API Key
 # ============================================================================
 
-# Image Docker complète
-# Format : gcr.io/PROJECT-ID/iris-api:latest
-#          ou europe-west1-docker.pkg.dev/PROJECT-ID/repo/iris-api:latest
-docker_image = "gcr.io/votre-projet-gcp-id/iris-api:latest"
-
-auto_deploy_api = true
-
-# Origines CORS autorisées
-# Format : "https://example.com,https://app.example.com" (séparées par des virgules)
-# Développement local : "*" (par défaut, recommandé pour flexibilité)
-# ⚠️ PRODUCTION : Spécifier les origines exactes, ne pas utiliser "*"
-# Exemple pour un frontend sur example.com :
-cors_origins = "*"  # Dev local par défaut, changez pour la production
-
-# ============================================================================
-# SECRET MANAGER - Gestion de l'API_KEY
-# ============================================================================
-# 
 # Option A : Création via Terraform (recommandé)
 # 1. Exporter : export TF_VAR_api_key_value="votre-api-key"
 # 2. Configurer :
 create_secret_manager_secret = true
 secret_manager_api_key_name  = "mlops-api-key"
 
-# Option B : Création manuelle
-# 1. Créer : echo -n "$API_KEY" | gcloud secrets create mlops-api-key --data-file=-
-# 2. Configurer :
+# Option B : Secret créé manuellement
 # create_secret_manager_secret = false
 # secret_manager_api_key_name  = "mlops-api-key"
 
 # ============================================================================
-# CHIFFREMENT KMS (optionnel)
+# CONFIGURATION OPTIONNELLE
 # ============================================================================
 
+# Région et zone GCP
+region = "europe-west1"
+zone   = "europe-west1-b"
+
+# Nom du bucket (vide = généré automatiquement : {project_id}-ml-models)
+bucket_name = ""
+
+# URI MLflow Tracking (vide = gs://{bucket_name}/mlruns/)
+mlflow_tracking_uri = ""
+
+# Origines CORS (dev: "*", production: spécifier les domaines)
+cors_origins = "*"
+
+# Déploiement automatique de l'API au démarrage
+auto_deploy_api = true
+
+# ============================================================================
+# CONFIGURATION AVANCÉE (valeurs par défaut généralement suffisantes)
+# ============================================================================
+
+# VM
+vm_name      = "iris-api-server"
+machine_type = "e2-micro"  # e2-micro (free tier) → e2-standard-2 (production)
+vm_image     = "ubuntu-os-cloud/ubuntu-2204-lts"
+disk_size_gb = 10
+
+# Réseau
+network_name          = "mlops-vpc"
+service_account_name  = "mlops-api-sa"
+enable_public_ip      = false  # Recommandé avec Load Balancer
+
+# Bucket
+force_destroy_bucket = false  # ⚠️ SÉCURITÉ : Protège les données
+
+# Monitoring
+enable_monitoring_alerts = true
+notification_channels    = []  # Exemple : ["email:admin@example.com"]
+
+# Load Balancer (optionnel, recommandé en production)
+enable_load_balancer = false
+load_balancer_name  = "mlops-api-lb"
+enable_cloud_armor  = false  # Nécessite enable_load_balancer = true
+
+# KMS Chiffrement (optionnel)
 enable_kms_encryption = false
 # kms_key_name = "projects/PROJECT/locations/LOCATION/keyRings/RING/cryptoKeys/KEY"
 
-# ============================================================================
-# LOAD BALANCER ET CLOUD ARMOR (recommandé en production)
-# ============================================================================
-
-enable_load_balancer = false
-load_balancer_name   = "mlops-api-lb"
-
-enable_cloud_armor = false  # Nécessite enable_load_balancer = true
-
-# ============================================================================
-# MONITORING ET ALERTES
-# ============================================================================
-
-enable_monitoring_alerts = true  # ✅ Recommandé en production
-
-# Canaux de notification (emails)
-notification_channels = [
-  # "email:admin@example.com"
-]
-
-# ============================================================================
-# TAGS POUR LES RESSOURCES
-# ============================================================================
-
+# Tags
 tags = {
   project     = "mlops"
   environment = "dev"  # dev, staging, production

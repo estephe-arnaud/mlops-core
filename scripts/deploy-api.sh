@@ -8,9 +8,9 @@ set -euo pipefail
 APP_DIR="/opt/mlops-api"
 APP_USER="mlops"
 DOCKER_IMAGE="${DOCKER_IMAGE:-iris-api:latest}"  # Utilise la variable d'environnement ou valeur par défaut
-MODEL_BUCKET="${MODEL_BUCKET:-}"  # Sera passé depuis Terraform
 API_KEY="${API_KEY:-}"  # Sera passé depuis Secret Manager ou metadata
 CORS_ORIGINS="${CORS_ORIGINS:-}"  # ⚠️ SÉCURITÉ : Doit être configuré explicitement en production
+MLFLOW_TRACKING_URI="${MLFLOW_TRACKING_URI:-}"  # Configuré automatiquement par Terraform via startup-script
 
 # Logging
 LOG_FILE="/var/log/mlops-deploy.log"
@@ -41,36 +41,9 @@ fi
 mkdir -p "$APP_DIR"
 chown "$APP_USER:$APP_USER" "$APP_DIR"
 
-# Créer le répertoire pour les modèles
-mkdir -p "$APP_DIR/models"
-chown "$APP_USER:$APP_USER" "$APP_DIR/models"
-
-# Télécharger le modèle depuis GCS si le bucket est configuré
-if [ -n "$MODEL_BUCKET" ]; then
-    echo "Téléchargement du modèle depuis GCS: $MODEL_BUCKET"
-    
-    # Utiliser gcloud storage (recommandé par Google)
-    # Note: gcloud est généralement pré-installé sur les images GCP
-    if command -v gcloud &> /dev/null; then
-        echo "Utilisation de gcloud storage..."
-        gcloud storage cp "gs://$MODEL_BUCKET/iris_model.pkl" "$APP_DIR/models/" || echo "Modèle non trouvé dans le bucket"
-        gcloud storage cp "gs://$MODEL_BUCKET/metadata.json" "$APP_DIR/models/" || echo "Métadonnées non trouvées dans le bucket"
-        gcloud storage cp "gs://$MODEL_BUCKET/metrics.json" "$APP_DIR/models/" || echo "Métriques non trouvées dans le bucket"
-    else
-        echo "⚠️  gcloud non trouvé. Installation de gsutil en fallback..."
-        apt-get update
-        apt-get install -y gsutil || {
-            echo "❌ Impossible d'installer gsutil. Le modèle doit être présent localement."
-        }
-        gsutil cp "gs://$MODEL_BUCKET/iris_model.pkl" "$APP_DIR/models/" || echo "Modèle non trouvé dans le bucket"
-        gsutil cp "gs://$MODEL_BUCKET/metadata.json" "$APP_DIR/models/" || echo "Métadonnées non trouvées dans le bucket"
-        gsutil cp "gs://$MODEL_BUCKET/metrics.json" "$APP_DIR/models/" || echo "Métriques non trouvées dans le bucket"
-    fi
-    
-    chown -R "$APP_USER:$APP_USER" "$APP_DIR/models"
-else
-    echo "⚠️  MODEL_BUCKET non configuré. Le modèle doit être présent localement."
-fi
+# Note: models/metadata.json et models/metrics.json sont inclus dans l'image Docker
+# Ils sont versionnés avec Git via DVC et copiés dans l'image au build time
+# Le modèle est chargé depuis MLflow via GCS en utilisant mlflow_run_id depuis metadata.json
 
 # ⚠️ SÉCURITÉ : Vérifier que CORS_ORIGINS est configuré en production
 if [ -z "$CORS_ORIGINS" ]; then
@@ -89,13 +62,14 @@ services:
     restart: unless-stopped
     ports:
       - "0.0.0.0:8000:8000"
-    volumes:
-      - $APP_DIR/models:/app/models
+    # Note: Pas de volume pour models/ - metadata.json et metrics.json sont inclus dans l'image
+    # Le modèle est chargé depuis MLflow via GCS en utilisant mlflow_run_id depuis metadata.json
     environment:
       - MODEL_DIR=/app/models
       - API_KEY=${API_KEY}
       - ENVIRONMENT=production
       - CORS_ORIGINS=${CORS_ORIGINS:-}
+      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI:-}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s

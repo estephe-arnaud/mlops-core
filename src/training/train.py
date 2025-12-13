@@ -7,11 +7,11 @@ Lit les paramètres depuis params.yaml avec validation Pydantic
 
 import json
 import logging
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Tuple
 
-import joblib
 import mlflow
 import mlflow.sklearn
 import pandas as pd
@@ -70,7 +70,6 @@ def train_model(
     max_depth: Optional[int] = None,
     random_state: Optional[int] = None,
     test_size: Optional[float] = None,
-    use_mlflow: bool = True,
     experiment_name: str = "iris-classification",
     run_name: Optional[str] = None,
     tags: Optional[dict] = None,
@@ -84,7 +83,6 @@ def train_model(
         max_depth: Profondeur maximale des arbres (surcharge params.yaml si fourni)
         random_state: Graine aléatoire pour la reproductibilité (surcharge params.yaml si fourni)
         test_size: Proportion du dataset pour le test (surcharge params.yaml si fourni)
-        use_mlflow: Activer le tracking MLflow
         experiment_name: Nom de l'experiment MLflow (par défaut: "iris-classification")
         run_name: Nom du run MLflow (auto-généré si None)
         tags: Tags MLflow (ex: {"experiment_type": "baseline", "status": "testing"})
@@ -98,40 +96,50 @@ def train_model(
     random_state = random_state or config.train.random_state
     test_size = test_size or config.data.test_size
 
-    # Configuration MLflow
-    if use_mlflow:
-        mlflow.set_experiment(experiment_name)
-        if run_name is None:
-            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-            run_name = f"n_est-{n_estimators}_maxd-{max_depth or 'None'}_{timestamp}"
-        mlflow.start_run(run_name=run_name)
+    # Configuration MLflow (toujours activé)
+    # Support GCS backend en production via variable d'environnement
+    mlflow_tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
+    if mlflow_tracking_uri:
+        mlflow.set_tracking_uri(mlflow_tracking_uri)
+        logger.info(f"📊 MLflow Tracking URI: {mlflow_tracking_uri}")
+    else:
+        logger.info("📊 MLflow Tracking URI: local (mlruns/)")
 
-    logger.info("🌱 Chargement du dataset Iris...")
-    train_df, test_df, iris_metadata = load_data(test_size, random_state)
+    # Configurer l'expérience (doit être fait même sans tracking URI personnalisé)
+    mlflow.set_experiment(experiment_name)
 
-    # Séparer features et target
-    feature_cols = [
-        "sepal length (cm)",
-        "sepal width (cm)",
-        "petal length (cm)",
-        "petal width (cm)",
-    ]
-    X_train = train_df[feature_cols].values
-    y_train = train_df["target"].values
-    X_test = test_df[feature_cols].values
-    y_test = test_df["target"].values
+    # Générer le nom du run si non fourni
+    if run_name is None:
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        run_name = f"n_est-{n_estimators}_maxd-{max_depth or 'None'}_{timestamp}"
 
-    # Hyperparamètres et dimensions
-    hyperparams = {
-        "n_estimators": n_estimators,
-        "max_depth": max_depth or "None",
-        "random_state": random_state,
-    }
-    n_features = X_train.shape[1]
-    n_samples = len(X_train) + len(X_test)
+    # Utiliser context manager pour garantir le nettoyage même en cas d'erreur
+    with mlflow.start_run(run_name=run_name):
+        logger.info("🌱 Chargement du dataset Iris...")
+        train_df, test_df, iris_metadata = load_data(test_size, random_state)
 
-    # Logging MLflow
-    if use_mlflow:
+        # Séparer features et target
+        feature_cols = [
+            "sepal length (cm)",
+            "sepal width (cm)",
+            "petal length (cm)",
+            "petal width (cm)",
+        ]
+        X_train = train_df[feature_cols].values
+        y_train = train_df["target"].values
+        X_test = test_df[feature_cols].values
+        y_test = test_df["target"].values
+
+        # Hyperparamètres et dimensions
+        hyperparams = {
+            "n_estimators": n_estimators,
+            "max_depth": max_depth or "None",
+            "random_state": random_state,
+        }
+        n_features = X_train.shape[1]
+        n_samples = len(X_train) + len(X_test)
+
+        # Logging MLflow
         mlflow.log_params(hyperparams)
         mlflow.log_params(
             {
@@ -153,58 +161,68 @@ def train_model(
             }
         )
 
-    logger.info(f"🤖 Entraînement RandomForest: {hyperparams}")
-    model = RandomForestClassifier(
-        n_estimators=n_estimators,
-        max_depth=max_depth,
-        random_state=random_state,
-    )
-    model.fit(X_train, y_train)
+        logger.info(f"🤖 Entraînement RandomForest: {hyperparams}")
+        model = RandomForestClassifier(
+            n_estimators=n_estimators,
+            max_depth=max_depth,
+            random_state=random_state,
+        )
+        model.fit(X_train, y_train)
 
-    # Évaluation
-    metrics, metadata = evaluate_model(
-        model, X_test, y_test, iris_metadata, use_mlflow=use_mlflow
-    )
+        # Évaluation
+        metrics, metadata = evaluate_model(model, X_test, y_test, iris_metadata)
 
-    # Sauvegarde du modèle
-    models_dir = Path("models")
-    models_dir.mkdir(exist_ok=True)
-    model_path = models_dir / "iris_model.pkl"
-    joblib.dump(model, model_path)
-    logger.info(f"💾 Modèle sauvegardé: {model_path}")
+        # Créer le dossier models pour sauvegarder metadata.json et metrics.json
+        models_dir = Path("models")
+        models_dir.mkdir(exist_ok=True)
 
-    if use_mlflow:
+        # Sauvegarde dans MLflow (source de vérité)
         mlflow.sklearn.log_model(
             model,
             "model",
             registered_model_name="IrisClassifier",
             input_example=X_test[0:1],
         )
-        logger.info("📊 Modèle enregistré dans MLflow")
+        # Capturer l'URI du run MLflow pour référence
+        mlflow_run_uri = mlflow.get_artifact_uri("model")
+        logger.info(f"📊 Modèle enregistré dans MLflow: {mlflow_run_uri}")
 
-    # Enrichir et sauvegarder les métadonnées
-    metadata.update(
-        {
-            "model_type": "RandomForestClassifier",
-            "n_estimators": n_estimators,
-            "max_depth": max_depth,
-            "random_state": random_state,
-            "n_features": n_features,
-            "n_samples": n_samples,
-        }
-    )
+        # Récupérer les informations du run MLflow actif
+        active_run = mlflow.active_run()
+        mlflow_run_id = active_run.info.run_id if active_run else None
+        mlflow_experiment_id = active_run.info.experiment_id if active_run else None
+        mlflow_relative_path = (
+            f"mlruns/{mlflow_experiment_id}/{mlflow_run_id}" if active_run else None
+        )
 
-    for filename, data in [("metadata.json", metadata), ("metrics.json", metrics)]:
-        path = models_dir / filename
-        path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        # Enrichir et sauvegarder les métadonnées (toutes les infos en une seule fois)
+        metadata.update(
+            {
+                "model_type": "RandomForestClassifier",
+                "n_estimators": n_estimators,
+                "max_depth": max_depth,
+                "random_state": random_state,
+                "n_features": n_features,
+                "n_samples": n_samples,
+                # Informations MLflow
+                "mlflow_run_uri": mlflow_run_uri,
+                "mlflow_experiment_name": experiment_name,
+                "mlflow_run_name": run_name,
+                "mlflow_run_id": mlflow_run_id,
+                "mlflow_relative_path": mlflow_relative_path,
+            }
+        )
 
-    if use_mlflow:
+        # Sauvegarder metadata.json et metrics.json dans models/
+        for filename, data in [("metadata.json", metadata), ("metrics.json", metrics)]:
+            path = models_dir / filename
+            path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
         mlflow.log_dict(metadata, "metadata.json")
-        mlflow.end_run()
         logger.info("🔗 MLflow UI: mlflow ui")
 
-    logger.info("✅ Entraînement terminé avec succès !")
-    return model, metadata
+        logger.info("✅ Entraînement terminé avec succès !")
+        return model, metadata
 
 
 if __name__ == "__main__":
@@ -222,7 +240,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--tag", action="append", nargs=2, metavar=("KEY", "VALUE"), help="Tags MLflow"
     )
-    parser.add_argument("--no-mlflow", action="store_true", help="Désactiver MLflow")
 
     args = parser.parse_args()
 
@@ -240,7 +257,6 @@ if __name__ == "__main__":
         max_depth=args.max_depth,
         random_state=args.random_state,
         test_size=args.test_size,
-        use_mlflow=not args.no_mlflow,
         experiment_name=args.experiment_name,
         run_name=args.run_name,
         tags=tags,

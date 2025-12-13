@@ -63,11 +63,8 @@ RUN groupadd -r appuser && useradd -r -g appuser -m appuser && \
 # Copie de l'environnement virtuel depuis le stage builder
 COPY --from=builder /app/.venv /app/.venv
 
-# Création du répertoire pour les modèles ML avant la copie du code
-# (pour éviter de copier le contenu du répertoire models local)
-RUN mkdir -p models
-
 # Copie du code source avec les bonnes permissions (après l'installation des dépendances pour optimiser le cache)
+# Note: models/ est inclus (contient uniquement metadata.json et metrics.json, légers)
 COPY --chown=appuser:appuser . .
 
 # S'assurer que tous les fichiers appartiennent à appuser (y compris .venv)
@@ -91,9 +88,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 # En production, utilisez un reverse proxy (nginx, traefik) et limitez l'accès
 # via firewall/security groups plutôt que d'exposer directement l'API
 #
-# Note : Le modèle ML doit être entraîné séparément (make train) ou monté via volume
-# L'entraînement au build n'est pas recommandé car :
-# - Il augmente le temps de build
-# - Il rend l'image moins flexible (modèle figé)
-# - Il est préférable d'entraîner le modèle séparément et de le monter via volume
+# Note : Le modèle ML est chargé depuis MLflow (local: mlruns/, production: GCS)
+# Les fichiers models/metadata.json et models/metrics.json sont inclus dans l'image
+# L'entraînement doit être fait séparément (make train) avant de builder l'image
 CMD ["uvicorn", "src.serving.app:app", "--host", "0.0.0.0", "--port", "8000"]

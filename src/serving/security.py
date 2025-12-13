@@ -33,10 +33,20 @@ def verify_api_key(
 
     # Validation de la longueur de l'API key (recommandation sécurité)
     if valid_key and len(valid_key) < 32:
-        logger.warning(
-            f"⚠️ API_KEY trop courte ({len(valid_key)} caractères). "
-            "Minimum 32 caractères recommandé pour la sécurité."
-        )
+        if environment == "production":
+            logger.error(
+                f"❌ API_KEY trop courte ({len(valid_key)} caractères) en production. "
+                "Minimum 32 caractères requis pour la sécurité."
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Configuration de sécurité invalide : API_KEY trop courte en production",
+            )
+        else:
+            logger.warning(
+                f"⚠️ API_KEY trop courte ({len(valid_key)} caractères). "
+                "Minimum 32 caractères recommandé pour la sécurité."
+            )
 
     # Si aucune clé, désactiver l'authentification (dev uniquement)
     if not valid_key:

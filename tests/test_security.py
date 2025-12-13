@@ -112,8 +112,10 @@ class TestSecurity:
 
     def test_verify_api_key_production_mode(self, monkeypatch):
         """Test en mode production (API key obligatoire)"""
+        # Utiliser une clé valide (>= 32 caractères) pour éviter l'erreur 500
+        valid_production_key = "a" * 32  # 32 caractères minimum
         monkeypatch.setenv("ENVIRONMENT", "production")
-        monkeypatch.setenv("API_KEY", "production-key")
+        monkeypatch.setenv("API_KEY", valid_production_key)
 
         from src.serving.app import app
 
@@ -122,10 +124,28 @@ class TestSecurity:
             headers = {}
 
         request = MockRequest()
-        # En production sans API key, devrait lever une exception
+        # En production sans API key, devrait lever une exception 401
         with pytest.raises(HTTPException) as exc_info:
             verify_api_key(request, None)
         assert exc_info.value.status_code == 401
+
+    def test_verify_api_key_production_short_key(self, monkeypatch):
+        """Test en mode production avec API key trop courte (erreur 500)"""
+        monkeypatch.setenv("ENVIRONMENT", "production")
+        monkeypatch.setenv("API_KEY", "short-key")  # 9 caractères, < 32
+
+        from src.serving.app import app
+
+        class MockRequest:
+            client = None
+            headers = {}
+
+        request = MockRequest()
+        # En production avec clé trop courte, devrait lever une erreur 500
+        with pytest.raises(HTTPException) as exc_info:
+            verify_api_key(request, None)
+        assert exc_info.value.status_code == 500
+        assert "trop courte" in exc_info.value.detail.lower()
 
     def test_verify_api_key_production_no_key_configured(self, monkeypatch):
         """Test en mode production sans API_KEY configurée (erreur serveur)"""

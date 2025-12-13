@@ -31,5 +31,3 @@ run_exp "Expérience 4: test_size=0.3" \
 
 echo "✅ Toutes les expériences terminées !"
 echo "🔗 Visualiser: poetry run mlflow ui"
-echo "💡 Production: dvc repro --params params-X.yaml"
-

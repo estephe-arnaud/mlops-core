@@ -61,7 +61,9 @@ def register_routes(app: FastAPI):
     async def predict_iris(
         features: IrisFeatures,
         request: Request,
-        api_key: str = Depends(verify_api_key),  # ⚠️ SÉCURITÉ : Authentification requise
+        api_key: str = Depends(
+            verify_api_key
+        ),  # ⚠️ SÉCURITÉ : Authentification requise
     ):
         """
         Prédiction de la classe d'une fleur d'iris.
@@ -169,7 +171,9 @@ def register_routes(app: FastAPI):
     )  # ⚠️ SÉCURITÉ : 20 requêtes par minute par IP (endpoint moins coûteux)
     async def model_info(
         request: Request,
-        api_key: str = Depends(verify_api_key),  # ⚠️ SÉCURITÉ : Authentification requise
+        api_key: str = Depends(
+            verify_api_key
+        ),  # ⚠️ SÉCURITÉ : Authentification requise
     ):
         """Renvoie les métadonnées et métriques du modèle si disponibles"""
         metadata = getattr(request.app.state, "metadata", None)
@@ -200,4 +204,3 @@ def register_routes(app: FastAPI):
             "recall": metrics.get("recall") if metrics else "Unknown",
             "f1_score": metrics.get("f1_score") if metrics else "Unknown",
         }
-

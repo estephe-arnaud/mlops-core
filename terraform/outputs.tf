@@ -14,6 +14,11 @@ output "bucket_url" {
   value       = "gs://${google_storage_bucket.models_bucket.name}"
 }
 
+output "mlflow_tracking_uri" {
+  description = "URI MLflow Tracking configuré automatiquement"
+  value       = var.mlflow_tracking_uri != "" ? var.mlflow_tracking_uri : "gs://${google_storage_bucket.models_bucket.name}/mlruns/"
+}
+
 output "vm_name" {
   description = "Nom de la VM"
   value       = google_compute_instance.api_server.name

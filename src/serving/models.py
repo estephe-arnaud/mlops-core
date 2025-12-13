@@ -55,4 +55,3 @@ class HealthResponse(BaseModel):
     status: str
     model_loaded: bool
     version: str
-

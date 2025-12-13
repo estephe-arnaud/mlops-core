@@ -81,6 +81,10 @@ venv.bak/
 # ============================================================================
 # MLOps - Modèles ML (générés)
 # ============================================================================
+# Note: /models/ ignore tout le dossier pour optimiser l'indexation Cursor
+# Les fichiers models/metadata.json et models/metrics.json sont légers mais
+# peuvent changer souvent. Cursor n'a pas besoin de les indexer pour l'autocomplétion.
+# DVC track ces fichiers via ses fichiers .dvc (versionnés dans Git)
 
 /models/
 *.pkl
@@ -93,7 +97,8 @@ venv.bak/
 # ============================================================================
 # MLOps - Données (potentiellement volumineuses)
 # ============================================================================
-# Note: data/ ignore seulement le répertoire à la racine, pas src/data/ (code source)
+# Note: /data/ ignore seulement le répertoire à la racine, pas src/data/ (code source)
+# Les données sont versionnées avec DVC et peuvent être volumineuses
 
 /data/
 datasets/
@@ -103,6 +108,8 @@ processed_data/
 # ============================================================================
 # MLOps - Logs et tracking
 # ============================================================================
+# mlruns/ : Tracking MLflow local (potentiellement volumineux, change souvent)
+# .dvc/ : Cache DVC (généré automatiquement)
 
 logs/
 *.log

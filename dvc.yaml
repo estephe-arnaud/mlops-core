@@ -5,6 +5,8 @@ stages:
     cmd: poetry run python -m src.data.prepare
     deps:
       - src/data/prepare.py
+      - src/config.py
+      - params.yaml
     outs:
       - data/raw/iris.csv
       - data/processed/train.csv
@@ -20,8 +22,9 @@ stages:
       - data/processed/test.csv
       - src/training/train.py
       - src/evaluation/evaluate.py
+      - src/config.py
+      - params.yaml
     outs:
-      - models/iris_model.pkl
       - models/metadata.json
     metrics:
       - models/metrics.json

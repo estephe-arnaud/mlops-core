@@ -4,7 +4,6 @@ Semaine 1 - MLOps Formation
 """
 
 import json
-import math
 
 import pytest
 from fastapi.testclient import TestClient

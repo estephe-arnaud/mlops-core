@@ -58,7 +58,6 @@ coverage.xml
 *.pot
 
 # Django stuff
-*.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
@@ -107,9 +106,9 @@ celerybeat.pid
 .env
 .env.*
 !.env.example
-.venv
-env/
+.venv/
 venv/
+env/
 ENV/
 env.bak/
 venv.bak/
@@ -152,7 +151,10 @@ dmypy.json
 # MLOps spécifique
 # ============================================================================
 
-# Modèles ML
+# Modèles ML binaires (exclus, gérés par MLflow/GCS)
+# ⚠️ IMPORTANT: /models/ ignore tout le dossier dans Git
+# DVC track models/metadata.json et models/metrics.json via ses fichiers .dvc
+# (comportement attendu - les fichiers .dvc sont versionnés dans Git)
 /models/
 *.pkl
 *.joblib
@@ -161,18 +163,14 @@ dmypy.json
 *.onnx
 *.tflite
 
-# Données (versionnées avec DVC)
+# Données (versionnées avec DVC, pas dans Git directement)
 /data/
 
-# Logs
-logs/
-*.log
-
-# MLflow
+# MLflow (tracking local, non versionné dans Git)
 mlruns/
 .mlflow
 
-# DVC
+# DVC (fichiers de tracking DVC sont versionnés dans Git)
 .dvc/
 
 # ============================================================================

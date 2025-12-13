@@ -115,6 +115,12 @@ variable "cors_origins" {
   default     = "*"  # Valeur par défaut pour développement local (plus flexible)
 }
 
+variable "mlflow_tracking_uri" {
+  description = "URI MLflow Tracking (ex: gs://bucket/mlruns/). Si vide, construit automatiquement à partir du bucket_name. Pour un serveur MLflow distant, fournissez l'URL complète (ex: http://mlflow-server:5000)."
+  type        = string
+  default     = ""  # Si vide, construit automatiquement à partir du bucket
+}
+
 # ============================================================================
 # SECRET MANAGER
 # ============================================================================

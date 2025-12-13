@@ -1,5 +1,20 @@
 # 🟢 Semaine 1 : Docker, FastAPI & Tests
 
+## 📋 Table des Matières
+
+1. [Objectif de la Semaine](#-objectif-de-la-semaine)
+2. [Tâches à Accomplir](#-tâches-à-accomplir)
+3. [Livrables Créés](#-livrables-créés)
+4. [Fonctionnalités Implémentées](#-fonctionnalités-implémentées)
+5. [Compétences Développées](#-compétences-développées)
+6. [Instructions de Démarrage](#-instructions-de-démarrage)
+7. [Métriques](#-métriques)
+8. [Liens Utiles](#-liens-utiles)
+9. [Validation des Objectifs](#-validation-des-objectifs)
+10. [Prochaines Étapes](#-prochaines-étapes-semaine-2)
+
+---
+
 ## 🎯 Objectif de la Semaine
 
 **Conteneuriser et exposer un modèle ML localement via API + premiers tests unitaires**
@@ -74,10 +89,10 @@ mlops-core/
 │   ├── setup.sh             # Installation Poetry
 │   └── validate_project.sh  # Validation du projet
 │
-└── models/                   # Modèles entraînés (générés)
-    ├── iris_model.pkl
-    ├── metadata.json
-    └── metrics.json
+└── models/                   # Métadonnées du modèle (générées)
+    ├── metadata.json         # Contient l'URI MLflow pour charger le modèle
+    └── metrics.json          # Métriques de performance
+# Note : Le modèle ML est sauvegardé dans MLflow (mlruns/), chargé via l'URI dans metadata.json
 ```
 
 ### Fichiers Principaux
@@ -96,7 +111,7 @@ mlops-core/
 - **Algorithme** : RandomForestClassifier (100 arbres)
 - **Dataset** : Iris (scikit-learn)
 - **Métriques** : Précision, classification report
-- **Sauvegarde** : Modèle (.pkl) + métadonnées (metadata.json) + métriques (metrics.json)
+- **Sauvegarde** : Modèle dans MLflow + métadonnées (metadata.json) + métriques (metrics.json)
 - **Précision typique** : ~95%
 
 #### `Dockerfile` - Image Docker
@@ -113,7 +128,7 @@ mlops-core/
 #### `docker-compose.yml` - Orchestration
 - **Service** : iris-api
 - **Ports** : 127.0.0.1:8000:8000
-- **Volumes** : Montage du dossier models
+- **Note** : models/metadata.json et models/metrics.json sont inclus dans l'image Docker (pas de volume nécessaire)
 - **Health check** : Vérification toutes les 30s
 - **Restart** : unless-stopped
 
@@ -164,7 +179,7 @@ mlops-core/
 - ✅ RandomForestClassifier sur dataset Iris
 - ✅ Division train/test (80/20) avec stratification
 - ✅ Évaluation avec métriques complètes
-- ✅ Sauvegarde du modèle (.pkl avec joblib)
+- ✅ Sauvegarde du modèle dans MLflow
 - ✅ Sauvegarde des métadonnées (JSON)
 - ✅ Précision typique ~95%
 

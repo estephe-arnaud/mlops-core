@@ -103,8 +103,9 @@ Thumbs.db
 # MLOps spécifique
 # ============================================================================
 
-# Modèles ML (seront montés via volume ou téléchargés depuis GCS)
-/models/
+# Modèles ML binaires (exclus, téléchargés depuis MLflow/GCS)
+# Note: models/metadata.json et models/metrics.json sont inclus dans l'image
+# (légers, nécessaires pour mlflow_run_id)
 *.pkl
 *.joblib
 *.h5
@@ -118,7 +119,7 @@ Thumbs.db
 dvc.yaml
 dvc.lock
 
-# MLflow (non nécessaire dans l'image)
+# MLflow (non nécessaire dans l'image, modèle chargé depuis GCS)
 mlruns/
 .mlflow
 
@@ -148,7 +149,7 @@ credentials.json
 service-account*.json
 
 # ============================================================================
-# Fichiers temporaires
+# Fichiers temporaires et backups
 # ============================================================================
 *.tmp
 *.temp

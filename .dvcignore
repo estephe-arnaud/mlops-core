@@ -88,10 +88,11 @@ credentials.json
 service-account*.json
 
 # ============================================================================
-# MLOps - Modèles ML (générés, non versionnés avec DVC)
+# MLOps - Modèles ML binaires (générés, non versionnés avec DVC)
 # ============================================================================
+# Note: models/metadata.json et models/metrics.json sont trackés par DVC
+# (via dvc.yaml) et ne doivent PAS être ignorés ici
 
-/models/
 *.pkl
 *.joblib
 *.h5
@@ -107,6 +108,11 @@ logs/
 *.log
 mlruns/
 .mlflow
+
+# ============================================================================
+# MLOps - Données brutes (versionnées séparément si nécessaire)
+# ============================================================================
+# Note: /data/ est tracké par DVC via dvc.yaml, ne pas ignorer ici
 
 # ============================================================================
 # Terraform - Fichiers générés
@@ -157,7 +163,7 @@ Thumbs.db
 .gitignore
 
 # ============================================================================
-# Fichiers temporaires
+# Fichiers temporaires et backups
 # ============================================================================
 
 *.tmp
