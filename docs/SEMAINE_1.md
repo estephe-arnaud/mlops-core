@@ -108,7 +108,8 @@ mlops-core/
 - **Gestion d'erreurs** : Codes HTTP appropriés (400, 503, etc.)
 
 #### `src/training/train.py` - Script d'Entraînement
-- **Algorithme** : RandomForestClassifier (100 arbres)
+- **Algorithme** : RandomForestClassifier (paramétrable via `params.yaml`)
+- **Hyperparamètres par défaut** : `n_estimators=200`, `max_depth=10` (alignés avec `params.yaml` et le `README`)
 - **Dataset** : Iris (scikit-learn)
 - **Métriques** : Précision, classification report
 - **Sauvegarde** : Modèle dans MLflow + métadonnées (metadata.json) + métriques (metrics.json)
@@ -268,13 +269,16 @@ make build
 # ou
 docker build -t iris-api:latest .
 
+# Pour production (linux/amd64 - compatible partout)
+docker build --platform linux/amd64 -t iris-api:latest .
+
 # Lancer avec Docker
 make run-docker
 # ou
 docker run -p 127.0.0.1:8000:8000 iris-api:latest
 
 # Avec Docker Compose
-docker-compose up --build
+docker compose up --build
 ```
 
 ### Vérification

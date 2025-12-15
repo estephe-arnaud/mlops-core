@@ -16,16 +16,58 @@
 # ID du projet GCP
 project_id = "your-project-id"
 
-# IPs autorisées pour SSH (récupérer votre IP : curl ifconfig.me)
+# ============================================================================
+# CONFIGURATION RÉSEAU - SÉCURITÉ CRITIQUE
+# ============================================================================
+#
+# ⚠️ IMPORTANT : Deux scénarios de sécurité possibles
+#
+# SCÉNARIO 1 : Load Balancer (RECOMMANDÉ en production)
+#   - enable_load_balancer = true
+#   - enable_public_ip = false
+#   - Accès HTTP : Via Load Balancer (IP publique du LB, protégé par Cloud Armor)
+#   - Accès SSH : Via IAP uniquement (pas d'IP publique sur la VM)
+#   - allowed_http_ips : Plages IP des Load Balancers GCP (pour autoriser LB → VM)
+#   - allowed_ssh_ips : Vide (SSH via IAP uniquement)
+#
+# SCÉNARIO 2 : IP publique sur la VM (moins sécurisé, pour tests/dev)
+#   - enable_load_balancer = false
+#   - enable_public_ip = true
+#   - Accès HTTP : Directement à l'IP publique de la VM (ports 80, 8000)
+#   - Accès SSH : Directement à l'IP publique de la VM (port 22)
+#   - allowed_http_ips : Votre IP uniquement (ex: ["123.45.67.89/32"])
+#   - allowed_ssh_ips : Votre IP uniquement (ex: ["123.45.67.89/32"])
+#   ⚠️ SÉCURITÉ : Seules les IPs dans ces listes peuvent accéder à la VM
+#
+# ============================================================================
+
+# IPs autorisées pour SSH (si enable_public_ip = true)
+# Pour connaître votre IP publique : curl https://checkip.amazonaws.com
+# ⚠️ Si vous utilisez uniquement IAP (enable_public_ip = false), cette liste peut rester vide
 allowed_ssh_ips = [
   "VOTRE-IP-PUBLIQUE/32",  # Exemple : "123.45.67.89/32"
 ]
 
-# IPs autorisées pour HTTP/HTTPS (Load Balancer GCP recommandé)
+# Utilisateurs autorisés pour SSH via IAP (sécurité supplémentaire même avec IP publique)
+# ⚠️ SÉCURITÉ : Configurez avec les emails des utilisateurs autorisés
+# ⚠️ OBLIGATOIRE : Même avec IP publique, IAP ajoute une couche de sécurité
+iap_tunnel_users = [
+  "user@example.com",  # Exemple : votre email GCP
+]
+
+# IPs autorisées pour HTTP/HTTPS
+# Option 1 : Si vous utilisez un Load Balancer GCP (RECOMMANDÉ)
+#   → Ces plages IP autorisent le trafic du Load Balancer vers la VM
 allowed_http_ips = [
   "130.211.0.0/22",  # Plages IP des Load Balancers GCP (globales)
   "35.191.0.0/16",
 ]
+
+# Option 2 : Si vous exposez directement la VM (NON RECOMMANDÉ en production)
+#   → Votre IP uniquement pour accéder directement à l'API
+# allowed_http_ips = [
+#   "123.45.67.89/32",  # Votre IP uniquement
+# ]
 
 # Image Docker (URI complète depuis Artifact Registry)
 docker_image = "europe-west1-docker.pkg.dev/YOUR_PROJECT_ID/mlops-repo/iris-api:latest"
@@ -55,11 +97,21 @@ zone   = "europe-west1-b"
 # Nom du bucket (vide = généré automatiquement : {project_id}-ml-models)
 bucket_name = ""
 
-# URI MLflow Tracking (vide = gs://{bucket_name}/mlruns/)
+# URI MLflow Tracking
+# - Laisser vide pour utiliser automatiquement le bucket GCS créé par Terraform
+#   comme base d'artefacts MLflow (gs://{bucket_name}/mlruns/) dans le conteneur.
+#   Dans ce cas, le modèle est chargé directement depuis GCS.
+# - Pour un serveur MLflow distant, mettre une URL supportée (http(s)://, postgres://, mysql://, sqlite://, ...).
+# - ⚠️ Ne pas utiliser directement un URI gs:// comme *tracking backend* (registry) côté MLflow :
+#   dans ce projet, les URI gs:// sont traitées comme base d'artefacts uniquement, pas comme registry.
 mlflow_tracking_uri = ""
 
-# Origines CORS (dev: "*", production: spécifier les domaines)
-cors_origins = "*"
+# Origines CORS (liste d'origines séparées par des virgules)
+# - Développement local : vous pouvez utiliser des origines comme "http://localhost:3000".
+# - Production : NE PAS utiliser "*" (joker) ni laisser vide.
+#   En mode production, l'application refusera de démarrer si CORS_ORIGINS contient "*" ou est vide.
+#   Exemple : "https://mon-front.com" ou "http://localhost:3000".
+cors_origins = "http://localhost"
 
 # Note: Le service est configuré et activé (démarrage au boot), mais non démarré automatiquement
 # Démarrer l'API après déploiement: systemctl start mlops-api
@@ -87,9 +139,9 @@ enable_monitoring_alerts = true
 notification_channels    = []  # Exemple : ["email:admin@example.com"]
 
 # Load Balancer (optionnel, recommandé en production)
-enable_load_balancer = false
+enable_load_balancer = true
 load_balancer_name  = "mlops-api-lb"
-enable_cloud_armor  = false  # Nécessite enable_load_balancer = true
+enable_cloud_armor  = true  # Nécessite enable_load_balancer = true
 
 # KMS Chiffrement (optionnel)
 enable_kms_encryption = false

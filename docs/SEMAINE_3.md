@@ -252,14 +252,13 @@ notification_channels = ["email:admin@example.com"]
 
 ```
 terraform/
-├── main.tf                 # Ressources principales (VPC, VM, Bucket, IAM)
-├── variables.tf            # Variables d'entrée
-├── outputs.tf              # Valeurs de sortie
-├── providers.tf            # Configuration des providers
-├── backend.tf.example      # Exemple de configuration backend distant
+├── main.tf                  # Ressources principales (VPC, VM, Bucket, IAM)
+├── variables.tf             # Variables d'entrée
+├── outputs.tf               # Valeurs de sortie
+├── providers.tf             # Configuration des providers
+├── backend.tf.example       # Exemple de configuration backend distant
 ├── terraform.tfvars.example # Exemple de configuration
-├── .gitignore              # Fichiers à ignorer
-└── README.md               # Documentation (ce guide)
+└── .gitignore               # Fichiers à ignorer
 ```
 
 ### Description des Fichiers
@@ -270,6 +269,7 @@ terraform/
 - **`providers.tf`** : Configure le provider Google Cloud
 - **`backend.tf.example`** : Exemple de configuration pour un backend distant (GCS)
 - **`terraform.tfvars.example`** : Exemple de fichier de configuration (à copier vers `terraform.tfvars`)
+- **Documentation détaillée** : ce fichier `docs/SEMAINE_3.md` (guide complet Terraform pour le projet)
 
 ---
 
@@ -562,8 +562,7 @@ ls -la models/
 BUCKET_NAME=$(terraform -chdir=terraform output -raw bucket_name)
 
 # ⚠️ IMPORTANT : Uploader mlruns/ vers GCS (nécessaire pour que l'API charge le modèle)
-# L'API utilise runs:/<run_id>/model qui est résolu vers GCS via MLFLOW_TRACKING_URI
-gcloud storage cp -r mlruns/ gs://$BUCKET_NAME/mlruns/
+gcloud storage cp -r mlruns/ gs://$BUCKET_NAME/
 
 # Note: models/metadata.json et models/metrics.json sont inclus dans l'image Docker
 # Ils sont versionnés avec Git via DVC et n'ont pas besoin d'être uploadés séparément
@@ -587,7 +586,7 @@ gcloud storage ls gs://$BUCKET_NAME/mlruns/
 #### 3.1 Build Local et Test
 
 ```bash
-# Build l'image
+# Build l'image localement (pour test rapide)
 docker build -t iris-api:latest .
 
 # Tester localement
@@ -600,7 +599,7 @@ docker run -p 127.0.0.1:8000:8000 \
 curl -H "X-API-Key: test-key" http://localhost:8000/health
 ```
 
-#### 3.2 Push vers Artifact Registry
+#### 3.2 Build Multi-plateforme et Push vers Artifact Registry
 
 ```bash
 # Définir l'URI de l'image Docker
@@ -616,10 +615,14 @@ gcloud artifacts repositories create mlops-repo \
 # Configurer Docker
 gcloud auth configure-docker $REGION-docker.pkg.dev
 
-# Tagger et push
-docker tag iris-api:latest $DOCKER_IMAGE_URI
+# Builder l'image Docker (linux/amd64 - compatible partout)
+docker build --platform linux/amd64 -t $DOCKER_IMAGE_URI .
+
+# Pusher l'image vers Artifact Registry
 docker push $DOCKER_IMAGE_URI
 ```
+
+> **💡 Note** : `linux/amd64` fonctionne partout : GCP, AWS, Azure, et même sur Mac M1/M2 via émulation Rosetta (transparent avec Docker). Plus simple et plus rapide qu'un build multi-plateforme !
 
 ---
 
@@ -652,22 +655,46 @@ zone   = "europe-west1-a"
 # ============================================================================
 # CONFIGURATION RÉSEAU - SÉCURITÉ CRITIQUE
 # ============================================================================
+#
+# ⚠️ IMPORTANT : Deux scénarios de sécurité possibles
+#
+# SCÉNARIO 1 : Load Balancer (RECOMMANDÉ en production)
+#   - enable_load_balancer = true
+#   - enable_public_ip = false
+#   - Accès HTTP : Via Load Balancer (IP publique du LB, protégé par Cloud Armor)
+#   - Accès SSH : Via IAP uniquement (pas d'IP publique sur la VM)
+#   - allowed_http_ips : Plages IP des Load Balancers GCP (pour autoriser LB → VM)
+#   - allowed_ssh_ips : Vide (SSH via IAP uniquement)
+#
+# SCÉNARIO 2 : IP publique sur la VM (moins sécurisé, pour tests/dev)
+#   - enable_load_balancer = false
+#   - enable_public_ip = true
+#   - Accès HTTP : Directement à l'IP publique de la VM (ports 80, 8000)
+#   - Accès SSH : Directement à l'IP publique de la VM (port 22)
+#   - allowed_http_ips : Votre IP uniquement (ex: ["123.45.67.89/32"])
+#   - allowed_ssh_ips : Votre IP uniquement (ex: ["123.45.67.89/32"])
+#   ⚠️ SÉCURITÉ : Seules les IPs dans ces listes peuvent accéder à la VM
+#
+# ============================================================================
 
-# ⚠️ OBLIGATOIRE : IPs autorisées pour SSH
-# Pour connaître votre IP publique : curl ifconfig.me
+# IPs autorisées pour SSH (si enable_public_ip = true)
+# Pour connaître votre IP publique : curl https://checkip.amazonaws.com
+# ⚠️ Si vous utilisez uniquement IAP (enable_public_ip = false), cette liste peut rester vide
 allowed_ssh_ips = [
   "VOTRE-IP-PUBLIQUE/32",  # ⚠️ REMPLACEZ par votre IP publique réelle (ex: "123.45.67.89/32")
-  # Récupérer votre IP : curl ifconfig.me
+  # Récupérer votre IP : curl https://checkip.amazonaws.com
 ]
 
-# ⚠️ OBLIGATOIRE : IPs autorisées pour HTTP
+# IPs autorisées pour HTTP/HTTPS
 # Option 1 : Si vous utilisez un Load Balancer GCP (RECOMMANDÉ)
+#   → Ces plages IP autorisent le trafic du Load Balancer vers la VM
 allowed_http_ips = [
   "130.211.0.0/22",  # Plages IP des Load Balancers GCP (globales)
   "35.191.0.0/16",
 ]
 
-# Option 2 : Si vous exposez directement la VM (NON RECOMMANDÉ)
+# Option 2 : Si vous exposez directement la VM (NON RECOMMANDÉ en production)
+#   → Votre IP uniquement pour accéder directement à l'API
 # allowed_http_ips = [
 #   "123.45.67.89/32",  # Votre IP uniquement
 # ]
@@ -727,7 +754,10 @@ notification_channels = ["email:admin@example.com"]
 
 **⚠️ Important** : 
 - Ne commitez JAMAIS `terraform.tfvars` (il est dans `.gitignore`)
-- ⚠️ **OBLIGATOIRE** : Configurez `project_id`, `allowed_ssh_ips` et `allowed_http_ips`
+- ⚠️ **OBLIGATOIRE** : Configurez `project_id` et `iap_tunnel_users` (pour SSH via IAP)
+- ⚠️ **Deux scénarios de sécurité** :
+  - **Scénario 1 (Recommandé)** : Load Balancer activé → `enable_public_ip = false`, `allowed_http_ips` = plages IP Load Balancers GCP
+  - **Scénario 2** : IP publique activée → `enable_load_balancer = false`, configurez `allowed_ssh_ips` et `allowed_http_ips` avec votre IP uniquement
 - Consultez `terraform.tfvars.example` pour les commentaires détaillés sur chaque option
 - Pour Secret Manager : voir la section [1.2 Stocker dans Secret Manager](#12-stocker-dans-secret-manager-recommandé) pour les instructions complètes
 
@@ -891,9 +921,15 @@ Le startup-script :
 ```bash
 # Se connecter à la VM
 ZONE=$(terraform -chdir=terraform output -raw vm_zone)
-terraform -chdir=terraform output vm_ssh_command
-# Ou directement
-gcloud compute ssh iris-api-server --zone=$ZONE --project=$PROJECT_ID
+
+# Via IAP (si pas d'IP publique - recommandé)
+gcloud compute ssh iris-api-server \
+  --zone=$ZONE \
+  --project=$PROJECT_ID \
+  --tunnel-through-iap
+
+# Ou directement si IP publique activée
+# gcloud compute ssh iris-api-server --zone=$ZONE --project=$PROJECT_ID
 
 # Vérifier Docker
 docker --version
@@ -984,18 +1020,19 @@ done
 ```bash
 # Depuis votre machine locale
 
-# Option 1 : Si IP publique activée sur la VM
-VM_IP=$(terraform -chdir=terraform output -raw vm_external_ip)
-curl -H "X-API-Key: YOUR-API-KEY" http://$VM_IP:8000/health
+# Récupérer l'API key
+SECRET_NAME=$(terraform -chdir=terraform output -raw secret_manager_secret_name)
+API_KEY=$(gcloud secrets versions access latest --secret="$SECRET_NAME" --project=$PROJECT_ID)
 
-# Option 2 : Si Load Balancer configuré (RECOMMANDÉ)
-# Récupérer l'IP du Load Balancer
-LOAD_BALANCER_IP=$(terraform -chdir=terraform output -raw load_balancer_ip)
-curl -H "X-API-Key: YOUR-API-KEY" http://$LOAD_BALANCER_IP/health
+# Utiliser le Load Balancer (ou l'IP de la VM en fallback)
+API_IP=$(terraform -chdir=terraform output -raw load_balancer_ip 2>/dev/null || terraform -chdir=terraform output -raw vm_external_ip)
 
-# Ou utiliser l'URL complète
-LOAD_BALANCER_URL=$(terraform -chdir=terraform output -raw load_balancer_url)
-curl -H "X-API-Key: YOUR-API-KEY" $LOAD_BALANCER_URL/health
+# Tests
+curl http://$API_IP/health
+curl -X POST "http://$API_IP/predict" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY" \
+  -d '{"sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2}'
 ```
 
 #### 7.3 Test d'Authentification
@@ -1074,10 +1111,31 @@ Via la console GCP :
 
 ### Firewall Rules
 
-- **SSH** : Port 22 (IPs configurées via `allowed_ssh_ips`, liste vide par défaut)
-- **HTTP** : Ports 80, 8000 (IPs configurées via `allowed_http_ips`, liste vide par défaut)
+- **SSH** : Port 22
+  - Si IP publique activée : IPs configurées via `allowed_ssh_ips` (liste vide par défaut)
+  - Si Load Balancer : SSH via IAP uniquement (pas d'IP publique sur la VM)
+- **HTTP** : Ports 80, 8000
+  - Si IP publique activée : IPs configurées via `allowed_http_ips` (liste vide par défaut)
+  - Si Load Balancer : Accès via Load Balancer (IP publique du LB), `allowed_http_ips` autorise LB → VM
 - **Interne** : Ports 8000 (API) et 22 (SSH) uniquement dans le sous-réseau (10.0.1.0/24)
 - **Logging** : Activé sur toutes les règles firewall pour l'audit de sécurité
+
+**⚠️ IMPORTANT - Deux scénarios de sécurité** :
+
+1. **Load Balancer (RECOMMANDÉ)** :
+   - `enable_load_balancer = true`, `enable_public_ip = false`
+   - Accès HTTP : Via Load Balancer (IP publique du LB, protégé par Cloud Armor)
+   - Accès SSH : Via IAP uniquement (pas d'IP publique sur la VM)
+   - `allowed_http_ips` : Plages IP des Load Balancers GCP (`130.211.0.0/22`, `35.191.0.0/16`)
+   - `allowed_ssh_ips` : Vide (SSH via IAP uniquement)
+
+2. **IP publique sur la VM (moins sécurisé)** :
+   - `enable_load_balancer = false`, `enable_public_ip = true`
+   - Accès HTTP : Directement à l'IP publique de la VM (ports 80, 8000)
+   - Accès SSH : Directement à l'IP publique de la VM (port 22)
+   - `allowed_http_ips` : Votre IP uniquement (ex: `["123.45.67.89/32"]`)
+   - `allowed_ssh_ips` : Votre IP uniquement (ex: `["123.45.67.89/32"]`)
+   - ⚠️ **SÉCURITÉ** : Seules les IPs dans ces listes peuvent accéder à la VM
 
 ### Service Account
 
@@ -1277,6 +1335,7 @@ gcloud compute ssh iris-api-server \
   - [ ] `force_destroy_bucket = false`
   - [ ] `docker_image` configuré avec `$DOCKER_IMAGE_URI` (voir section Build et Push)
   - [ ] `secret_manager_api_key_name` configuré (ex: `mlops-api-key`)
+- [ ] `cors_origins` configuré avec des origines explicites (jamais `"*"` en production)
   - [ ] Configuration Terraform validée
   - [ ] Backend Terraform configuré (optionnel)
 
@@ -1423,7 +1482,7 @@ Puis rebuild et push l'image Docker.
 ```bash
 # Vérifier que votre IP est dans allowed_ssh_ips
 # Récupérer votre IP publique
-curl ifconfig.me
+curl https://checkip.amazonaws.com
 
 # Vérifier la règle firewall
 gcloud compute firewall-rules describe mlops-vpc-allow-ssh

@@ -78,71 +78,73 @@ Ce projet couvre les piliers essentiels du MLOps :
 
 ```mermaid
 graph TB
-    A[GitHub Repository] -->|Push| B[GitHub Actions CI/CD]
-    B -->|Build & Push| C[Docker Registry]
-    B -->|Tests| D[pytest]
+    A[GitHub] -->|CI/CD| B[Artifact Registry]
+    E[Terraform] -->|Provision| F[GCP Infrastructure]
     
-    E[Terraform IaC] -->|Provision| F[GCP Resources]
-    F --> G[VPC Network]
+    F --> G[VPC + Cloud NAT + Firewall]
     F --> H[Compute Engine VM]
     F --> I[Cloud Storage]
     F --> J[Secret Manager]
     F --> N[Load Balancer + Cloud Armor]
     F --> O[Cloud Monitoring]
     
-    C -->|Pull| H
+    ML[MLflow] -->|Models| I
+    DVC[DVC] -->|Data| I
+    
+    B -->|Pull| H
     I -->|Models| H
-    J -->|Secrets| H
+    J -->|API Keys| H
     
-    H -->|Runs| K[FastAPI Container]
-    K -->|Serves| L[API Endpoints]
+    H -->|Runs| K[FastAPI API]
     
-    M[Clients] -->|HTTPS| N
-    N -->|HTTP| L
-    H -->|Metrics| O
+    M[Clients] -->|HTTP| N --> K
+    Q[Admins] -->|SSH via IAP| H
+    K -->|Metrics| O
     
-    %% Source & CI/CD (Bleu clair)
-    style A fill:#bbdefb,stroke:#1565c0,stroke-width:2px
-    style B fill:#90caf9,stroke:#1976d2,stroke-width:2px
-    style C fill:#64b5f6,stroke:#1565c0,stroke-width:2px
+    %% CI/CD (Bleu)
+    style A fill:#bbdefb,stroke:#1565c0
+    style B fill:#90caf9,stroke:#1976d2
     
-    %% Tests & Monitoring (Violet clair)
-    style D fill:#e1bee7,stroke:#6a1b9a,stroke-width:2px
-    style O fill:#ce93d8,stroke:#7b1fa2,stroke-width:2px
+    %% Infrastructure (Orange)
+    style E fill:#ffe0b2,stroke:#e65100
+    style F fill:#ffe0b2,stroke:#f57c00
     
-    %% Infrastructure IaC (Orange clair)
-    style E fill:#ffe0b2,stroke:#e65100,stroke-width:2px
-    style F fill:#ffe0b2,stroke:#f57c00,stroke-width:2px
-    style J fill:#ffe0b2,stroke:#e65100,stroke-width:2px
+    %% Réseau (Cyan)
+    style G fill:#b2ebf2,stroke:#006064
+    style I fill:#b2ebf2,stroke:#00838f
+    style J fill:#b2ebf2,stroke:#00838f
+    style N fill:#b2ebf2,stroke:#00695c
     
-    %% GCP Network & Storage (Cyan clair)
-    style G fill:#b2ebf2,stroke:#006064,stroke-width:2px
-    style I fill:#b2ebf2,stroke:#00838f,stroke-width:2px
-    style N fill:#b2ebf2,stroke:#00695c,stroke-width:2px
+    %% Compute (Vert)
+    style H fill:#c8e6c9,stroke:#1b5e20
+    style K fill:#c8e6c9,stroke:#2e7d32
     
-    %% Compute & Runtime (Vert clair)
-    style H fill:#c8e6c9,stroke:#1b5e20,stroke-width:2px
-    style K fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
+    %% Monitoring (Violet)
+    style O fill:#ce93d8,stroke:#7b1fa2
     
-    %% API & Endpoints (Jaune clair)
-    style L fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    %% MLOps (Rose)
+    style ML fill:#f8bbd0,stroke:#c2185b
+    style DVC fill:#f8bbd0,stroke:#c2185b
     
-    %% Clients (Gris clair)
-    style M fill:#e0e0e0,stroke:#616161,stroke-width:2px
+    %% Users (Gris)
+    style M fill:#e0e0e0,stroke:#616161
+    style Q fill:#e0e0e0,stroke:#616161
 ```
+
+**Composants** : GitHub Actions → Artifact Registry → GCP (VPC, VM, Storage, Secret Manager, Load Balancer) → FastAPI | MLflow/DVC → Cloud Storage | Monitoring
 
 ## 📦 Installation
 
 ### Prérequis
 
-| Outil | Version | Notes |
-|-------|---------|-------|
-| **Python** | 3.11+ | Testé avec 3.11.0, 3.11.5, 3.12.0 |
-| **Docker** | >= 20.10 | Testé avec 20.10, 24.0 |
-| **Docker Compose** | >= 2.0 | Plugin ou standalone >= 1.29 |
-| **Terraform** | >= 1.0 | Testé avec 1.5.0, 1.6.0 |
-| **Google Cloud SDK** | >= 400.0 | Pour le déploiement GCP |
-| **Poetry** | >= 1.7.0 | Gestionnaire de dépendances |
+| Outil | Version |
+|-------|---------|
+| **Python** | 3.11+ |
+| **Docker** | >= 20.10 |
+| **Docker Compose** | >= 2.0 |
+| **Terraform** | >= 1.0 |
+| **Google Cloud SDK** | >= 400.0 |
+| **Poetry** | >= 1.7.0 |
 
 ### Installation Locale
 
@@ -178,7 +180,7 @@ make mlflow-ui  # http://localhost:5000
 make dvc-repro
 
 # Option 2 : Surcharger directement (sans modifier params.yaml)
-dvc repro -S train.n_estimators=200 -S train.max_depth=10
+poetry run dvc exp run -S train.n_estimators=200 -S train.max_depth=10
 
 # Visualiser et comparer dans MLflow
 make mlflow-ui  # http://localhost:5000
@@ -201,6 +203,16 @@ curl -X POST "http://localhost:8000/predict" \
 ```
 
 > **💡 Astuce** : Documentation interactive disponible sur http://localhost:8000/docs
+
+### Lancer l'API avec Docker Compose
+
+```bash
+# Entraîner le modèle d'abord
+make train
+
+# Lancer le conteneur (monte automatiquement mlruns/)
+docker compose up
+```
 
 ## ☁️ Déploiement GCP
 
@@ -225,27 +237,31 @@ gcloud services enable \
   secretmanager.googleapis.com \
   artifactregistry.googleapis.com \
   monitoring.googleapis.com \
-  logging.googleapis.com
+  logging.googleapis.com \
+  iap.googleapis.com
 ```
 
 ### Build et Push de l'Image Docker
 
 ```bash
-# Builder l'image
-docker build -t iris-api:latest .
-
-# Créer le repository Artifact Registry (si nécessaire)
+# Créer le repository Artifact Registry
 gcloud artifacts repositories create mlops-repo \
   --repository-format=docker \
   --location=$REGION \
   --description="MLOps API Docker repository" \
   --project=$PROJECT_ID || true
 
-# Configurer Docker et pusher
+# Configurer Docker
 gcloud auth configure-docker $REGION-docker.pkg.dev
-docker tag iris-api:latest $DOCKER_IMAGE_URI
+
+# Builder l'image Docker (linux/amd64 - compatible partout : GCP, Mac M1/M2 via Rosetta, etc.)
+docker build --platform linux/amd64 -t $DOCKER_IMAGE_URI .
+
+# Pusher l'image vers Artifact Registry
 docker push $DOCKER_IMAGE_URI
 ```
+
+> **💡 Note** : `linux/amd64` fonctionne partout : GCP, AWS, Azure, et même sur Mac M1/M2 via émulation Rosetta (transparent avec Docker).
 
 ### Configuration Terraform
 
@@ -254,21 +270,46 @@ docker push $DOCKER_IMAGE_URI
 gcloud storage buckets create gs://$PROJECT_ID-terraform-state \
   --project=$PROJECT_ID --location=$REGION || true
 
-# Configurer les fichiers Terraform
+# Copier les fichiers d'exemple
 cp terraform/backend.tf.example terraform/backend.tf
 cp terraform/terraform.tfvars.example terraform/terraform.tfvars
 
 # Générer l'API key
 export TF_VAR_api_key_value=$(openssl rand -hex 32)
-
-# Éditer terraform/backend.tf et terraform/terraform.tfvars :
-#   backend.tf: configurer le bucket de state
-#   terraform.tfvars:
-#     - project_id: "$PROJECT_ID"
-#     - allowed_ssh_ips: "$(curl ifconfig.me)"
-#     - docker_image: "$DOCKER_IMAGE_URI"
-#     - secret_manager_api_key_name: "mlops-api-key"
 ```
+
+**Configuration de `backend.tf`** : Remplacez le nom du bucket par `$PROJECT_ID-terraform-state`.
+
+**Configuration minimale dans `terraform.tfvars`** :
+```hcl
+project_id = "your-project-id"
+iap_tunnel_users = ["votre-email@example.com"]
+docker_image = "europe-west1-docker.pkg.dev/$PROJECT_ID/mlops-repo/iris-api:latest"
+secret_manager_api_key_name = "mlops-api-key"
+```
+
+**⚠️ Deux scénarios de sécurité** :
+
+**Scénario 1 : Load Balancer (RECOMMANDÉ)**
+```hcl
+enable_load_balancer = true
+enable_public_ip = false
+allowed_http_ips = ["130.211.0.0/22", "35.191.0.0/16"]  # Plages IP Load Balancers GCP
+allowed_ssh_ips = []  # SSH via IAP uniquement
+```
+→ Accès HTTP via Load Balancer, SSH via IAP
+
+**Scénario 2 : IP publique sur la VM**
+```hcl
+enable_load_balancer = false
+enable_public_ip = true
+MY_IP=$(curl -s https://checkip.amazonaws.com)
+allowed_ssh_ips = ["${MY_IP}/32"]
+allowed_http_ips = ["${MY_IP}/32"]
+```
+→ Accès direct à l'IP publique de la VM (moins sécurisé)
+
+Consultez `terraform.tfvars.example` pour toutes les options disponibles.
 
 ### Déploiement
 
@@ -280,30 +321,37 @@ make terraform-apply
 
 # Uploader le modèle vers GCS
 BUCKET_NAME=$(terraform -chdir=terraform output -raw bucket_name)
-gcloud storage cp -r mlruns/ gs://$BUCKET_NAME/mlruns/
+gcloud storage cp -r mlruns/ gs://$BUCKET_NAME/
 ```
 
 ### Démarrer l'API
 
 ```bash
 # Récupérer les informations de déploiement
+VM_NAME=$(terraform -chdir=terraform output -raw vm_name)
 ZONE=$(terraform -chdir=terraform output -raw vm_zone)
 
-# Se connecter à la VM et démarrer le service
-gcloud compute ssh iris-api-server --zone=$ZONE --project=$PROJECT_ID --command="sudo systemctl start mlops-api && sudo systemctl status mlops-api"
+# Se connecter à la VM via IAP et démarrer le service
+gcloud compute ssh $VM_NAME\
+  --zone=$ZONE \
+  --project=$PROJECT_ID \
+  --tunnel-through-iap \
+  --command="sudo systemctl start mlops-api && sudo systemctl status mlops-api"
 ```
 
 ### Tester en Production
 
 ```bash
-# Récupérer les informations nécessaires
-VM_IP=$(terraform -chdir=terraform output -raw vm_external_ip)
+# Récupérer l'API key
 SECRET_NAME=$(terraform -chdir=terraform output -raw secret_manager_secret_name)
 API_KEY=$(gcloud secrets versions access latest --secret="$SECRET_NAME" --project=$PROJECT_ID)
 
+# Utiliser le Load Balancer (ou l'IP de la VM en fallback)
+API_IP=$(terraform -chdir=terraform output -raw load_balancer_ip 2>/dev/null || terraform -chdir=terraform output -raw vm_external_ip)
+
 # Tests
-curl http://$VM_IP:8000/health
-curl -X POST "http://$VM_IP:8000/predict" \
+curl http://$API_IP/health
+curl -X POST "http://$API_IP/predict" \
   -H "Content-Type: application/json" \
   -H "X-API-Key: $API_KEY" \
   -d '{"sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2}'
@@ -330,12 +378,13 @@ curl -X POST "http://$VM_IP:8000/predict" \
 |----------|-------------|--------|------------|
 | `ENVIRONMENT` | `development` / `production` | `development` | `production` |
 | `API_KEY` | Clé API (générer avec `openssl rand -hex 32`) | - | **Requis** |
-| `CORS_ORIGINS` | Origines autorisées (séparées par `,`) | `*` | **Spécifique** |
+| `CORS_ORIGINS` | Origines autorisées (séparées par `,`) | `*` (dev uniquement) | **Spécifique, jamais `*`** |
 | `LOG_LEVEL` | `DEBUG` / `INFO` / `WARNING` / `ERROR` | `INFO` | `INFO` |
 | `MODEL_DIR` | Répertoire des modèles | `models` | `models` |
 | `MLFLOW_TRACKING_URI` | URI MLflow (GCS ou serveur) | - | `gs://bucket/mlruns/` |
 
-> **⚠️ Sécurité** : En production, `CORS_ORIGINS` doit être spécifique (ex: `https://example.com`). Ne jamais utiliser `*` en production.
+> **⚠️ Sécurité** : En production, `CORS_ORIGINS` doit être spécifique (ex: `https://example.com`).  
+> L'application refusera de démarrer si `ENVIRONMENT=production` et que `CORS_ORIGINS` est vide ou contient `*` (protection volontaire contre un CORS trop permissif).
 
 ### Configuration du Modèle
 
@@ -347,8 +396,8 @@ data:
   random_state: 42
 
 train:
-  n_estimators: 100
-  max_depth: null
+  n_estimators: 200
+  max_depth: 10
 ```
 
 > **💡 Astuce** : Modifier ces valeurs puis exécuter `make dvc-repro` pour réentraîner le modèle avec les nouveaux paramètres.
@@ -426,6 +475,7 @@ make dvc-pull    # Télécharger les données
 ### Protection
 - ✅ **Rate Limiting** : Protection contre abus (10-30 req/min selon endpoint)
 - ✅ **Firewall** : Deny by default, accès restreint par IP
+- ✅ **Cloud NAT** : Accès Internet sortant uniquement (unidirectionnel) - n'expose pas la VM aux connexions entrantes
 - ✅ **HTTPS/TLS** : Certificats Let's Encrypt (production)
 - ✅ **Load Balancer** : Cloud Armor pour protection DDoS (optionnel)
 
@@ -440,58 +490,89 @@ make dvc-pull    # Télécharger les données
 
 ## 🔍 Troubleshooting
 
-### L'API ne démarre pas
+### ⚡ Vérifications Rapides
 
-**Problème** : L'API ne démarre pas ou erreur au chargement du modèle.
+Avant de chercher plus loin, vérifiez ces points communs :
 
-**Solutions** :
 ```bash
-# 1. Vérifier les métadonnées (doit contenir mlflow_run_id)
+# 1. Vérifier que l'API répond
+curl http://localhost:8000/health  # Local
+curl http://$API_IP/health         # Production
+
+# 2. Vérifier les logs (choisir selon votre environnement)
+docker compose logs iris-api                    # Local Docker
+sudo journalctl -u mlops-api -f                 # Production VM
+docker logs iris-api                            # Production container
+
+# 3. Vérifier que le modèle est entraîné
 cat models/metadata.json | grep mlflow_run_id
 
-# 2. Vérifier les logs
-docker-compose logs iris-api
-# ou
-sudo journalctl -u mlops-api -f
-
-# 3. Vérifier les variables d'environnement
-docker-compose config
+# 4. Vérifier les variables d'environnement
+docker compose config                           # Local
+sudo systemctl show mlops-api | grep -E "API_KEY|MLFLOW"  # Production
 ```
 
-> **Note** : Le modèle est chargé depuis MLflow via `runs:/<run_id>/model`. Assurez-vous que `mlruns/` est uploadé vers GCS.
+---
 
-### Erreur CORS en production
+### 🐳 Problèmes Docker / Artifact Registry
 
-**Problème** : Erreur CORS lors des appels API depuis le frontend.
+#### ❌ "Unauthenticated request" lors du pull Docker
 
-**Solution** :
+**Quick fix** :
 ```bash
-# Vérifier et configurer CORS_ORIGINS
-echo $CORS_ORIGINS
-export CORS_ORIGINS=https://example.com  # Ne pas utiliser "*"
+# Réappliquer les permissions IAM
+cd terraform
+terraform apply -target=google_project_iam_member.artifact_registry_reader
 ```
 
-### Terraform échoue
-
-**Problème** : Erreurs d'authentification ou de permissions.
-
-**Solutions** :
+**Vérifications détaillées** :
 ```bash
-# 1. Vérifier l'authentification
-gcloud auth application-default login
+# 1. Vérifier les permissions IAM
+gcloud projects get-iam-policy $PROJECT_ID \
+  --flatten="bindings[].members" \
+  --filter="bindings.members:serviceAccount:mlops-api-sa@$PROJECT_ID.iam.gserviceaccount.com"
 
-# 2. Vérifier le projet configuré
-gcloud config get-value project
+# 2. Vérifier les scopes de la VM
+ZONE=$(terraform -chdir=terraform output -raw vm_zone)
+gcloud compute instances describe iris-api-server \
+  --zone=$ZONE --project=$PROJECT_ID \
+  --format="get(serviceAccounts[].scopes)"
 
-# 3. Vérifier les permissions IAM
-gcloud projects get-iam-policy $PROJECT_ID
+# 3. Vérifier les logs du script de démarrage
+gcloud compute ssh iris-api-server --zone=$ZONE --project=$PROJECT_ID --tunnel-through-iap \
+  --command="sudo cat /var/log/startup.log | tail -50"
 ```
 
-### Le modèle n'est pas trouvé
+---
 
-**Problème** : Erreur "Model not found" lors de l'inférence.
+### 🚀 Problèmes API
 
-**Solutions** :
+#### ❌ L'API ne démarre pas
+
+**Quick fix** :
+```bash
+# Vérifier les logs pour identifier l'erreur
+docker compose logs iris-api  # Local
+sudo journalctl -u mlops-api -n 50  # Production
+```
+
+**Solutions courantes** :
+- **Modèle manquant** : Vérifier `models/metadata.json` contient `mlflow_run_id`
+- **MLflow URI incorrect** : Vérifier `MLFLOW_TRACKING_URI` et upload vers GCS
+- **API_KEY manquante** : Vérifier Secret Manager et permissions
+
+#### ❌ Erreur CORS
+
+**Quick fix** :
+```bash
+# Configurer CORS_ORIGINS (ne jamais utiliser "*" en production)
+export CORS_ORIGINS=https://votre-domaine.com
+# Redémarrer l'API
+```
+
+#### ❌ Modèle non trouvé (503)
+
+**Quick fix** :
 ```bash
 # 1. Vérifier l'upload vers GCS
 BUCKET_NAME=$(terraform -chdir=terraform output -raw bucket_name)
@@ -500,22 +581,92 @@ gcloud storage ls gs://$BUCKET_NAME/mlruns/
 # 2. Vérifier metadata.json
 cat models/metadata.json | grep mlflow_run_id
 
-# 3. Vérifier MLFLOW_TRACKING_URI (sur la VM)
-gcloud compute ssh iris-api-server --zone=$ZONE --project=$PROJECT_ID \
-  --command="sudo systemctl show mlops-api | grep MLFLOW"
+# 3. Réuploader si nécessaire
+gcloud storage cp -r mlruns/ gs://$BUCKET_NAME/
 ```
 
-### Erreurs de permissions GCP
+---
 
-**Problème** : Erreurs de permissions lors du déploiement.
+### 🏗️ Problèmes Terraform
 
-**Solutions** :
+#### ❌ Erreurs d'authentification
+
+**Quick fix** :
 ```bash
-# Vérifier les rôles IAM nécessaires
+gcloud auth application-default login
+gcloud config set project $PROJECT_ID
+```
+
+#### ❌ Erreurs de permissions
+
+**Quick fix** :
+```bash
+# Vérifier les rôles requis
 gcloud projects get-iam-policy $PROJECT_ID
 
-# Rôles requis : Compute Admin, Storage Admin, Secret Manager Admin, Service Account User
+# Rôles nécessaires : Compute Admin, Storage Admin, Secret Manager Admin
 ```
+
+#### ❌ "API not enabled"
+
+**Quick fix** :
+```bash
+gcloud services enable compute.googleapis.com storage-component.googleapis.com \
+  iam.googleapis.com secretmanager.googleapis.com artifactregistry.googleapis.com \
+  monitoring.googleapis.com logging.googleapis.com iap.googleapis.com
+```
+
+---
+
+### 🖥️ Problèmes VM / Service
+
+#### ❌ Service systemd n'existe pas
+
+**Symptôme** : `Failed to start mlops-api.service: Unit mlops-api.service not found`
+
+**Quick fix** :
+```bash
+# 1. Vérifier les logs du script de démarrage
+ZONE=$(terraform -chdir=terraform output -raw vm_zone)
+gcloud compute ssh iris-api-server --zone=$ZONE --project=$PROJECT_ID --tunnel-through-iap \
+  --command="sudo cat /var/log/startup.log | tail -100"
+
+# 2. Si "Network is unreachable" → Cloud NAT manquant
+cd terraform && terraform apply && gcloud compute instances reset iris-api-server --zone=$ZONE
+
+# 3. Redémarrer la VM pour relancer le script
+gcloud compute instances reset iris-api-server --zone=$ZONE --project=$PROJECT_ID
+```
+
+**Solution manuelle** (si le script a échoué) :
+```bash
+# Se connecter à la VM
+gcloud compute ssh iris-api-server --zone=$ZONE --project=$PROJECT_ID --tunnel-through-iap
+
+# Le script de démarrage devrait créer le service automatiquement
+# Si nécessaire, voir la documentation complète dans docs/SEMAINE_3.md
+```
+
+---
+
+### 📋 Checklist de Diagnostic
+
+Si le problème persiste, vérifiez dans l'ordre :
+
+- [ ] **Authentification** : `gcloud auth application-default login`
+- [ ] **Projet** : `gcloud config get-value project`
+- [ ] **APIs activées** : Toutes les APIs GCP nécessaires sont activées
+- [ ] **Permissions IAM** : Service account a les rôles requis
+- [ ] **Modèle entraîné** : `models/metadata.json` existe avec `mlflow_run_id`
+- [ ] **Upload GCS** : `mlruns/` uploadé vers GCS
+- [ ] **Variables d'environnement** : `API_KEY`, `MLFLOW_TRACKING_URI` configurées
+- [ ] **Logs** : Vérifier les logs pour erreurs spécifiques
+- [ ] **Réseau** : Cloud NAT configuré si VM sans IP publique
+- [ ] **Firewall** : Règles firewall autorisent le trafic
+
+---
+
+> **💡 Besoin d'aide ?** Consultez [`docs/SEMAINE_3.md`](./docs/SEMAINE_3.md) pour un guide de dépannage plus détaillé.
 
 ## 🏗️ Structure du projet
 
@@ -571,6 +722,7 @@ mlops-core/
 | Technologie | Documentation |
 |-------------|---------------|
 | **FastAPI** | [fastapi.tiangolo.com](https://fastapi.tiangolo.com/) |
+| **Docker** | [docs.docker.com](https://docs.docker.com/) |
 | **Terraform GCP** | [registry.terraform.io](https://registry.terraform.io/providers/hashicorp/google/latest) |
 | **MLflow** | [mlflow.org](https://mlflow.org/docs/latest/index.html) |
 | **DVC** | [dvc.org](https://dvc.org/doc) |

@@ -125,6 +125,8 @@ mlruns/
 *.tfstate.*
 *.tfvars
 !terraform.tfvars.example
+backend.tf
+!backend.tf.example
 
 # Cache et lock files
 .terraform/

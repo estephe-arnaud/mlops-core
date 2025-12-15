@@ -69,6 +69,12 @@ variable "allowed_ssh_ips" {
   default     = [] # ⚠️ SÉCURITÉ : Liste vide par défaut (deny by default). Configurez explicitement dans terraform.tfvars avec vos IPs autorisées (ex: ["123.45.67.89/32"])
 }
 
+variable "iap_tunnel_users" {
+  description = "Liste des emails d'utilisateurs autorisés pour SSH via IAP (si pas d'IP publique). ⚠️ SÉCURITÉ : Configurez explicitement dans terraform.tfvars avec les emails des utilisateurs autorisés (ex: [\"user@example.com\"]). Liste vide par défaut."
+  type        = list(string)
+  default     = [] # ⚠️ SÉCURITÉ : Liste vide par défaut (deny by default). Configurez explicitement dans terraform.tfvars.
+}
+
 variable "allowed_http_ips" {
   description = "Liste des IPs autorisées pour HTTP/HTTPS (CIDR). ⚠️ SÉCURITÉ CRITIQUE : Cette variable DOIT être configurée explicitement dans terraform.tfvars. Liste vide par défaut (deny by default). Pour une API publique, utilisez un Load Balancer avec Cloud Armor plutôt que d'exposer directement la VM."
   type        = list(string)

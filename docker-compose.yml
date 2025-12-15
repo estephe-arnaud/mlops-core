@@ -5,6 +5,9 @@ services:
     build: .
     ports:
       - "${API_PORT:-127.0.0.1:8000}:8000"
+    volumes:
+      # Partage mlruns/ avec l'hôte pour le développement local
+      - ./mlruns:/app/mlruns
     environment:
       - ENVIRONMENT=${ENVIRONMENT:-development}
       - API_KEY=${API_KEY:-}

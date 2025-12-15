@@ -384,6 +384,17 @@ make dvc-repro
 poetry run dvc repro
 ```
 
+**Expérimenter avec des paramètres personnalisés** :
+```bash
+# Tester différents paramètres sans modifier params.yaml
+poetry run dvc exp run -S train.n_estimators=200 -S train.max_depth=10
+
+# Comparer les résultats dans MLflow
+make mlflow-ui
+```
+
+> **💡 Note** : `dvc repro` réexécute le pipeline avec les paramètres de `params.yaml`. Pour tester différents paramètres sans modifier le fichier, utilisez `dvc exp run -S`.
+
 **Vérifier l'état** :
 ```bash
 make dvc-status
@@ -450,9 +461,14 @@ git checkout main
 
 Pour des tests rapides sans créer de branche :
 ```bash
-# Surcharger des paramètres spécifiques
-dvc repro -S train.n_estimators=200 -S train.max_depth=10
+# Surcharger des paramètres spécifiques avec 'dvc exp run'
+# Note : 'dvc repro' ne supporte pas l'option -S, utilisez 'dvc exp run' à la place
+poetry run dvc exp run -S train.n_estimators=200 -S train.max_depth=10
 ```
+
+> **💡 Différence entre `dvc repro` et `dvc exp run`** :
+> - `dvc repro` : Réexécute le pipeline avec les paramètres actuels de `params.yaml` (pas d'option `-S`)
+> - `dvc exp run` : Permet de tester différents paramètres avec `-S` sans modifier `params.yaml` (expérimentations)
 
 **Versioning des configurations** :
 
@@ -664,7 +680,7 @@ cat models/metadata.json | grep mlflow_run_id
 
 # 2. Uploader mlruns/ vers GCS (⚠️ IMPORTANT : inclure le run spécifique)
 # Utiliser gcloud storage (recommandé par Google, plus moderne que gsutil)
-gcloud storage cp -r mlruns/ gs://$BUCKET_NAME/mlruns/
+gcloud storage cp -r mlruns/ gs://$BUCKET_NAME/
 
 # 3. Note: models/metadata.json et models/metrics.json sont inclus dans l'image Docker
 #    Ils sont versionnés avec Git via DVC et n'ont pas besoin d'être uploadés séparément
@@ -710,12 +726,17 @@ lsof -i :5000
 poetry run mlflow ui --port 5001
 ```
 
-### Configuration MLflow pour production (GCS backend)
+### Configuration MLflow pour développement local
 
-**Développement local** :
+**Sans Docker** :
 ```bash
-# MLflow utilise mlruns/ local (par défaut)
-make train
+make train  # MLflow utilise mlruns/ local
+```
+
+**Avec Docker Compose** :
+```bash
+make train           # Entraîner sur l'hôte
+docker compose up    # Conteneur accède à mlruns/ via volume monté
 ```
 
 **Production avec GCS** :
@@ -726,7 +747,7 @@ make train
 # ⚠️ ÉTAPE 2 : Uploader mlruns/ vers GCS (après création du bucket)
 # Utiliser gcloud storage (recommandé par Google, plus moderne que gsutil)
 BUCKET_NAME=$(terraform -chdir=terraform output -raw bucket_name)
-gcloud storage cp -r mlruns/ gs://$BUCKET_NAME/mlruns/
+gcloud storage cp -r mlruns/ gs://$BUCKET_NAME/
 
 # ⚠️ ÉTAPE 3 : MLFLOW_TRACKING_URI est configuré automatiquement par Terraform
 # L'API chargera automatiquement depuis GCS via run_id dans metadata.json
@@ -748,6 +769,16 @@ mlflow server --backend-store-uri gs://$BUCKET_NAME/mlruns/ --default-artifact-r
 
 # Configurer l'URI
 export MLFLOW_TRACKING_URI="http://mlflow-server:5000"
+```
+
+### Le modèle n'est pas trouvé dans Docker
+
+```bash
+# Vérifier que le modèle existe
+ls -la mlruns/
+
+# Redémarrer le conteneur
+docker compose down && docker compose up
 ```
 
 ### DVC pipeline échoue

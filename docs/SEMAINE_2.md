@@ -328,6 +328,11 @@ gh run watch
 - **Buildx** : Builds optimisés multi-platform
 - **Cache** : Registry cache pour accélérer les builds
 
+> 💡 **Intégration avec le déploiement GCP** :  
+> - Ce pipeline CI/CD pousse les images vers **Docker Hub**, ce qui est pratique pour des usages génériques ou d'autres environnements.  
+> - Pour le déploiement sur **GCP**, la documentation de la semaine 3 (`docs/SEMAINE_3.md` et le `README`) montre un flux séparé qui build/push l'image vers **Artifact Registry** (`europe-west1-docker.pkg.dev/...`).  
+> - Les deux approches sont complémentaires : Docker Hub pour le registre "général" via CI, Artifact Registry pour les images utilisées en production sur GCP.
+
 ### Linting
 - **flake8** : Style et erreurs Python (règles strictes)
 - **black** : Formatage automatique (88 caractères)

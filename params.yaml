@@ -6,5 +6,5 @@ data:
   random_state: 42  # Graine aléatoire pour la reproductibilité
 
 train:
-  n_estimators: 100  # Nombre d'arbres dans la forêt (doit être > 0)
-  max_depth: null  # Profondeur maximale des arbres (null = illimitée)
+  n_estimators: 200  # Nombre d'arbres dans la forêt (doit être > 0)
+  max_depth: 10    # Profondeur maximale des arbres (null = illimitée)

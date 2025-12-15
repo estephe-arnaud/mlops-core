@@ -85,10 +85,11 @@ jobs:
             type=ref,event=branch
             type=ref,event=pr
 
-      - name: 🏗️ Build and push
+      - name: 🏗️ Build and push (linux/amd64 - compatible partout)
         uses: docker/build-push-action@v5
         with:
           context: .
+          platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

@@ -14,6 +14,47 @@ resource "google_compute_subnetwork" "vpc_subnet" {
   region        = var.region
   network       = google_compute_network.vpc_network.id
   description   = "Sous-réseau pour les ressources MLOps"
+  
+  # Activer l'accès privé Google (nécessaire pour Cloud NAT et certains services GCP)
+  private_ip_google_access = true
+}
+
+# ============================================================================
+# CLOUD NAT (pour accès Internet sortant)
+# ============================================================================
+#
+# ✅ SÉCURITÉ : Le Cloud NAT est UNIDIRECTIONNEL (sortant uniquement)
+# - Permet aux VMs d'initier des connexions sortantes (apt-get, docker pull, etc.)
+# - N'expose PAS la VM aux connexions entrantes depuis Internet
+# - La VM peut rester sans IP publique (enable_public_ip = false)
+# - Les règles de firewall restent actives pour le trafic entrant
+#
+# ⚠️ IMPORTANT : Le Cloud NAT ne remplace PAS les règles de firewall
+# Les règles de firewall continuent de protéger la VM contre les attaques entrantes
+
+# Routeur Cloud pour le NAT
+resource "google_compute_router" "nat_router" {
+  name    = "${var.network_name}-nat-router"
+  region  = var.region
+  network = google_compute_network.vpc_network.id
+  description = "Routeur Cloud pour Cloud NAT (accès Internet sortant uniquement)"
+}
+
+# Cloud NAT pour permettre l'accès Internet sortant aux VMs sans IP publique
+# ✅ SÉCURITÉ : Unidirectionnel - ne permet que les connexions sortantes
+# Note: description non supporté pour google_compute_router_nat
+resource "google_compute_router_nat" "nat" {
+  name                               = "${var.network_name}-nat"
+  router                             = google_compute_router.nat_router.name
+  region                             = var.region
+  nat_ip_allocate_option             = "AUTO_ONLY"
+  source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
+  
+  # Logging activé pour audit de sécurité (erreurs uniquement pour réduire les coûts)
+  log_config {
+    enable = true
+    filter = "ERRORS_ONLY"
+  }
 }
 
 # ============================================================================
@@ -35,6 +76,26 @@ resource "google_compute_firewall" "allow_ssh" {
   description   = "Autorise SSH depuis les IPs spécifiées"
   
   # Activation du logging pour audit de sécurité
+  log_config {
+    metadata = "INCLUDE_ALL_METADATA"
+  }
+}
+
+# Firewall rule pour IAP (SSH tunneling sans IP publique)
+resource "google_compute_firewall" "allow_iap_ssh" {
+  name    = "${var.network_name}-allow-iap-ssh"
+  network = google_compute_network.vpc_network.name
+
+  allow {
+    protocol = "tcp"
+    ports    = ["22"]
+  }
+
+  # Plage IP d'IAP (35.235.240.0/20)
+  source_ranges = ["35.235.240.0/20"]
+  target_tags   = ["ssh-allowed"]
+  description   = "Autorise SSH via IAP (Identity-Aware Proxy) - Pas besoin d'IP publique"
+  
   log_config {
     metadata = "INCLUDE_ALL_METADATA"
   }
@@ -133,6 +194,23 @@ resource "google_project_iam_member" "secret_manager_accessor" {
   project = var.project_id
   role    = "roles/secretmanager.secretAccessor"
   member  = "serviceAccount:${google_service_account.api_service_account.email}"
+}
+
+# Rôle pour Artifact Registry (accès en lecture aux images Docker)
+resource "google_project_iam_member" "artifact_registry_reader" {
+  project = var.project_id
+  role    = "roles/artifactregistry.reader"
+  member  = "serviceAccount:${google_service_account.api_service_account.email}"
+}
+
+# Rôle IAP pour les utilisateurs autorisés (SSH via IAP)
+# ⚠️ SÉCURITÉ : Permet IAP même avec IP publique pour une couche de sécurité supplémentaire
+# Créé si des utilisateurs sont configurés dans iap_tunnel_users
+resource "google_project_iam_member" "iap_tunnel_accessor" {
+  for_each = toset(var.iap_tunnel_users)
+  project  = var.project_id
+  role     = "roles/iap.tunnelResourceAccessor"
+  member   = "user:${each.value}"
 }
 
 # ============================================================================
@@ -237,13 +315,14 @@ resource "google_compute_instance" "api_server" {
     email  = google_service_account.api_service_account.email
     # ⚠️ SÉCURITÉ : Scopes spécifiques au lieu de "cloud-platform" (accès complet)
     # cloud-platform donne accès à TOUS les services GCP - trop large !
+    # Cependant, Artifact Registry et Secret Manager nécessitent cloud-platform pour l'authentification
     scopes = concat([
       "https://www.googleapis.com/auth/devstorage.read_write", # GCS (lecture/écriture)
       "https://www.googleapis.com/auth/logging.write",         # Logs
       "https://www.googleapis.com/auth/monitoring.write"       # Monitoring
-    ], (var.secret_manager_api_key_name != "" || var.create_secret_manager_secret) ? [
-      "https://www.googleapis.com/auth/cloud-platform"         # Secret Manager (nécessite cloud-platform pour les secrets)
-    ] : [])
+    ], [
+      "https://www.googleapis.com/auth/cloud-platform"         # Artifact Registry + Secret Manager (nécessite cloud-platform)
+    ])
   }
 
   metadata = {
