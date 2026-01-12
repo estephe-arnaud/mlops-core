@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: iris-api-service
+  namespace: mlops
+  labels:
+    app: iris-api
+    component: service
+spec:
+  type: ClusterIP  # Pour accès interne uniquement
+  # Pour accès externe, utilisez NodePort ou Ingress (voir ingress.yaml)
+  # type: NodePort
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: iris-api
+  sessionAffinity: None  # Pas de sticky sessions par défaut
+

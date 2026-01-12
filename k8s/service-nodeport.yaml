@@ -1,0 +1,28 @@
+# Service NodePort pour accès externe direct (développement/test uniquement)
+# ⚠️ SÉCURITÉ : Ne JAMAIS utiliser en production !
+# En production, utilisez plutôt un Ingress avec TLS (voir ingress.yaml)
+# NodePort expose directement l'API sur tous les nodes du cluster
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: iris-api-service-nodeport
+  namespace: mlops
+  labels:
+    app: iris-api
+    component: service
+    # ⚠️ Tag pour identification (dev/test uniquement)
+    environment: development
+spec:
+  type: NodePort
+  ports:
+  - port: 8000
+    targetPort: 8000
+    nodePort: 30080  # Port externe (30000-32767)
+    protocol: TCP
+    name: http
+  selector:
+    app: iris-api
+  # Pas de sessionAffinity pour load balancing
+  sessionAffinity: None
+

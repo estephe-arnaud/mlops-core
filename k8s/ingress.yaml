@@ -1,0 +1,53 @@
+# Ingress pour exposition HTTP/HTTPS externe (production)
+# ⚠️ Nécessite un Ingress Controller installé (nginx, traefik, etc.)
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: iris-api-ingress
+  namespace: mlops
+  labels:
+    app: iris-api
+    component: ingress
+  annotations:
+    # Exemple pour nginx-ingress
+    # nginx.ingress.kubernetes.io/rewrite-target: /
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    
+    # Sécurité
+    # nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    # nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    
+    # Rate limiting (recommandé en production)
+    # nginx.ingress.kubernetes.io/limit-rps: "100"
+    # nginx.ingress.kubernetes.io/limit-connections: "10"
+    
+    # Timeouts
+    # nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    # nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    # nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    
+    # CORS (si nécessaire - configurer explicitement, jamais "*")
+    # nginx.ingress.kubernetes.io/enable-cors: "true"
+    # nginx.ingress.kubernetes.io/cors-allow-origin: "https://example.com"
+    # nginx.ingress.kubernetes.io/cors-allow-methods: "GET,POST,OPTIONS"
+    # nginx.ingress.kubernetes.io/cors-allow-headers: "X-API-Key,Content-Type"
+spec:
+  ingressClassName: nginx  # À adapter selon votre Ingress Controller
+  rules:
+  - host: iris-api.example.com  # ⚠️ Remplacez par votre domaine
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: iris-api-service
+            port:
+              number: 8000
+  # TLS (optionnel, pour HTTPS)
+  # tls:
+  # - hosts:
+  #   - iris-api.example.com
+  #   secretName: iris-api-tls
+

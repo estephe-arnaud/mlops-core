@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: iris-api-config
+  namespace: mlops
+  labels:
+    app: iris-api
+    component: config
+data:
+  # Environnement
+  ENVIRONMENT: "production"
+  
+  # Répertoire des modèles
+  MODEL_DIR: "/app/models"
+  
+  # Configuration des logs
+  LOG_LEVEL: "INFO"
+  
+  # CORS (à configurer selon vos besoins)
+  # CORS_ORIGINS: "https://example.com,https://app.example.com"
+  
+  # Note: Les variables sensibles (API_KEY, MLFLOW_TRACKING_URI) sont dans Secret
+

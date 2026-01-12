@@ -1,7 +1,7 @@
-# Makefile pour le projet MLOps - Semaines 1-3
+# Makefile pour le projet MLOps - Semaines 1-5
 # Usage: make <command>
 
-.PHONY: help install uninstall train test run build clean clean-models clean-dvc format lint ci terraform-init terraform-plan terraform-apply terraform-destroy terraform-output terraform-validate terraform-fmt terraform-refresh mlflow-ui mlflow-experiments dvc-init dvc-repro dvc-status dvc-push dvc-pull dvc-pipeline
+.PHONY: help install uninstall train test run build clean clean-models clean-dvc format lint ci terraform-init terraform-plan terraform-apply terraform-destroy terraform-output terraform-validate terraform-fmt terraform-refresh mlflow-ui mlflow-experiments dvc-init dvc-repro dvc-status dvc-push dvc-pull dvc-pipeline k8s-setup k8s-deploy k8s-status k8s-logs k8s-delete k8s-port-forward k8s-test k8s-clean
 
 # Variables
 PYTHON := poetry run python
@@ -222,3 +222,75 @@ dvc-pull: ## Télécharger les données versionnées
 dvc-pipeline: ## Afficher le pipeline DVC
 	@echo "📊 Pipeline DVC:"
 	@poetry run dvc dag || echo "Pipeline non configuré"
+
+# Kubernetes
+k8s-setup: ## Installer minikube/kind et créer le cluster
+	@echo "🚀 Configuration de Kubernetes..."
+	@chmod +x scripts/setup-k8s.sh
+	@./scripts/setup-k8s.sh minikube
+
+k8s-setup-kind: ## Installer kind et créer le cluster
+	@echo "🚀 Configuration de Kubernetes avec kind..."
+	@chmod +x scripts/setup-k8s.sh
+	@./scripts/setup-k8s.sh kind
+
+k8s-deploy: ## Déployer l'API sur Kubernetes
+	@echo "🚀 Déploiement sur Kubernetes..."
+	@if [ ! -f k8s/secret.yaml ]; then \
+		echo "⚠️  secret.yaml n'existe pas. Créez-le depuis secret.yaml.example"; \
+		echo "   cp k8s/secret.yaml.example k8s/secret.yaml"; \
+		echo "   # Puis éditez k8s/secret.yaml avec vos valeurs"; \
+		exit 1; \
+	fi
+	@kubectl apply -f k8s/namespace.yaml
+	@kubectl apply -f k8s/configmap.yaml
+	@kubectl apply -f k8s/secret.yaml
+	@kubectl apply -f k8s/deployment.yaml
+	@kubectl apply -f k8s/service.yaml
+	@echo "✅ Déploiement terminé !"
+	@echo "Vérifiez avec: make k8s-status"
+
+k8s-status: ## Vérifier le statut du déploiement Kubernetes
+	@echo "📊 Statut du déploiement Kubernetes:"
+	@echo ""
+	@echo "=== Namespace ==="
+	@kubectl get namespace mlops 2>/dev/null || echo "Namespace mlops n'existe pas"
+	@echo ""
+	@echo "=== Pods ==="
+	@kubectl get pods -n mlops
+	@echo ""
+	@echo "=== Services ==="
+	@kubectl get services -n mlops
+	@echo ""
+	@echo "=== Deployments ==="
+	@kubectl get deployments -n mlops
+
+k8s-logs: ## Voir les logs des pods Kubernetes
+	@echo "📋 Logs des pods:"
+	@kubectl logs -f deployment/iris-api -n mlops || echo "Aucun pod trouvé"
+
+k8s-delete: ## Supprimer le déploiement Kubernetes
+	@echo "🗑️  Suppression du déploiement Kubernetes..."
+	@kubectl delete -f k8s/ --ignore-not-found=true
+	@echo "✅ Suppression terminée !"
+
+k8s-port-forward: ## Port-forward vers l'API Kubernetes
+	@echo "🔌 Port-forward vers l'API..."
+	@echo "API accessible sur: http://localhost:8000"
+	@echo "Appuyez sur Ctrl+C pour arrêter"
+	@kubectl port-forward service/iris-api-service 8000:8000 -n mlops
+
+k8s-test: ## Tester l'API déployée sur Kubernetes
+	@echo "🧪 Test de l'API Kubernetes..."
+	@echo "⚠️  Assurez-vous que le port-forward est actif (make k8s-port-forward dans un autre terminal)"
+	@sleep 2
+	@curl -f http://localhost:8000/health || echo "❌ API non accessible. Vérifiez que le port-forward est actif."
+	@echo ""
+	@echo "Pour tester avec API key:"
+	@echo "  export API_KEY=\$$(kubectl get secret iris-api-secrets -n mlops -o jsonpath='{.data.API_KEY}' | base64 -d)"
+	@echo "  curl -H \"X-API-Key: \$$API_KEY\" http://localhost:8000/health"
+
+k8s-clean: ## Nettoyer complètement le déploiement Kubernetes
+	@echo "🧹 Nettoyage complet Kubernetes..."
+	@kubectl delete namespace mlops --ignore-not-found=true
+	@echo "✅ Nettoyage terminé !"

@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/badge/License-Educational-lightgrey.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-success.svg)]()
 
-**Technologies** : Python, FastAPI, MLflow, DVC, Docker, Terraform, GCP  
+**Technologies** : Python, FastAPI, MLflow, DVC, Docker, Kubernetes, Terraform, GCP  
 **Version** : 1.0.0
 
 ---
@@ -21,6 +21,7 @@
 - [📦 Installation](#-installation)
 - [🎯 Utilisation](#-utilisation)
 - [☁️ Déploiement GCP](#️-déploiement-gcp)
+- [☸️ Déploiement Kubernetes](#️-déploiement-kubernetes)
 - [📡 API Endpoints](#-api-endpoints)
 - [⚙️ Configuration](#️-configuration)
 - [🛠️ Commandes](#️-commandes)
@@ -58,6 +59,7 @@ curl http://localhost:8000/health
 Ce projet couvre les piliers essentiels du MLOps :
 - **🔄 Orchestration** : Infrastructure as Code (Terraform), déploiement automatisé
 - **⚙️ CI/CD** : Pipeline GitHub Actions pour build/test/déploiement
+- **☸️ Containerisation** : Kubernetes pour orchestration et scaling
 - **📊 Observabilité** : Monitoring Cloud Monitoring, logging structuré, Prometheus
 - **🔬 Expérimentation** : MLflow pour le tracking des expériences ML
 - **📦 Versioning** : DVC pour le versioning des données et reproductibilité
@@ -71,6 +73,7 @@ Ce projet couvre les piliers essentiels du MLOps :
 - 📊 **Monitoring** : Alertes Cloud Monitoring, métriques Prometheus
 - 🚀 **Déploiement** : Infrastructure as Code avec Terraform
 - 🐳 **Containerisation** : Docker multi-stage optimisé
+- ☸️ **Orchestration** : Kubernetes avec auto-scaling (HPA) et haute disponibilité
 - 📊 **MLflow** : Tracking complet des expériences ML
 - 🔄 **DVC** : Versioning des données et pipeline reproductible
 
@@ -131,7 +134,7 @@ graph TB
     style Q fill:#e0e0e0,stroke:#616161
 ```
 
-**Composants** : GitHub Actions → Artifact Registry → GCP (VPC, VM, Storage, Secret Manager, Load Balancer) → FastAPI | MLflow/DVC → Cloud Storage | Monitoring
+**Composants** : GitHub Actions → Artifact Registry → GCP (VPC, VM/K8s, Storage, Secret Manager, Load Balancer) → FastAPI | MLflow/DVC → Cloud Storage | Monitoring
 
 ## 📦 Installation
 
@@ -145,6 +148,8 @@ graph TB
 | **Terraform** | >= 1.0 |
 | **Google Cloud SDK** | >= 400.0 |
 | **Poetry** | >= 1.7.0 |
+| **kubectl** | >= 1.28 (optionnel, pour Kubernetes) |
+| **minikube** ou **kind** | >= 1.30 / >= 0.20 (optionnel, pour Kubernetes local) |
 
 ### Installation Locale
 
@@ -357,7 +362,52 @@ curl -X POST "http://$API_IP/predict" \
   -d '{"sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2}'
 ```
 
-> **📚 Guide détaillé** : Consultez [`docs/SEMAINE_3.md`](./docs/SEMAINE_3.md) pour plus d'informations sur le déploiement.
+> **📚 Guide détaillé** : Consultez [`docs/SEMAINE_3.md`](./docs/SEMAINE_3.md) pour plus d'informations sur le déploiement GCP.
+
+## ☸️ Déploiement Kubernetes
+
+### Préparation
+
+```bash
+# Installer minikube ou kind
+make k8s-setup
+# ou
+make k8s-setup-kind
+
+# Préparer les secrets
+cp k8s/secret.yaml.example k8s/secret.yaml
+# Éditer k8s/secret.yaml avec vos valeurs
+```
+
+### Déploiement
+
+```bash
+# Déployer l'application
+make k8s-deploy
+
+# Vérifier le statut
+make k8s-status
+
+# Accéder à l'API (port-forward)
+make k8s-port-forward
+# Dans un autre terminal
+curl http://localhost:8000/health
+```
+
+### Tests
+
+```bash
+# Tester l'API
+make k8s-test
+
+# Voir les logs
+make k8s-logs
+
+# Vérifier le scaling
+kubectl get pods -n mlops
+```
+
+> **📚 Guide détaillé** : Consultez [`docs/SEMAINE_5.md`](./docs/SEMAINE_5.md) pour plus d'informations sur Kubernetes.
 
 ## 📡 API Endpoints
 
@@ -436,6 +486,20 @@ train:
 | `make terraform-apply` | Déployer l'infrastructure |
 | `make terraform-destroy` | Détruire l'infrastructure |
 | `make terraform-output` | Afficher les outputs |
+
+### Kubernetes
+
+| Commande | Description |
+|----------|-------------|
+| `make k8s-setup` | Installer minikube et créer le cluster |
+| `make k8s-setup-kind` | Installer kind et créer le cluster |
+| `make k8s-deploy` | Déployer l'API sur Kubernetes |
+| `make k8s-status` | Vérifier le statut du déploiement |
+| `make k8s-logs` | Voir les logs des pods |
+| `make k8s-port-forward` | Port-forward vers l'API |
+| `make k8s-test` | Tester l'API déployée |
+| `make k8s-delete` | Supprimer le déploiement |
+| `make k8s-clean` | Nettoyer complètement |
 
 ### Aide
 
@@ -688,6 +752,14 @@ mlops-core/
 ├── tests/                  # Tests unitaires (pytest)
 ├── scripts/                # Scripts utilitaires & déploiement
 ├── terraform/              # Infrastructure as Code (GCP)
+├── k8s/                    # Manifests Kubernetes
+│   ├── namespace.yaml     # Namespace
+│   ├── deployment.yaml    # Deployment
+│   ├── service.yaml       # Service
+│   ├── configmap.yaml     # ConfigMap
+│   ├── secret.yaml.example # Template Secret
+│   ├── ingress.yaml       # Ingress (optionnel)
+│   └── hpa.yaml           # HPA (optionnel)
 ├── docs/                   # Documentation détaillée
 ├── data/                   # Données versionnées (DVC)
 │   ├── raw/               # Dataset brut
@@ -711,6 +783,7 @@ mlops-core/
 - **[Semaine 2](./docs/SEMAINE_2.md)** - CI/CD avec GitHub Actions
 - **[Semaine 3](./docs/SEMAINE_3.md)** - Déploiement sur GCP
 - **[Semaine 4](./docs/SEMAINE_4.md)** - MLflow & DVC
+- **[Semaine 5](./docs/SEMAINE_5.md)** - Kubernetes (K8s)
 
 ### Documentation API
 
@@ -726,6 +799,7 @@ mlops-core/
 | **Terraform GCP** | [registry.terraform.io](https://registry.terraform.io/providers/hashicorp/google/latest) |
 | **MLflow** | [mlflow.org](https://mlflow.org/docs/latest/index.html) |
 | **DVC** | [dvc.org](https://dvc.org/doc) |
+| **Kubernetes** | [kubernetes.io](https://kubernetes.io/docs/) |
 
 ---
 
