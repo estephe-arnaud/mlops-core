@@ -14,7 +14,6 @@ Ce dossier contient tous les manifests Kubernetes nécessaires pour déployer l'
 | `secret.yaml.example` | Template pour les secrets (à copier vers `secret.yaml`) |
 | `ingress.yaml` | Ingress pour exposition HTTP/HTTPS (production) |
 | `hpa.yaml` | Horizontal Pod Autoscaler pour auto-scaling |
-| `network-policy.yaml` | Network Policy pour sécurité réseau (optionnel) |
 
 ## 🚀 Déploiement Rapide
 
@@ -174,21 +173,10 @@ kubectl rollout undo deployment/iris-api -n mlops
 
 ## 🔒 Sécurité
 
-### Network Policy
-
-Pour limiter le trafic réseau (optionnel, nécessite un CNI compatible) :
-
-```bash
-kubectl apply -f k8s/network-policy.yaml
-```
-
-**Note** : La Network Policy est optionnelle et nécessite un CNI qui la supporte (Calico, Cilium, etc.). En production, implémentez des règles restrictives pour limiter l'accès.
-
 ### Bonnes Pratiques de Sécurité
 
 - ✅ **Secrets** : Utiliser Kubernetes Secrets (ou External Secrets Operator avec Secret Manager)
 - ✅ **RBAC** : Limiter les permissions avec des ServiceAccounts dédiés
-- ✅ **Network Policies** : Limiter le trafic réseau (si supporté)
 - ✅ **Security Context** : Containers non-root avec capabilities limitées
 - ✅ **Image Scanning** : Scanner les images Docker pour vulnérabilités
 - ✅ **TLS** : Utiliser HTTPS via Ingress en production

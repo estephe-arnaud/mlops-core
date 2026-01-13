@@ -1,65 +1,63 @@
+# Deployment : Orchestrateur qui maintient N replicas (Pods) en vie
+# Gère les mises à jour (rolling), redémarre les Pods crashés, scale automatiquement
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: iris-api
+  name: iris-api                 # Identifiant unique du déploiement
   namespace: mlops
   labels:
-    app: iris-api
+    app: iris-api                # Label principal (utilisé par Service/HPA)
     component: api
     version: v1
   annotations:
-    # Documentation
     description: "Deployment de l'API MLOps pour la classification d'iris"
 spec:
-  replicas: 2  # Haute disponibilité avec 2 replicas
+  replicas: 2                    # Nombre de Pods à maintenir en permanence
   
-  # Stratégie de déploiement (rolling update)
-  strategy:
-    type: RollingUpdate
+  strategy:                      # Stratégie de mise à jour (zero-downtime)
+    type: RollingUpdate          # Remplace progressivement les anciens Pods
     rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0  # Assure la disponibilité pendant le déploiement
+      maxSurge: 1                # Max +1 Pod temporaire pendant la maj
+      maxUnavailable: 0          # Aucun Pod indisponible = zero downtime
   
-  selector:
+  selector:                      # Sélecteur : quels Pods ce Deployment gère-t-il ?
     matchLabels:
-      app: iris-api
-  template:
+      app: iris-api              # Doit matcher les labels du template ci-dessous
+      
+  template:                      # Template Pod : définit les Pods créés
     metadata:
-      labels:
-        app: iris-api
+      labels:                    # IMPORTANT : doit matcher selector.matchLabels
+        app: iris-api            # Label utilisé par Service et HPA
         component: api
         version: v1
     spec:
-      # Sécurité au niveau du pod
+      # Sécurité Pod-level : contexte de sécurité pour TOUS les containers
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        fsGroup: 1000
-        seccompProfile:
-          type: RuntimeDefault
+        runAsNonRoot: true       # Interdit l'exécution en root
+        runAsUser: 1000          # UID non-privilégié
+        fsGroup: 1000            # GID pour les volumes
+        seccompProfile:          # Profil SecComp (filtre appels système)
+          type: RuntimeDefault   # Active les restrictions par défaut
       
-      # Période de grâce pour l'arrêt propre
-      terminationGracePeriodSeconds: 30
+      terminationGracePeriodSeconds: 30  # Délai avant SIGKILL (shutdown graceful)
       
       containers:
       - name: iris-api
-        image: iris-api:latest  # Utiliser l'image depuis Artifact Registry en production
-        # Exemple pour GCP Artifact Registry:
-        # image: europe-west1-docker.pkg.dev/PROJECT_ID/mlops-repo/iris-api:latest
-        imagePullPolicy: IfNotPresent  # Always en production
+        image: iris-api:latest   # Image Docker (locale ou registry)
+        imagePullPolicy: IfNotPresent  # IfNotPresent = utilise cache local si existe
+                                       # Always = toujours pull (prod avec registry)
         
         ports:
-        - containerPort: 8000
+        - containerPort: 8000    # Port où l'app écoute dans le container
           name: http
           protocol: TCP
         
-        # Variables d'environnement depuis ConfigMap
+        # Configuration : Variables d'environnement (ConfigMap + Secret)
         envFrom:
         - configMapRef:
-            name: iris-api-config
+            name: iris-api-config  # Injecte TOUTES les clés du ConfigMap
         
-        # Variables d'environnement sensibles depuis Secret
-        env:
+        env:                       # Secrets : injection sélective pour contrôle fin
         - name: API_KEY
           valueFrom:
             secretKeyRef:
@@ -71,47 +69,44 @@ spec:
               name: iris-api-secrets
               key: MLFLOW_TRACKING_URI
         
-        # Health checks
-        livenessProbe:
+        # Health Checks : Probes pour monitoring et self-healing
+        livenessProbe:             # "Suis-je en vie ?" → Si échec : redémarre le Pod
           httpGet:
-            path: /health
+            path: /health          # Endpoint FastAPI qui vérifie l'état interne
             port: 8000
             scheme: HTTP
-          initialDelaySeconds: 40  # Temps pour charger le modèle ML
-          periodSeconds: 30
-          timeoutSeconds: 10
-          successThreshold: 1
-          failureThreshold: 3
+          initialDelaySeconds: 40  # Délai avant 1er check (chargement modèle)
+          periodSeconds: 30        # Fréquence des checks
+          timeoutSeconds: 10       # Timeout par requête
+          successThreshold: 1      # 1 succès = sain
+          failureThreshold: 3      # 3 échecs = restart
         
-        readinessProbe:
+        readinessProbe:            # "Prêt à recevoir trafic ?" → Si échec : retiré du Service
           httpGet:
             path: /health
             port: 8000
             scheme: HTTP
-          initialDelaySeconds: 40  # Temps pour charger le modèle ML
-          periodSeconds: 10
+          initialDelaySeconds: 40  # Attend le chargement du modèle
+          periodSeconds: 10        # Check plus fréquent
           timeoutSeconds: 5
           successThreshold: 1
           failureThreshold: 3
         
-        # Ressources (ajustez selon vos besoins)
+        # Ressources : Garanties (requests) et limites (limits)
         resources:
-          requests:
-            memory: "256Mi"
-            cpu: "100m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
+          requests:                # Minimum garanti (pour scheduling)
+            memory: "256Mi"        # 256 Mi de RAM garantis
+            cpu: "100m"            # 100 millicores = 0.1 CPU
+          limits:                  # Maximum autorisé
+            memory: "512Mi"        # Si dépassé → OOMKilled
+            cpu: "500m"            # Si dépassé → throttling CPU
         
-        # Sécurité au niveau du container
+        # Sécurité Container-level (en plus du Pod securityContext)
         securityContext:
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: false  # MLflow a besoin d'écrire dans le cache (~/.mlflow)
-          runAsNonRoot: true
-          runAsUser: 1000
+          allowPrivilegeEscalation: false  # Empêche escalade de privilèges
+          readOnlyRootFilesystem: false    # false : besoin écriture (logs, cache)
+          runAsNonRoot: true               # Double vérification : pas root
+          runAsUser: 1000                  # UID non-privilégié
           capabilities:
             drop:
-            - ALL
-          # Note: readOnlyRootFilesystem est false car MLflow écrit dans ~/.mlflow/cache
-          # En production, considérez utiliser un volume pour le cache MLflow
-
+            - ALL                          # Retire TOUTES les capabilities Linux
