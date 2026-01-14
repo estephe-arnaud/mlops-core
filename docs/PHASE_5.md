@@ -1,8 +1,15 @@
-# 🟣 Semaine 5 : Kubernetes (K8s)
+# 🟣 Phase 5 : Orchestration - Kubernetes avec auto-scaling
+
+## 🧭 Navigation
+
+| ← Précédent | Suivant → |
+|-------------|-----------|
+| [Phase 4 : Expérimentation](PHASE_4.md) | Phase 6 : Observabilité (à venir) |
+| [Retour au README](../README.md) | [Toutes les phases](.) |
 
 ## 📋 Table des Matières
 
-1. [Objectif de la Semaine](#-objectif-de-la-semaine)
+1. [Objectif de la Phase](#-objectif-de-la-phase)
 2. [Tâches à Accomplir](#-tâches-à-accomplir)
 3. [Livrables Créés](#-livrables-créés)
 4. [Fonctionnalités Implémentées](#-fonctionnalités-implémentées)
@@ -13,11 +20,11 @@
 9. [Commandes Utiles](#-commandes-utiles)
 10. [Dépannage](#-dépannage)
 11. [Validation des Objectifs](#-validation-des-objectifs)
-12. [Prochaines Étapes](#-prochaines-étapes-semaine-6)
+12. [Prochaines Étapes](#-prochaines-étapes-phase-6)
 
 ---
 
-## 🎯 Objectif de la Semaine
+## 🎯 Objectif de la Phase
 
 **Comprendre et pratiquer Kubernetes (déploiement de containers)**
 
@@ -87,7 +94,7 @@ mlops-core/
 ├── scripts/
 │   └── setup-k8s.sh              # Script d'installation minikube/kind
 └── docs/
-    └── SEMAINE_5.md              # Cette documentation
+    └── PHASE_5.md              # Cette documentation
 ```
 
 ### Fichiers Principaux
@@ -723,7 +730,7 @@ kubectl describe hpa iris-api-hpa -n mlops
 
 ---
 
-## 🚀 Prochaines Étapes (Semaine 6)
+## 🚀 Prochaines Étapes (Phase 6)
 
 - 📊 Observabilité & Monitoring (Prometheus, Grafana)
 - 🔍 Métriques avancées
@@ -732,7 +739,7 @@ kubectl describe hpa iris-api-hpa -n mlops
 
 ---
 
-**🎉 Semaine 5 terminée avec succès !**
+**🎉 Phase 5 terminée avec succès !**
 
 L'API MLOps est maintenant déployée sur Kubernetes avec :
 - ✅ Haute disponibilité (2 replicas)
@@ -741,5 +748,5 @@ L'API MLOps est maintenant déployée sur Kubernetes avec :
 - ✅ Auto-scaling optionnel (HPA)
 - ✅ Documentation complète
 
-Le projet est prêt pour la Semaine 6 (Observabilité & Monitoring) !
+Le projet est prêt pour la Phase 6 (Observabilité & Monitoring) !
 

@@ -1,8 +1,15 @@
-# 🟢 Semaine 2 : CI/CD (GitHub Actions)
+# 🟢 Phase 2 : CI/CD - Automatisation avec GitHub Actions
+
+## 🧭 Navigation
+
+| ← Précédent | Suivant → |
+|-------------|-----------|
+| [Phase 1 : Serving & Containerisation](PHASE_1.md) | [Phase 3 : Infrastructure](PHASE_3.md) |
+| [Retour au README](../README.md) | [Toutes les phases](.) |
 
 ## 📋 Table des Matières
 
-1. [Objectif de la Semaine](#-objectif-de-la-semaine)
+1. [Objectif de la Phase](#-objectif-de-la-phase)
 2. [Tâches à Accomplir](#-tâches-à-accomplir)
 3. [Livrables Créés](#-livrables-créés)
 4. [Fonctionnalités Implémentées](#-fonctionnalités-implémentées)
@@ -16,11 +23,11 @@
 12. [Métriques](#-métriques)
 13. [Ressources](#-ressources)
 14. [Validation des Objectifs](#-validation-des-objectifs)
-15. [Prochaines Étapes](#-prochaines-étapes-semaine-3)
+15. [Prochaines Étapes](#-prochaines-étapes-phase-3)
 
 ---
 
-## 🎯 Objectif de la Semaine
+## 🎯 Objectif de la Phase
 
 **Automatiser le processus de build/test/push de l'image Docker sur push GitHub**
 
@@ -330,7 +337,7 @@ gh run watch
 
 > 💡 **Intégration avec le déploiement GCP** :  
 > - Ce pipeline CI/CD pousse les images vers **Docker Hub**, ce qui est pratique pour des usages génériques ou d'autres environnements.  
-> - Pour le déploiement sur **GCP**, la documentation de la semaine 3 (`docs/SEMAINE_3.md` et le `README`) montre un flux séparé qui build/push l'image vers **Artifact Registry** (`europe-west1-docker.pkg.dev/...`).  
+> - Pour le déploiement sur **GCP**, la documentation de la phase 3 (`docs/PHASE_3.md` et le `README`) montre un flux séparé qui build/push l'image vers **Artifact Registry** (`europe-west1-docker.pkg.dev/...`).  
 > - Les deux approches sont complémentaires : Docker Hub pour le registre "général" via CI, Artifact Registry pour les images utilisées en production sur GCP.
 
 ### Linting
@@ -379,7 +386,7 @@ gh run watch
 
 ---
 
-## 🚀 Prochaines Étapes (Semaine 3)
+## 🚀 Prochaines Étapes (Phase 3)
 
 - 🏗️ Infrastructure as Code avec Terraform
 - ☁️ Provisioning de ressources GCP
@@ -388,6 +395,6 @@ gh run watch
 
 ---
 
-**🎉 Semaine 2 terminée avec succès !**
+**🎉 Phase 2 terminée avec succès !**
 
-Le pipeline CI/CD est maintenant complètement automatisé et prêt pour la semaine 3 (Terraform).
+Le pipeline CI/CD est maintenant complètement automatisé et prêt pour la phase 3 (Terraform).

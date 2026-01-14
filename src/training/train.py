@@ -1,7 +1,7 @@
 """
 Module d'entraînement du modèle ML
 Modèle de classification sur le dataset Iris
-Intégration MLflow pour le tracking des expériences (Semaine 4)
+Intégration MLflow pour le tracking des expériences (Phase 4)
 Lit les paramètres depuis params.yaml avec validation Pydantic
 """
 

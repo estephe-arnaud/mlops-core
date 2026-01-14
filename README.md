@@ -17,6 +17,7 @@
 - [🚀 Quick Start](#-quick-start)
 - [📋 Vue d'ensemble](#-vue-densemble)
 - [✨ Fonctionnalités](#-fonctionnalités)
+- [📚 Phases MLOps du Projet](#-phases-mlops-du-projet)
 - [🏗️ Architecture](#️-architecture)
 - [📦 Installation](#-installation)
 - [🎯 Utilisation](#-utilisation)
@@ -56,13 +57,18 @@ curl http://localhost:8000/health
 
 ## 📋 Vue d'ensemble
 
-Ce projet couvre les piliers essentiels du MLOps :
-- **🔄 Orchestration** : Infrastructure as Code (Terraform), déploiement automatisé
-- **⚙️ CI/CD** : Pipeline GitHub Actions pour build/test/déploiement
-- **☸️ Containerisation** : Kubernetes pour orchestration et scaling
-- **📊 Observabilité** : Monitoring Cloud Monitoring, logging structuré, Prometheus
-- **🔬 Expérimentation** : MLflow pour le tracking des expériences ML
-- **📦 Versioning** : DVC pour le versioning des données et reproductibilité
+Ce projet implémente un **cycle MLOps complet** en 5 phases progressives :
+
+1. **🟢 Phase 1 : Serving & Containerisation** - API FastAPI + Docker
+2. **🟢 Phase 2 : CI/CD** - Automatisation avec GitHub Actions
+3. **🟢 Phase 3 : Infrastructure** - Infrastructure as Code avec Terraform
+4. **🟡 Phase 4 : Expérimentation** - Tracking MLflow + Versioning DVC
+5. **🟣 Phase 5 : Orchestration** - Kubernetes avec auto-scaling
+6. **🔵 Phase 6 : Observabilité** - Monitoring & Logging (à venir)
+
+Chaque phase est documentée dans [`docs/PHASE_X.md`](docs/) avec des guides complets, exemples et bonnes pratiques.
+
+👉 **Voir [Phases MLOps du Projet](#-phases-mlops-du-projet) pour plus de détails**
 
 ## ✨ Fonctionnalités
 
@@ -76,6 +82,57 @@ Ce projet couvre les piliers essentiels du MLOps :
 - ☸️ **Orchestration** : Kubernetes avec auto-scaling (HPA) et haute disponibilité
 - 📊 **MLflow** : Tracking complet des expériences ML
 - 🔄 **DVC** : Versioning des données et pipeline reproductible
+
+## 📚 Phases MLOps du Projet
+
+Ce projet suit une progression en 5 phases couvrant le cycle MLOps complet :
+
+| Phase | Focus Principal | Technologies | Documentation |
+|------|-----------------|--------------|---------------|
+| **1. Serving & Containerisation** | API FastAPI + Docker | FastAPI, Docker, pytest | [📖 Phase 1](docs/PHASE_1.md) |
+| **2. CI/CD** | Automatisation | GitHub Actions, Artifact Registry | [📖 Phase 2](docs/PHASE_2.md) |
+| **3. Infrastructure** | Infrastructure as Code | Terraform, GCP | [📖 Phase 3](docs/PHASE_3.md) |
+| **4. Expérimentation** | Tracking & Versioning | MLflow, DVC | [📖 Phase 4](docs/PHASE_4.md) |
+| **5. Orchestration** | Container Orchestration | Kubernetes, HPA | [📖 Phase 5](docs/PHASE_5.md) |
+| **6. Observabilité** | Monitoring & Logging | Prometheus, Grafana, Cloud Monitoring | 🔜 À venir |
+
+### 🎯 Vue d'ensemble par Phase
+
+#### Phase 1 : Serving & Containerisation
+- ✅ **Serving** : API FastAPI pour l'inférence ML
+- ✅ **Containerisation** : Docker multi-stage optimisé
+- ✅ **Tests** : Tests unitaires et d'intégration
+- 📖 [Documentation complète](docs/PHASE_1.md)
+
+#### Phase 2 : CI/CD
+- ✅ **GitHub Actions** : Pipeline automatisé (build, test, push)
+- ✅ **Artifact Registry** : Stockage des images Docker
+- ✅ **Automation** : Déploiement automatisé
+- 📖 [Documentation complète](docs/PHASE_2.md)
+
+#### Phase 3 : Infrastructure as Code
+- ✅ **Terraform** : Provisioning automatique GCP
+- ✅ **Infrastructure** : VPC, VM, Load Balancer, Cloud Storage
+- ✅ **Sécurité** : Secret Manager, Firewall, Cloud Armor
+- 📖 [Documentation complète](docs/PHASE_3.md)
+
+#### Phase 4 : Expérimentation & Versioning
+- ✅ **MLflow** : Tracking des expériences ML
+- ✅ **DVC** : Versioning des données et pipelines
+- ✅ **Reproductibilité** : Pipeline ML complet
+- 📖 [Documentation complète](docs/PHASE_4.md)
+
+#### Phase 5 : Orchestration
+- ✅ **Kubernetes** : Orchestration des applications
+- ✅ **Auto-scaling** : HPA (Horizontal Pod Autoscaler)
+- ✅ **Haute disponibilité** : Multi-replicas, health checks
+- 📖 [Documentation complète](docs/PHASE_5.md)
+
+#### Phase 6 : Observabilité (À venir)
+- ⚠️ **Prometheus** : Collecte de métriques applicatives
+- ⚠️ **Grafana** : Dashboards et visualisation
+- ⚠️ **Cloud Monitoring** : Monitoring infrastructure (partiellement implémenté)
+- ⚠️ **Logging** : Logs structurés et centralisés
 
 ## 🏗️ Architecture
 
@@ -362,7 +419,7 @@ curl -X POST "http://$API_IP/predict" \
   -d '{"sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2}'
 ```
 
-> **📚 Guide détaillé** : Consultez [`docs/SEMAINE_3.md`](./docs/SEMAINE_3.md) pour plus d'informations sur le déploiement GCP.
+> **📚 Guide détaillé** : Consultez [`docs/PHASE_3.md`](./docs/PHASE_3.md) pour plus d'informations sur le déploiement GCP.
 
 ## ☸️ Déploiement Kubernetes
 
@@ -407,7 +464,7 @@ make k8s-logs
 kubectl get pods -n mlops
 ```
 
-> **📚 Guide détaillé** : Consultez [`docs/SEMAINE_5.md`](./docs/SEMAINE_5.md) pour plus d'informations sur Kubernetes.
+> **📚 Guide détaillé** : Consultez [`docs/PHASE_5.md`](./docs/PHASE_5.md) pour plus d'informations sur Kubernetes.
 
 ## 📡 API Endpoints
 
@@ -708,7 +765,7 @@ gcloud compute instances reset iris-api-server --zone=$ZONE --project=$PROJECT_I
 gcloud compute ssh iris-api-server --zone=$ZONE --project=$PROJECT_ID --tunnel-through-iap
 
 # Le script de démarrage devrait créer le service automatiquement
-# Si nécessaire, voir la documentation complète dans docs/SEMAINE_3.md
+# Si nécessaire, voir la documentation complète dans docs/PHASE_3.md
 ```
 
 ---
@@ -730,7 +787,7 @@ Si le problème persiste, vérifiez dans l'ordre :
 
 ---
 
-> **💡 Besoin d'aide ?** Consultez [`docs/SEMAINE_3.md`](./docs/SEMAINE_3.md) pour un guide de dépannage plus détaillé.
+> **💡 Besoin d'aide ?** Consultez [`docs/PHASE_3.md`](./docs/PHASE_3.md) pour un guide de dépannage plus détaillé.
 
 ## 🏗️ Structure du projet
 
@@ -777,13 +834,24 @@ mlops-core/
 
 ## 📚 Documentation
 
-### Documentation du Projet
+### Documentation par Phase
 
-- **[Semaine 1](./docs/SEMAINE_1.md)** - Introduction et setup (Docker, FastAPI, Tests)
-- **[Semaine 2](./docs/SEMAINE_2.md)** - CI/CD avec GitHub Actions
-- **[Semaine 3](./docs/SEMAINE_3.md)** - Déploiement sur GCP
-- **[Semaine 4](./docs/SEMAINE_4.md)** - MLflow & DVC
-- **[Semaine 5](./docs/SEMAINE_5.md)** - Kubernetes (K8s)
+| Phase | Documentation | Statut |
+|------|---------------|--------|
+| **1. Serving & Containerisation** | [📖 Phase 1](docs/PHASE_1.md) | ✅ Complète |
+| **2. CI/CD** | [📖 Phase 2](docs/PHASE_2.md) | ✅ Complète |
+| **3. Infrastructure** | [📖 Phase 3](docs/PHASE_3.md) | ✅ Complète |
+| **4. Expérimentation** | [📖 Phase 4](docs/PHASE_4.md) | ✅ Complète |
+| **5. Orchestration** | [📖 Phase 5](docs/PHASE_5.md) | ✅ Complète |
+| **6. Observabilité** | 🔜 À venir | ⚠️ Partiel |
+
+### Guides Rapides
+
+- [🚀 Quick Start](#-quick-start)
+- [☁️ Déploiement GCP](docs/PHASE_3.md#-déploiement-sur-gcp)
+- [☸️ Déploiement Kubernetes](docs/PHASE_5.md#-guide-de-déploiement)
+- [🔧 Configuration](#️-configuration)
+- [🛠️ Commandes](#️-commandes)
 
 ### Documentation API
 

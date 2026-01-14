@@ -1,4 +1,4 @@
-# Makefile pour le projet MLOps - Semaines 1-5
+# Makefile pour le projet MLOps
 # Usage: make <command>
 
 .PHONY: help install uninstall train test run build clean clean-models clean-dvc format lint ci terraform-init terraform-plan terraform-apply terraform-destroy terraform-output terraform-validate terraform-fmt terraform-refresh mlflow-ui mlflow-experiments dvc-init dvc-repro dvc-status dvc-push dvc-pull dvc-pipeline k8s-setup k8s-deploy k8s-status k8s-logs k8s-delete k8s-port-forward k8s-test k8s-clean
@@ -155,7 +155,7 @@ deploy: build run-docker-bg ## Déployer l'API (build + run)
 	@echo "API disponible sur: http://localhost:8000"
 	@echo "Documentation: http://localhost:8000/docs"
 
-# Terraform (Semaine 3)
+# Terraform
 terraform-init: ## Initialiser Terraform
 	@echo "🏗️  Initialisation de Terraform..."
 	@cd terraform && terraform init

@@ -1,8 +1,15 @@
-# 🟡 Semaine 4 : MLOps Local (MLflow + DVC)
+# 🟡 Phase 4 : Expérimentation - Tracking MLflow + Versioning DVC
+
+## 🧭 Navigation
+
+| ← Précédent | Suivant → |
+|-------------|-----------|
+| [Phase 3 : Infrastructure](PHASE_3.md) | [Phase 5 : Orchestration](PHASE_5.md) |
+| [Retour au README](../README.md) | [Toutes les phases](.) |
 
 ## 📋 Table des Matières
 
-1. [Objectif de la Semaine](#-objectif-de-la-semaine)
+1. [Objectif de la Phase](#-objectif-de-la-phase)
 2. [Tâches à Accomplir](#-tâches-à-accomplir)
 3. [Livrables Attendus](#-livrables-attendus)
 4. [Implémentation Prévue](#-implémentation-prévue)
@@ -24,7 +31,7 @@
 
 ---
 
-## 🎯 Objectif de la Semaine
+## 🎯 Objectif de la Phase
 
 **Traquer et versionner les expériences ML localement pour la reproductibilité**
 
@@ -36,6 +43,8 @@
 - **7h** → Intégrer MLflow Tracking pour logguer les hyperparamètres, métriques et le modèle
 - **7h** → Implémenter DVC pour versionner le dataset et le pipeline de pré-traitement
 - **6h** → Finalisation Projet 1 : documentation + vidéo démo
+
+---
 
 ## 📋 Tâches à Accomplir
 
@@ -180,21 +189,21 @@ stages:
 
 ## 📈 Progression
 
-### Phase 1 : MLflow (7h) ✅
+### Étape 1 : MLflow (7h) ✅
 - [x] Installation et configuration MLflow
 - [x] Intégration dans src/training/train.py
 - [x] Logging des paramètres et métriques
 - [x] Sauvegarde des modèles
 - [x] Interface web MLflow UI
 
-### Phase 2 : DVC (7h) ✅
+### Étape 2 : DVC (7h) ✅
 - [x] Installation et initialisation DVC
 - [x] Versioning du dataset
 - [x] Création du pipeline dvc.yaml
 - [x] Gestion des dépendances
 - [x] Tests de reproductibilité
 
-### Phase 3 : Finalisation (6h) ✅
+### Étape 3 : Finalisation (6h) ✅
 - [x] Documentation complète
 - [x] Schémas d'architecture
 - [x] Vidéo de démonstration (à faire selon besoins)
@@ -238,13 +247,6 @@ stages:
 - **Model** : Train → Model + Metadata
 - **Metrics** : Evaluate → Metrics JSON
 
-## 🚀 Prochaines Étapes (Phase 2)
-
-- ☁️ Déploiement cloud avec Vertex AI
-- 🐳 Orchestration Kubernetes
-- 📊 Monitoring et observabilité
-- 🔐 Sécurité et conformité
-
 ## 📚 Documentation à Créer
 
 ### README Principal
@@ -271,7 +273,7 @@ stages:
 
 ## ✅ Implémentation Complète
 
-### Phase 1 : MLflow Tracking ✅
+### Étape 1 : MLflow Tracking ✅
 
 #### Installation
 MLflow a été ajouté aux dépendances dans `pyproject.toml` :
@@ -318,7 +320,7 @@ Accès : http://localhost:5000
 - Téléchargement des modèles
 - Visualisation des artifacts
 
-### Phase 2 : DVC Pipeline ✅
+### Étape 2 : DVC Pipeline ✅
 
 #### Installation
 DVC a été ajouté aux dépendances dans `pyproject.toml` :
@@ -354,13 +356,13 @@ Le module `src/config.py` :
 #### Pipeline DVC
 Le fichier `dvc.yaml` définit le pipeline :
 
-**Étape 1 : Prepare**
+**1. Prepare**
 - Commande : `poetry run python -m src.data.prepare`
 - Dépendances : `src/data/prepare.py`, `src/config.py`
 - Paramètres : `data.test_size`, `data.random_state` (depuis `params.yaml`)
 - Sorties : `data/raw/iris.csv`, `data/processed/train.csv`, `data/processed/test.csv`
 
-**Étape 2 : Train**
+**2. Train**
 - Commande : `poetry run python -m src.training.train`
 - Dépendances : `data/processed/train.csv`, `data/processed/test.csv`, `src/training/train.py`, `src/evaluation/evaluate.py`, `src/config.py`
 - Paramètres : `train.n_estimators`, `train.max_depth`, `train.random_state`, `train.test_size` (depuis `params.yaml`)
@@ -487,7 +489,7 @@ poetry run dvc exp run -S train.n_estimators=200 -S train.max_depth=10
 
 Utiliser des branches Git est la pratique recommandée pour gérer différentes configurations de paramètres.
 
-### Phase 3 : Intégration Complète ✅
+### Étape 3 : Intégration Complète ✅
 
 #### Configuration centralisée avec Pydantic ✅
 Le module `src/config.py` a été créé pour :
@@ -634,7 +636,7 @@ git commit -m "Update dataset version"
 
 ## 🚀 Workflow Complet : Entraînement → Déploiement
 
-### Étape 1 : Entraînement Local
+### 1. Entraînement Local
 
 ```bash
 # 1. Entraîner le modèle localement
@@ -650,12 +652,12 @@ ls -la mlruns/
 # Structure : mlruns/<experiment_id>/<run_id>/artifacts/model/
 ```
 
-### Étape 2 : Créer les Ressources GCP
+### 2. Créer les Ressources GCP
 
 > ⚠️ **Important** : Créer d'abord les ressources GCP (bucket, VM, etc.) avant d'uploader les fichiers.
 
 ```bash
-# 1. Configurer Terraform (voir docs/SEMAINE_3.md pour les détails)
+# 1. Configurer Terraform (voir docs/PHASE_3.md pour les détails)
 make terraform-init
 # ou directement
 terraform -chdir=terraform init
@@ -672,7 +674,7 @@ terraform -chdir=terraform apply
 BUCKET_NAME=$(terraform -chdir=terraform output -raw bucket_name)
 ```
 
-### Étape 3 : Uploader les Fichiers vers GCS
+### 3. Uploader les Fichiers vers GCS
 
 ```bash
 # 1. Identifier le run_id à déployer
@@ -691,7 +693,7 @@ gcloud storage ls gs://$BUCKET_NAME/
 gcloud storage ls gs://$BUCKET_NAME/mlruns/
 ```
 
-### Étape 4 : Déploiement sur la VM
+### 4. Déploiement sur la VM
 
 ```bash
 # 1. Note: models/metadata.json et models/metrics.json sont inclus dans l'image Docker
@@ -812,7 +814,7 @@ poetry run dvc repro prepare
 
 ---
 
-**🎉 Semaine 4 terminée avec succès !**
+**🎉 Phase 4 terminée avec succès !**
 
 Le projet dispose maintenant de :
 - ✅ Tracking complet des expériences ML avec MLflow

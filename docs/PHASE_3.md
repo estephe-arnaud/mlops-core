@@ -1,6 +1,13 @@
-# 🟢 Semaine 3 : Infrastructure as Code (Terraform)
+# 🟢 Phase 3 : Infrastructure - Infrastructure as Code avec Terraform
 
-## 🎯 Objectif de la Semaine
+## 🧭 Navigation
+
+| ← Précédent | Suivant → |
+|-------------|-----------|
+| [Phase 2 : CI/CD](PHASE_2.md) | [Phase 4 : Expérimentation](PHASE_4.md) |
+| [Retour au README](../README.md) | [Toutes les phases](.) |
+
+## 🎯 Objectif de la Phase
 
 **Provisionner une infrastructure cloud simple sur GCP via Terraform et déployer l'API en production**
 
@@ -269,7 +276,7 @@ terraform/
 - **`providers.tf`** : Configure le provider Google Cloud
 - **`backend.tf.example`** : Exemple de configuration pour un backend distant (GCS)
 - **`terraform.tfvars.example`** : Exemple de fichier de configuration (à copier vers `terraform.tfvars`)
-- **Documentation détaillée** : ce fichier `docs/SEMAINE_3.md` (guide complet Terraform pour le projet)
+- **Documentation détaillée** : ce fichier `docs/PHASE_3.md` (guide complet Terraform pour le projet)
 
 ---
 
@@ -1592,21 +1599,21 @@ Pour toute question ou problème :
 
 ---
 
-## 📈 Progression de la Semaine 3
+## 📈 Progression de la Phase 3
 
-### Phase 1 : Setup (6h) ✅
+### Étape 1 : Setup (6h) ✅
 - [x] Installation de Terraform
 - [x] Configuration GCP CLI
 - [x] Création du projet GCP
 - [x] Structure des fichiers Terraform
 
-### Phase 2 : Infrastructure de Base (7h) ✅
+### Étape 2 : Infrastructure de Base (7h) ✅
 - [x] Configuration du provider Google
 - [x] Création du bucket GCS
 - [x] Configuration du réseau VPC
 - [x] Règles de firewall sécurisées
 
-### Phase 3 : VM et IAM (7h) ✅
+### Étape 3 : VM et IAM (7h) ✅
 - [x] Création de la VM Compute Engine
 - [x] Configuration du service account
 - [x] Attribution des rôles IAM
@@ -1635,7 +1642,7 @@ Pour toute question ou problème :
 
 ---
 
-**🎉 Semaine 3 terminée avec succès !**
+**🎉 Phase 3 terminée avec succès !**
 
 L'infrastructure Terraform est maintenant complètement configurée, sécurisée et prête pour le déploiement en production sur GCP. L'API est déployée et fonctionnelle avec toutes les mesures de sécurité en place.
 

@@ -1,8 +1,15 @@
-# 🟢 Semaine 1 : Docker, FastAPI & Tests
+# 🟢 Phase 1 : Serving & Containerisation - API FastAPI + Docker
+
+## 🧭 Navigation
+
+| ← Précédent | Suivant → |
+|-------------|-----------|
+| - | [Phase 2 : CI/CD](PHASE_2.md) |
+| [Retour au README](../README.md) | [Toutes les phases](.) |
 
 ## 📋 Table des Matières
 
-1. [Objectif de la Semaine](#-objectif-de-la-semaine)
+1. [Objectif de la Phase](#-objectif-de-la-phase)
 2. [Tâches à Accomplir](#-tâches-à-accomplir)
 3. [Livrables Créés](#-livrables-créés)
 4. [Fonctionnalités Implémentées](#-fonctionnalités-implémentées)
@@ -11,11 +18,11 @@
 7. [Métriques](#-métriques)
 8. [Liens Utiles](#-liens-utiles)
 9. [Validation des Objectifs](#-validation-des-objectifs)
-10. [Prochaines Étapes](#-prochaines-étapes-semaine-2)
+10. [Prochaines Étapes](#-prochaines-étapes-phase-2)
 
 ---
 
-## 🎯 Objectif de la Semaine
+## 🎯 Objectif de la Phase
 
 **Conteneuriser et exposer un modèle ML localement via API + premiers tests unitaires**
 
@@ -362,7 +369,7 @@ curl -X POST "http://localhost:8000/predict" \
 
 ---
 
-## 🚀 Prochaines Étapes (Semaine 2)
+## 🚀 Prochaines Étapes (Phase 2)
 
 - 🔄 CI/CD avec GitHub Actions
 - 🔧 Intégration des tests dans le pipeline
@@ -372,6 +379,6 @@ curl -X POST "http://localhost:8000/predict" \
 
 ---
 
-**🎉 Semaine 1 terminée avec succès !**
+**🎉 Phase 1 terminée avec succès !**
 
 Tous les objectifs sont atteints et le projet est prêt pour la suite de la formation MLOps.

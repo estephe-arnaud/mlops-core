@@ -193,5 +193,5 @@ kubectl delete namespace mlops
 
 ## 📚 Documentation Complète
 
-Consultez [`docs/SEMAINE_5.md`](../docs/SEMAINE_5.md) pour la documentation complète de la Semaine 5.
+Consultez [`docs/PHASE_5.md`](../docs/PHASE_5.md) pour la documentation complète de la Phase 5.
 
