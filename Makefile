@@ -234,7 +234,7 @@ k8s-setup-kind: ## Installer kind et créer le cluster
 	@chmod +x scripts/setup-k8s.sh
 	@./scripts/setup-k8s.sh kind
 
-k8s-deploy: ## Déployer l'API sur Kubernetes
+k8s-deploy: ## Déployer l'API sur Kubernetes (sans MLflow)
 	@echo "🚀 Déploiement sur Kubernetes..."
 	@if [ ! -f k8s/secret.yaml ]; then \
 		echo "⚠️  secret.yaml n'existe pas. Créez-le depuis secret.yaml.example"; \
@@ -250,6 +250,30 @@ k8s-deploy: ## Déployer l'API sur Kubernetes
 	@echo "✅ Déploiement terminé !"
 	@echo "Vérifiez avec: make k8s-status"
 
+k8s-deploy-mlflow: ## Déployer l'API + MLflow server sur Kubernetes (recommandé)
+	@echo "🚀 Déploiement complet sur Kubernetes (API + MLflow)..."
+	@if [ ! -f k8s/secret.yaml ]; then \
+		echo "⚠️  secret.yaml n'existe pas. Créez-le depuis secret.yaml.example"; \
+		echo "   cp k8s/secret.yaml.example k8s/secret.yaml"; \
+		echo "   # Puis éditez k8s/secret.yaml avec vos valeurs"; \
+		echo "   # Assurez-vous que MLFLOW_TRACKING_URI=\"http://mlflow-server-service:5000\""; \
+		exit 1; \
+	fi
+	@kubectl apply -f k8s/namespace.yaml
+	@kubectl apply -f k8s/configmap.yaml
+	@kubectl apply -f k8s/secret.yaml
+	@echo "📊 Déploiement du serveur MLflow..."
+	@kubectl apply -f k8s/mlflow-deployment.yaml
+	@kubectl apply -f k8s/mlflow-service.yaml
+	@echo "🚀 Déploiement de l'API..."
+	@kubectl apply -f k8s/deployment.yaml
+	@kubectl apply -f k8s/service.yaml
+	@echo "✅ Déploiement terminé !"
+	@echo "Vérifiez avec: make k8s-status"
+	@echo ""
+	@echo "Pour accéder à MLflow UI:"
+	@echo "  make k8s-mlflow-ui"
+
 k8s-status: ## Vérifier le statut du déploiement Kubernetes
 	@echo "📊 Statut du déploiement Kubernetes:"
 	@echo ""
@@ -264,6 +288,9 @@ k8s-status: ## Vérifier le statut du déploiement Kubernetes
 	@echo ""
 	@echo "=== Deployments ==="
 	@kubectl get deployments -n mlops
+	@echo ""
+	@echo "=== MLflow Server (si déployé) ==="
+	@kubectl get deployment mlflow-server -n mlops 2>/dev/null || echo "MLflow server non déployé"
 
 k8s-logs: ## Voir les logs des pods Kubernetes
 	@echo "📋 Logs des pods:"
@@ -279,6 +306,12 @@ k8s-port-forward: ## Port-forward vers l'API Kubernetes
 	@echo "API accessible sur: http://localhost:8000"
 	@echo "Appuyez sur Ctrl+C pour arrêter"
 	@kubectl port-forward service/iris-api-service 8000:8000 -n mlops
+
+k8s-mlflow-ui: ## Port-forward vers MLflow UI
+	@echo "📊 Port-forward vers MLflow UI..."
+	@echo "MLflow UI accessible sur: http://localhost:5000"
+	@echo "Appuyez sur Ctrl+C pour arrêter"
+	@kubectl port-forward service/mlflow-server-service 5000:5000 -n mlops
 
 k8s-test: ## Tester l'API déployée sur Kubernetes
 	@echo "🧪 Test de l'API Kubernetes..."

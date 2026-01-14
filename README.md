@@ -438,9 +438,11 @@ cp k8s/secret.yaml.example k8s/secret.yaml
 
 ### Déploiement
 
+**Option A : Avec MLflow Server** (Recommandé)
+
 ```bash
-# Déployer l'application
-make k8s-deploy
+# Déployer l'API + MLflow server
+make k8s-deploy-mlflow
 
 # Vérifier le statut
 make k8s-status
@@ -449,6 +451,23 @@ make k8s-status
 make k8s-port-forward
 # Dans un autre terminal
 curl http://localhost:8000/health
+
+# Accéder à MLflow UI
+make k8s-mlflow-ui
+# http://localhost:5000
+```
+
+**Option B : MLflow Local** (Développement)
+
+```bash
+# 1. Monter mlruns/ vers minikube (terminal séparé)
+minikube mount $(pwd)/mlruns:/tmp/mlruns
+
+# 2. Déployer l'API
+make k8s-deploy
+
+# 3. Accéder à l'API
+make k8s-port-forward
 ```
 
 ### Tests
@@ -551,9 +570,11 @@ train:
 | `make k8s-setup` | Installer minikube et créer le cluster |
 | `make k8s-setup-kind` | Installer kind et créer le cluster |
 | `make k8s-deploy` | Déployer l'API sur Kubernetes |
+| `make k8s-deploy-mlflow` | Déployer API + MLflow server (recommandé) |
 | `make k8s-status` | Vérifier le statut du déploiement |
 | `make k8s-logs` | Voir les logs des pods |
 | `make k8s-port-forward` | Port-forward vers l'API |
+| `make k8s-mlflow-ui` | Port-forward vers MLflow UI |
 | `make k8s-test` | Tester l'API déployée |
 | `make k8s-delete` | Supprimer le déploiement |
 | `make k8s-clean` | Nettoyer complètement |
@@ -811,8 +832,11 @@ mlops-core/
 ├── terraform/              # Infrastructure as Code (GCP)
 ├── k8s/                    # Manifests Kubernetes
 │   ├── namespace.yaml     # Namespace
-│   ├── deployment.yaml    # Deployment
-│   ├── service.yaml       # Service
+│   ├── deployment.yaml    # Deployment API
+│   ├── mlflow-deployment.yaml # Deployment MLflow server
+│   ├── service.yaml       # Service API
+│   ├── mlflow-service.yaml # Service MLflow
+│   ├── service-nodeport.yaml # Service NodePort (dev/test)
 │   ├── configmap.yaml     # ConfigMap
 │   ├── secret.yaml.example # Template Secret
 │   ├── ingress.yaml       # Ingress (optionnel)

@@ -1,5 +1,6 @@
 # Deployment : Orchestrateur qui maintient N replicas (Pods) en vie
 # Gère les mises à jour (rolling), redémarre les Pods crashés, scale automatiquement
+# Fait tourner 2 pods (replicas) qui exécutent l'API Iris (FastAPI)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -40,6 +41,16 @@ spec:
           type: RuntimeDefault   # Active les restrictions par défaut
       
       terminationGracePeriodSeconds: 30  # Délai avant SIGKILL (shutdown graceful)
+      
+      # Volumes : Partage de fichiers entre la machine hôte et le container
+      # ✅ Nécessaire si MLFLOW_TRACKING_URI="" (mode local)
+      #    Optionnel si MLFLOW_TRACKING_URI="http://mlflow-server-service:5000" (mode serveur) mais recommandé de le garder
+      #    Pour minikube : "minikube mount $(pwd)/mlruns:/tmp/mlruns"
+      volumes:
+      - name: mlruns-volume
+        hostPath:
+          path: /tmp/mlruns  # Chemin dans la VM minikube/kind (monté depuis la machine hôte)
+          type: DirectoryOrCreate  # Crée le répertoire s'il n'existe pas
       
       containers:
       - name: iris-api
@@ -100,6 +111,14 @@ spec:
           limits:                  # Maximum autorisé
             memory: "512Mi"        # Si dépassé → OOMKilled
             cpu: "500m"            # Si dépassé → throttling CPU
+        
+        # Volumes : Montage du répertoire mlruns depuis la machine hôte
+        # ✅ Nécessaire si MLFLOW_TRACKING_URI="" (mode local)
+        #    Optionnel en mode serveur mais recommandé de le garder pour la flexibilité
+        volumeMounts:
+        - name: mlruns-volume
+          mountPath: /app/mlruns  # Où le code Python cherche mlruns/ (Path("mlruns").absolute())
+          readOnly: false  # Permet la lecture/écriture (nécessaire pour MLflow local)
         
         # Sécurité Container-level (en plus du Pod securityContext)
         securityContext:
