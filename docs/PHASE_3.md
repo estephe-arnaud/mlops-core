@@ -1,4 +1,4 @@
-# 🟢 Phase 3 : Infrastructure - Infrastructure as Code avec Terraform
+# 🟠 Phase 3 : Infrastructure - Infrastructure as Code avec Terraform
 
 ## 🧭 Navigation
 

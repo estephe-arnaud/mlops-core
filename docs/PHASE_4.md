@@ -11,7 +11,7 @@
 
 1. [Objectif de la Phase](#-objectif-de-la-phase)
 2. [Tâches à Accomplir](#-tâches-à-accomplir)
-3. [Livrables Attendus](#-livrables-attendus)
+3. [Livrables Créés](#-livrables-créés)
 4. [Implémentation Prévue](#-implémentation-prévue)
 5. [Outils à Utiliser](#-outils-à-utiliser)
 6. [Métriques Attendues](#-métriques-attendues)
@@ -66,7 +66,7 @@
 - Enregistrer une vidéo de démonstration
 - Finaliser le Projet 1
 
-## 📦 Livrables Attendus
+## 📦 Livrables Créés
 
 ### Structure MLflow
 ```

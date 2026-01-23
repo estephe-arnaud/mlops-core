@@ -1,4 +1,4 @@
-# 🟢 Phase 2 : CI/CD - Automatisation avec GitHub Actions
+# 🔵 Phase 2 : CI/CD - Automatisation avec GitHub Actions
 
 ## 🧭 Navigation
 

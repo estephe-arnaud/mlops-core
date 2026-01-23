@@ -57,14 +57,14 @@ curl http://localhost:8000/health
 
 ## 📋 Vue d'ensemble
 
-Ce projet implémente un **cycle MLOps complet** en 5 phases progressives :
+Ce projet implémente un **cycle MLOps complet** en 6 phases progressives :
 
 1. **🟢 Phase 1 : Serving & Containerisation** - API FastAPI + Docker
-2. **🟢 Phase 2 : CI/CD** - Automatisation avec GitHub Actions
-3. **🟢 Phase 3 : Infrastructure** - Infrastructure as Code avec Terraform
+2. **🔵 Phase 2 : CI/CD** - Automatisation avec GitHub Actions
+3. **🟠 Phase 3 : Infrastructure** - Infrastructure as Code avec Terraform
 4. **🟡 Phase 4 : Expérimentation** - Tracking MLflow + Versioning DVC
 5. **🟣 Phase 5 : Orchestration** - Kubernetes avec auto-scaling
-6. **🔵 Phase 6 : Observabilité** - Monitoring & Logging (à venir)
+6. **🔴 Phase 6 : Observabilité** - Monitoring & Logging (à venir)
 
 Chaque phase est documentée dans [`docs/PHASE_X.md`](docs/) avec des guides complets, exemples et bonnes pratiques.
 
@@ -85,7 +85,7 @@ Chaque phase est documentée dans [`docs/PHASE_X.md`](docs/) avec des guides com
 
 ## 📚 Phases MLOps du Projet
 
-Ce projet suit une progression en 5 phases couvrant le cycle MLOps complet :
+Ce projet suit une progression en 6 phases couvrant le cycle MLOps complet :
 
 | Phase | Focus Principal | Technologies | Documentation |
 |------|-----------------|--------------|---------------|
