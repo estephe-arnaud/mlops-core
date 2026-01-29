@@ -1,15 +1,15 @@
-# 🟡 Phase 4 : Expérimentation - Tracking MLflow + Versioning DVC
+# Expérimentation — MLflow & DVC
 
 ## 🧭 Navigation
 
 | ← Précédent | Suivant → |
 |-------------|-----------|
-| [Phase 3 : Infrastructure](PHASE_3.md) | [Phase 5 : Orchestration](PHASE_5.md) |
-| [Retour au README](../README.md) | [Toutes les phases](.) |
+| [Infrastructure](infrastructure.md) | [Orchestration](orchestration.md) |
+| [Retour au README](../README.md) | [Documentation](README.md) |
 
 ## 📋 Table des Matières
 
-1. [Objectif de la Phase](#-objectif-de-la-phase)
+1. [Objectif](#-objectif)
 2. [Tâches à Accomplir](#-tâches-à-accomplir)
 3. [Livrables Créés](#-livrables-créés)
 4. [Implémentation Prévue](#-implémentation-prévue)
@@ -31,7 +31,7 @@
 
 ---
 
-## 🎯 Objectif de la Phase
+## 🎯 Objectif
 
 **Traquer et versionner les expériences ML localement pour la reproductibilité**
 
@@ -93,9 +93,8 @@ dvc.lock                 # Verrouillage des versions
 ```
 
 ### Documentation
-- **README.md** : Documentation complète du projet
-- **ARCHITECTURE.md** : Schémas et architecture
-- **DEMO_VIDEO.mp4** : Vidéo de démonstration (3-5 min)
+- **README.md** : Documentation complète du projet (vue d’ensemble, architecture, schémas)
+- **Vidéo de démonstration** (optionnel) : 3–5 min (Loom, OBS Studio) — à enregistrer selon besoins
 
 ## 🚀 Implémentation Prévue
 
@@ -253,7 +252,7 @@ stages:
 - Vue d'ensemble du projet
 - Instructions d'installation
 - Guide d'utilisation
-- Architecture et schémas
+- Architecture et schémas (voir README et docs/)
 
 ### Documentation Technique
 - Configuration MLflow
@@ -261,13 +260,11 @@ stages:
 - Procédures de déploiement
 - Troubleshooting
 
-### Vidéo de Démonstration
-- **Durée** : 3-5 minutes
+### Vidéo de Démonstration (optionnel)
+- **Durée** : 3–5 minutes
 - **Contenu** : Installation, utilisation, résultats
 - **Format** : Loom ou OBS Studio
-- **Objectif** : Démonstration complète du Projet 1
-
----
+- **Objectif** : Démonstration complète du parcours
 
 ---
 
@@ -657,7 +654,7 @@ ls -la mlruns/
 > ⚠️ **Important** : Créer d'abord les ressources GCP (bucket, VM, etc.) avant d'uploader les fichiers.
 
 ```bash
-# 1. Configurer Terraform (voir docs/PHASE_3.md pour les détails)
+# 1. Configurer Terraform (voir docs/infrastructure.md pour les détails)
 make terraform-init
 # ou directement
 terraform -chdir=terraform init
@@ -814,7 +811,7 @@ poetry run dvc repro prepare
 
 ---
 
-**🎉 Phase 4 terminée avec succès !**
+**Expérimentation terminée avec succès.**
 
 Le projet dispose maintenant de :
 - ✅ Tracking complet des expériences ML avec MLflow

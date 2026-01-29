@@ -36,13 +36,12 @@ spec:
       
       terminationGracePeriodSeconds: 30
       
-      # Volume partagé : MLflow stocke les runs dans mlruns/
-      # Même volume que l'API pour partager les données
+      # Volume persistant : MLflow stocke les runs dans /app/mlruns
+      # Utilise un PersistentVolumeClaim pour un stockage plus propre et portable
       volumes:
       - name: mlruns-volume
-        hostPath:
-          path: /tmp/mlruns  # Chemin dans la VM minikube/kind (monté depuis la machine hôte)
-          type: DirectoryOrCreate
+        persistentVolumeClaim:
+          claimName: mlflow-pvc
       
       containers:
       - name: mlflow-server
@@ -57,14 +56,14 @@ spec:
         # Variables d'environnement MLflow
         env:
         - name: MLFLOW_BACKEND_STORE_URI
-          value: "file:///mlruns"  # Backend store local (fichiers)
+          value: "file:///app/mlruns"  # Backend store local (fichiers)
         - name: MLFLOW_DEFAULT_ARTIFACT_ROOT
-          value: "file:///mlruns"  # Artifact store local
+          value: "file:///app/mlruns"  # Artifact store local
         
-        # Volume mount : partage le même répertoire que l'API
+        # Volume mount : répertoire de stockage des runs MLflow
         volumeMounts:
         - name: mlruns-volume
-          mountPath: /mlruns  # MLflow stocke tout dans /mlruns
+          mountPath: /app/mlruns  # MLflow stocke tout dans /app/mlruns
           readOnly: false
         
         # Health check : MLflow expose /health
@@ -119,7 +118,7 @@ spec:
         - --port
         - "5000"
         - --backend-store-uri
-        - "file:///mlruns"
+        - "file:///app/mlruns"
         - --default-artifact-root
-        - "file:///mlruns"
+        - "file:///app/mlruns"
 

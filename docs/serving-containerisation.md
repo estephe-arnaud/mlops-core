@@ -1,15 +1,15 @@
-# 🟢 Phase 1 : Serving & Containerisation - API FastAPI + Docker
+# Serving & Containerisation — API FastAPI + Docker
 
 ## 🧭 Navigation
 
 | ← Précédent | Suivant → |
 |-------------|-----------|
-| - | [Phase 2 : CI/CD](PHASE_2.md) |
-| [Retour au README](../README.md) | [Toutes les phases](.) |
+| - | [CI/CD](cicd.md) |
+| [Retour au README](../README.md) | [Documentation](README.md) |
 
 ## 📋 Table des Matières
 
-1. [Objectif de la Phase](#-objectif-de-la-phase)
+1. [Objectif](#-objectif)
 2. [Tâches à Accomplir](#-tâches-à-accomplir)
 3. [Livrables Créés](#-livrables-créés)
 4. [Fonctionnalités Implémentées](#-fonctionnalités-implémentées)
@@ -18,11 +18,11 @@
 7. [Métriques](#-métriques)
 8. [Liens Utiles](#-liens-utiles)
 9. [Validation des Objectifs](#-validation-des-objectifs)
-10. [Prochaines Étapes](#-prochaines-étapes-phase-2)
+10. [Prochaines étapes](#-prochaines-étapes-cicd)
 
 ---
 
-## 🎯 Objectif de la Phase
+## 🎯 Objectif
 
 **Conteneuriser et exposer un modèle ML localement via API + premiers tests unitaires**
 
@@ -80,8 +80,13 @@ mlops-core/
 │   ├── evaluation/
 │   │   └── evaluate.py       # Évaluation du modèle
 │   └── serving/
-│       ├── app.py            # API FastAPI
-│       └── security.py       # Sécurité API
+│       ├── app.py            # Application principale
+│       ├── lifespan.py       # Chargement/déchargement du modèle
+│       ├── routes.py         # Endpoints API
+│       ├── models.py         # Modèles Pydantic
+│       ├── metrics.py        # Métriques Prometheus
+│       ├── middleware.py     # Rate limiting, etc.
+│       └── security.py       # Authentification API
 ├── pyproject.toml            # Configuration Poetry
 ├── Dockerfile                # Image Docker optimisée
 ├── docker-compose.yml        # Orchestration Docker
@@ -105,11 +110,13 @@ mlops-core/
 ### Fichiers Principaux
 
 #### `src/serving/app.py` - API FastAPI
-- **Endpoints** : 4 endpoints complets
+- **Endpoints** : 4 endpoints métier + `/metrics` (Prometheus) et `/docs` (Swagger)
   - `GET /` : Informations générales
   - `GET /health` : État de santé de l'API
   - `POST /predict` : Prédiction de la classe d'iris
   - `GET /model/info` : Informations sur le modèle
+  - `GET /metrics` : Métriques Prometheus
+  - `GET /docs` : Documentation Swagger interactive
 - **Validation** : Modèles Pydantic pour les données d'entrée
 - **Documentation** : Swagger UI (`/docs`) et ReDoc (`/redoc`)
 - **Gestion d'erreurs** : Codes HTTP appropriés (400, 503, etc.)
@@ -369,7 +376,7 @@ curl -X POST "http://localhost:8000/predict" \
 
 ---
 
-## 🚀 Prochaines Étapes (Phase 2)
+## 🚀 Prochaines étapes : CI/CD
 
 - 🔄 CI/CD avec GitHub Actions
 - 🔧 Intégration des tests dans le pipeline
@@ -379,6 +386,6 @@ curl -X POST "http://localhost:8000/predict" \
 
 ---
 
-**🎉 Phase 1 terminée avec succès !**
+**Serving & Containerisation terminé avec succès.**
 
-Tous les objectifs sont atteints et le projet est prêt pour la suite de la formation MLOps.
+Tous les objectifs sont atteints et le projet est prêt pour la suite (CI/CD).

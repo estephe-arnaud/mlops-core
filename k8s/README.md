@@ -1,307 +1,260 @@
-# 🚀 Guide de Déploiement Kubernetes
+# Déploiement Kubernetes
 
-> 📚 **Documentation complète** : Consultez [`docs/PHASE_5.md`](../docs/PHASE_5.md) pour la documentation détaillée avec tous les concepts, workflows, et exemples.
+Manifests pour déployer l’API MLOps et le serveur MLflow sur un cluster Kubernetes. Deux workflows possibles : **avec MLflow dans le cluster** (recommandé) ou **API seule** (MLflow local / hostPath).
 
-## 📋 Vue d'Ensemble
+> Guide détaillé et concepts : [docs/orchestration.md](../docs/orchestration.md)
 
-Ce répertoire contient tous les manifests Kubernetes nécessaires pour déployer l'API MLOps sur un cluster Kubernetes. Le déploiement inclut :
+---
 
-- **API FastAPI** : 2 replicas pour haute disponibilité
-- **Serveur MLflow** : 1 replica pour le tracking des expériences
-- **Services** : ClusterIP pour accès interne
-- **Configuration** : ConfigMap et Secrets
-- **Auto-Scaling** : HPA (Horizontal Pod Autoscaler)
-- **Exposition** : Ingress pour production
+## Vue d’ensemble
 
-## 🏗️ Structure des Manifests
+- **API FastAPI** : 2 replicas, health checks, HPA
+- **MLflow** (optionnel) : 1 replica, PVC dédié
+- **Services** : ClusterIP ; NodePort pour dev/test
+- **Monitoring** : Prometheus, Grafana, AlertManager — voir [monitoring/](monitoring/README.md)
+
+## Structure des manifests
 
 ```
 k8s/
 ├── namespace.yaml              # Namespace mlops
 ├── deployment.yaml             # Deployment API (2 replicas)
-├── mlflow-deployment.yaml      # Deployment MLflow server
-├── service.yaml                # Service ClusterIP API
-├── mlflow-service.yaml        # Service ClusterIP MLflow
-├── service-nodeport.yaml      # Service NodePort (dev/test)
-├── configmap.yaml             # Configuration non sensible
-├── secret.yaml.example         # Template secrets
-├── ingress.yaml                # Ingress (production)
-├── hpa.yaml                    # Auto-scaling
-└── README.md                   # Ce fichier
+├── mlflow-deployment.yaml      # Serveur MLflow
+├── mlflow-pvc.yaml             # PVC runs MLflow (/app/mlruns)
+├── models-pvc.yaml             # PVC modèles (/app/models)
+├── train-job.yaml              # Job d’entraînement in-cluster
+├── service.yaml / mlflow-service.yaml
+├── service-nodeport.yaml       # Dev/test
+├── configmap.yaml / secret.yaml.example
+├── ingress.yaml / hpa.yaml
+└── monitoring/                 # Prometheus, Grafana, AlertManager
 ```
 
-## 🚀 Déploiement Rapide
+## Prérequis
 
-### Prérequis
+- `kubectl` configuré, cluster accessible (minikube, kind ou cloud)
+- Image `iris-api:latest` disponible (voir workflows)
 
-- `kubectl` installé et configuré
-- Cluster Kubernetes accessible (minikube, kind, ou cloud)
-- Image Docker `iris-api:latest` disponible
+---
 
-### Étape 1 : Préparer les Secrets
+## Workflow 1 — Avec MLflow (recommandé)
+
+Objectif : cluster local (minikube), API + MLflow, entraînement dans le cluster, stockage persistant (PVC).
+
+### 1. Démarrer le cluster
 
 ```bash
-# Copier le template
+minikube delete   # optionnel
+minikube start
+kubectl get nodes
+```
+
+### 2. Builder l’image dans l’environnement Docker de minikube
+
+```bash
+cd mlops-core
+eval "$(minikube docker-env)"
+make build
+docker images | grep iris-api
+```
+
+### 3. Préparer le Secret
+
+```bash
 cp k8s/secret.yaml.example k8s/secret.yaml
-
-# Éditer avec vos valeurs
-# ⚠️ Ne JAMAIS commiter secret.yaml !
 ```
 
-**Contenu minimal de `k8s/secret.yaml`** :
+Dans `k8s/secret.yaml`, au minimum :
+
 ```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: iris-api-secrets
-  namespace: mlops
-type: Opaque
 stringData:
-  API_KEY: "votre-api-key-ici"  # Générer : openssl rand -hex 32
-  MLFLOW_TRACKING_URI: "http://mlflow-server-service:5000"  # Ou "gs://bucket/mlruns/"
+  API_KEY: "votre-api-key"   # ex: openssl rand -hex 32
+  MLFLOW_TRACKING_URI: "http://mlflow-server-service:5000"
 ```
 
-### Étape 2 : Déployer
-
-**Option A : Avec MLflow Server** (Recommandé)
+### 4. Déployer API + MLflow
 
 ```bash
 make k8s-deploy-mlflow
+make k8s-status
 ```
 
-**Option B : MLflow Local** (Développement)
+Attendu : pods `iris-api-...` et `mlflow-server-...` en `Running`.
+
+### 5. Accéder à l’API et à MLflow UI
 
 ```bash
-# 1. Monter mlruns/ vers minikube (terminal séparé)
-minikube mount $(pwd)/mlruns:/tmp/mlruns
+# Terminal 1
+make k8s-port-forward   # API → http://localhost:8000
 
-# 2. Déployer
-make k8s-deploy
+# Terminal 2
+make k8s-mlflow-ui      # MLflow → http://localhost:5000
 ```
 
-**Manuellement** :
+### 6. Entraîner le modèle dans le cluster (Job)
+
+Le PVC `models-pvc` est déjà déployé par `make k8s-deploy-mlflow`. Lancer le job d’entraînement :
 
 ```bash
-kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/configmap.yaml
-kubectl apply -f k8s/secret.yaml
-kubectl apply -f k8s/mlflow-deployment.yaml  # Si MLflow server
-kubectl apply -f k8s/mlflow-service.yaml
-kubectl apply -f k8s/deployment.yaml
-kubectl apply -f k8s/service.yaml
+kubectl delete job iris-train-job -n mlops --ignore-not-found
+kubectl apply -f k8s/train-job.yaml
+kubectl logs job/iris-train-job -n mlops -f
 ```
 
-### Étape 3 : Vérifier
+Puis recharger l’API pour qu’elle relise `/app/models` :
+
+```bash
+kubectl rollout restart deployment/iris-api -n mlops
+```
+
+Le job écrit `model.joblib`, `metadata.json` et `metrics.json` dans le PVC `models-pvc`, utilisés par l’API au démarrage.
+
+### 7. Vérifier
 
 ```bash
 make k8s-status
-# ou
-kubectl get pods,services -n mlops
+curl http://localhost:8000/health   # avec port-forward actif
 ```
 
-**Résultat attendu** :
-```
-NAME                        READY   STATUS    RESTARTS   AGE
-iris-api-xxxxxxxxxx-xxxxx   1/1     Running   0          30s
-iris-api-xxxxxxxxxx-xxxxx   1/1     Running   0          30s
-mlflow-server-xxxxx         1/1     Running   0          30s
-```
+Réponse attendue : `"model_loaded": true`.
 
-### Étape 4 : Accéder
-
-**API** :
-```bash
-make k8s-port-forward      # http://localhost:8000
-```
-
-**MLflow UI** :
-```bash
-make k8s-mlflow-ui         # http://localhost:5000
-```
-
-## 📝 Commandes Utiles
-
-| Commande | Description |
-|----------|-------------|
-| `make k8s-setup` | Installer minikube et créer le cluster |
-| `make k8s-setup-kind` | Installer kind et créer le cluster |
-| `make k8s-deploy` | Déployer l'API |
-| `make k8s-deploy-mlflow` | Déployer API + MLflow server |
-| `make k8s-status` | Vérifier le statut |
-| `make k8s-logs` | Voir les logs |
-| `make k8s-port-forward` | Port-forward vers l'API |
-| `make k8s-mlflow-ui` | Port-forward vers MLflow UI |
-| `make k8s-test` | Tester l'API |
-| `make k8s-clean` | Nettoyer complètement |
-
-## 🔧 Configuration
-
-### Variables d'Environnement
-
-**ConfigMap** (`configmap.yaml`) :
-- `ENVIRONMENT`: production
-- `MODEL_DIR`: /app/models
-- `LOG_LEVEL`: INFO
-
-**Secret** (`secret.yaml`) :
-- `API_KEY`: Clé API pour authentification
-- `MLFLOW_TRACKING_URI`: 
-  - `"http://mlflow-server-service:5000"` → Serveur MLflow dans K8s
-  - `""` → Local avec hostPath (nécessite mount)
-  - `"gs://bucket/mlruns/"` → GCS (production cloud)
-
-### Modes MLflow
-
-| Mode | MLFLOW_TRACKING_URI | Volume | Usage |
-|------|---------------------|--------|-------|
-| **K8s Server** | `http://mlflow-server-service:5000` | Partagé | Portfolio/Production |
-| **Local** | `""` | hostPath + mount | Développement |
-| **GCS** | `gs://bucket/mlruns/` | Aucun | Production cloud |
-
-## 🧪 Tests
-
-### Test de Santé
-
-```bash
-make k8s-port-forward  # Terminal 1
-curl http://localhost:8000/health  # Terminal 2
-```
-
-### Test de Prédiction
-
-```bash
-export API_KEY=$(kubectl get secret iris-api-secrets -n mlops -o jsonpath='{.data.API_KEY}' | base64 -d)
-
-curl -X POST "http://localhost:8000/predict" \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: $API_KEY" \
-  -d '{
-    "sepal_length": 5.1,
-    "sepal_width": 3.5,
-    "petal_length": 1.4,
-    "petal_width": 0.2
-  }'
-```
-
-### Test Automatisé
-
-```bash
-make k8s-test
-```
-
-## ⚖️ Auto-Scaling
-
-### Installation de metrics-server
-
-```bash
-kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
-```
-
-### Déploiement du HPA
-
-```bash
-kubectl apply -f k8s/hpa.yaml
-```
-
-### Vérification
-
-```bash
-kubectl get hpa -n mlops
-kubectl describe hpa iris-api-hpa -n mlops
-```
-
-Le HPA scale automatiquement entre 2 et 10 pods selon CPU (70%) et mémoire (80%).
-
-## 🌐 Exposition Externe
-
-### NodePort (Développement/Test)
-
-```bash
-kubectl apply -f k8s/service-nodeport.yaml
-NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
-curl http://$NODE_IP:30080/health
-```
-
-### Ingress (Production)
-
-```bash
-# Installer Ingress Controller
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
-
-# Déployer l'Ingress
-kubectl apply -f k8s/ingress.yaml
-```
-
-**⚠️ Important** : Modifier `k8s/ingress.yaml` avec votre domaine réel avant de déployer.
-
-## 🔍 Dépannage
-
-### Pods ne démarrent pas
-
-```bash
-kubectl describe pod <pod-name> -n mlops
-kubectl logs <pod-name> -n mlops
-kubectl get events -n mlops --sort-by='.lastTimestamp'
-```
-
-### API ne répond pas
-
-```bash
-kubectl get pods -n mlops
-kubectl logs -f deployment/iris-api -n mlops
-kubectl get service iris-api-service -n mlops
-```
-
-### Secrets non trouvés
-
-```bash
-kubectl get secret iris-api-secrets -n mlops
-kubectl describe secret iris-api-secrets -n mlops
-```
-
-### Image non trouvée (minikube)
-
-```bash
-eval $(minikube docker-env)
-docker build -t iris-api:latest .
-```
-
-## 📚 Documentation
-
-- [📖 Phase 5 : Orchestration](../docs/PHASE_5.md) - Documentation complète avec :
-  - Architecture détaillée
-  - Concepts Kubernetes
-  - Installation et configuration
-  - Workflows MLflow
-  - Tests et validation
-  - Dépannage
-- [Makefile](../Makefile) - Toutes les commandes `make k8s-*`
-
-## 🔒 Sécurité
-
-### Bonnes Pratiques
-
-- ✅ Secrets Kubernetes (jamais en clair dans Git)
-- ✅ Containers non-root
-- ✅ Capabilities limitées
-- ✅ TLS via Ingress en production
-
-### Recommandations Production
-
-- 🔐 Utiliser External Secrets Operator avec Secret Manager GCP/AWS
-- 🔐 Activer Network Policies
-- 🔐 Configurer Pod Security Standards
-- 🔐 Utiliser cert-manager pour TLS automatique
-- 🔐 Scanner les images pour vulnérabilités
-
-## 🗑️ Nettoyage
+### 8. Nettoyage
 
 ```bash
 make k8s-clean
 # ou
-kubectl delete namespace mlops
+minikube delete
 ```
 
 ---
 
-**💡 Astuce** : Pour une compréhension approfondie des concepts Kubernetes et des workflows détaillés, consultez [`docs/PHASE_5.md`](../docs/PHASE_5.md).
+## Workflow 2 — API seule (MLflow local)
+
+Pour du dev avec MLflow sur la machine hôte :
+
+```bash
+# Terminal 1 : monter mlruns vers minikube
+minikube mount $(pwd)/mlruns:/tmp/mlruns
+
+# Terminal 2
+make k8s-deploy
+make k8s-port-forward
+```
+
+Dans `k8s/secret.yaml`, utiliser `MLFLOW_TRACKING_URI: ""` ou un chemin local selon votre setup.
+
+---
+
+## Déploiement rapide (résumé des commandes)
+
+| Action | Commande |
+|--------|----------|
+| Cluster | `make k8s-setup` ou `make k8s-setup-kind` |
+| Déployer API + MLflow | `make k8s-deploy-mlflow` |
+| Déployer API seule | `make k8s-deploy` |
+| Statut | `make k8s-status` |
+| Logs | `make k8s-logs` |
+| Port-forward API | `make k8s-port-forward` |
+| Port-forward MLflow | `make k8s-mlflow-ui` |
+| Test API | `make k8s-test` |
+| Nettoyage | `make k8s-clean` |
+
+Déploiement manuel (sans make) : appliquer dans l’ordre `namespace` → `configmap` → `secret` → `mlflow-pvc` → `models-pvc` → `mlflow-deployment` + `mlflow-service` → `deployment` → `service`.
+
+---
+
+## Configuration
+
+**ConfigMap** : `ENVIRONMENT`, `MODEL_DIR`, `LOG_LEVEL`.
+
+**Secret** : `API_KEY`, `MLFLOW_TRACKING_URI`.
+
+| Mode | `MLFLOW_TRACKING_URI` | Usage |
+|------|------------------------|--------|
+| K8s Server | `http://mlflow-server-service:5000` | Recommandé, avec PVC |
+| Local | `""` + hostPath / mount | Dev |
+| GCS | `gs://bucket/mlruns/` | Production cloud |
+
+Pour le mode GCS (Workflow 3), configurer le secret avec `MLFLOW_TRACKING_URI: "gs://bucket-name/mlruns/"` puis **`make k8s-deploy`** (les PVC sont inclus).
+
+---
+
+## Architecture du modèle en production
+
+- **MLflow** : source de vérité analytique (runs, paramètres, métriques, registry).
+- **Runtime API** : lit `/app/models` (PVC `models-pvc`) — `model.joblib`, `metadata.json` (contient `mlflow_run_id`), `metrics.json` — écrits par le Job d’entraînement. L'API charge le modèle depuis `model.joblib` local (priorité), ou depuis MLflow via `runs:/<run_id>/model` si le fichier local est absent. Pas de dépendance directe aux artifacts MLflow côté serveur HTTP pour le chargement.
+
+---
+
+## Tests
+
+```bash
+make k8s-port-forward
+curl http://localhost:8000/health
+```
+
+Prédiction (récupérer la clé depuis le secret) :
+
+```bash
+export API_KEY=$(kubectl get secret iris-api-secrets -n mlops -o jsonpath='{.data.API_KEY}' | base64 -d)
+curl -X POST "http://localhost:8000/predict" \
+  -H "Content-Type: application/json" -H "X-API-Key: $API_KEY" \
+  -d '{"sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2}'
+```
+
+---
+
+## Auto-scaling (HPA)
+
+```bash
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+kubectl apply -f k8s/hpa.yaml
+kubectl get hpa -n mlops
+```
+
+HPA : 2–10 replicas selon CPU (70 %) et mémoire (80 %).
+
+---
+
+## Exposition
+
+- **NodePort** : `kubectl apply -f k8s/service-nodeport.yaml` puis `http://<NODE_IP>:30080`
+- **Ingress** : installer un Ingress Controller, appliquer `k8s/ingress.yaml` (adapter le domaine).
+
+---
+
+## Monitoring
+
+Stack Prometheus / Grafana / AlertManager dans [monitoring/](monitoring/README.md).
+
+```bash
+make k8s-monitoring-deploy
+make k8s-monitoring-port-forward
+```
+
+---
+
+## Dépannage
+
+| Problème | Vérification |
+|----------|---------------|
+| Pods ne démarrent pas | `kubectl describe pod <name> -n mlops` ; `kubectl get events -n mlops --sort-by='.lastTimestamp'` |
+| API ne répond pas | `kubectl logs -f deployment/iris-api -n mlops` ; `kubectl get svc iris-api-service -n mlops` |
+| Secrets | `kubectl get secret iris-api-secrets -n mlops` |
+| Image (minikube) | `eval $(minikube docker-env)` puis `make build` |
+
+---
+
+## Sécurité
+
+- Secrets en Kubernetes (jamais en clair dans Git).
+- Containers non-root, capabilities limitées.
+- Production : External Secrets, Network Policies, Pod Security Standards, cert-manager, scan d’images.
+
+---
+
+## Documentation
+
+- [Orchestration](../docs/orchestration.md) — concepts, architecture, tutoriel détaillé
+- [Monitoring](monitoring/README.md) — Prometheus, Grafana, AlertManager
+- [Makefile](../Makefile) — commandes `make k8s-*`

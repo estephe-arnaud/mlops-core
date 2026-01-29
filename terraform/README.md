@@ -1,8 +1,8 @@
-# 🏗️ Guide de Déploiement Terraform
+# Déploiement Terraform (GCP)
 
-> 📚 **Documentation complète** : Consultez [`docs/PHASE_3.md`](../docs/PHASE_3.md) pour la documentation détaillée avec tous les concepts, workflows, et exemples.
+Guide de déploiement de l’infrastructure GCP (VPC, VM, Storage, Secret Manager, Load Balancer). Documentation détaillée et tutoriel : [docs/infrastructure.md](../docs/infrastructure.md).
 
-## 📋 Vue d'Ensemble
+## Vue d'ensemble
 
 Ce répertoire contient la configuration Terraform pour provisionner l'infrastructure GCP complète de l'API MLOps. Le déploiement inclut :
 
@@ -15,7 +15,7 @@ Ce répertoire contient la configuration Terraform pour provisionner l'infrastru
 - **Load Balancer** : HTTP avec Cloud Armor (optionnel)
 - **Monitoring** : Alertes Cloud Monitoring (optionnel)
 
-## 🏗️ Structure des Fichiers
+## Structure des fichiers
 
 ```
 terraform/
@@ -28,7 +28,7 @@ terraform/
 └── README.md                # Ce fichier
 ```
 
-## 🚀 Déploiement Rapide
+## Déploiement rapide
 
 ### Prérequis
 
@@ -52,7 +52,7 @@ gcloud auth application-default login
 # Activer les APIs nécessaires
 gcloud services enable \
   compute.googleapis.com \
-  storage-component.googleapis.com \
+  storage.googleapis.com \
   iam.googleapis.com \
   secretmanager.googleapis.com \
   artifactregistry.googleapis.com \
@@ -198,7 +198,7 @@ curl -X POST "http://$API_IP/predict" \
   -d '{"sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2}'
 ```
 
-## 📝 Commandes Utiles
+## Commandes utiles
 
 | Commande | Description |
 |----------|-------------|
@@ -211,7 +211,7 @@ curl -X POST "http://$API_IP/predict" \
 | `make terraform-output` | Afficher les outputs |
 | `make terraform-refresh` | Rafraîchir l'état |
 
-## 🔧 Configuration Essentielle
+## Configuration essentielle
 
 ### Variables Obligatoires
 
@@ -255,7 +255,7 @@ gcloud secrets create mlops-api-key --data-file=- <<< "votre-api-key"
 create_secret_manager_secret = false
 ```
 
-## 🔍 Dépannage
+## Dépannage
 
 ### Erreur d'authentification
 
@@ -268,7 +268,7 @@ gcloud config set project $PROJECT_ID
 
 ```bash
 gcloud services enable compute.googleapis.com \
-  storage-component.googleapis.com \
+  storage.googleapis.com \
   iam.googleapis.com \
   secretmanager.googleapis.com
 ```
@@ -302,9 +302,9 @@ gcloud storage ls gs://$BUCKET_NAME/mlruns/
 gcloud storage cp -r mlruns/ gs://$BUCKET_NAME/
 ```
 
-## 📚 Documentation
+## Documentation
 
-- [📖 Phase 3 : Infrastructure](../docs/PHASE_3.md) - Documentation complète avec :
+- [Infrastructure](../docs/infrastructure.md) — Documentation complète avec :
   - Vue d'ensemble et état du projet
   - Sécurité et améliorations
   - Tutoriel de déploiement complet
@@ -312,11 +312,11 @@ gcloud storage cp -r mlruns/ gs://$BUCKET_NAME/
   - Commandes Terraform utiles
   - Checklist de production
   - Dépannage détaillé
-- [Makefile](../Makefile) - Toutes les commandes `make terraform-*`
+- [Makefile](../Makefile) — Toutes les commandes `make terraform-*`
 
-## 🔒 Sécurité
+## Sécurité
 
-### Bonnes Pratiques Implémentées
+### Bonnes pratiques implémentées
 
 - ✅ Firewalls restrictifs (deny by default)
 - ✅ Secret Manager pour les secrets
@@ -325,7 +325,7 @@ gcloud storage cp -r mlruns/ gs://$BUCKET_NAME/
 - ✅ Monitoring et alertes (optionnel)
 - ✅ Support KMS pour chiffrement (optionnel)
 
-### Recommandations Production
+### Recommandations production
 
 - 🔐 Utiliser Load Balancer au lieu d'IP publique
 - 🔐 SSH via IAP uniquement
@@ -333,7 +333,7 @@ gcloud storage cp -r mlruns/ gs://$BUCKET_NAME/
 - 🔐 Configurer les alertes de monitoring
 - 🔐 Utiliser KMS pour chiffrement des données sensibles
 
-## 🗑️ Nettoyage
+## Nettoyage
 
 ```bash
 # Détruire l'infrastructure
@@ -345,4 +345,4 @@ make terraform-destroy
 
 ---
 
-**💡 Astuce** : Pour une compréhension approfondie des concepts Terraform, de la sécurité, et des workflows détaillés, consultez [`docs/PHASE_3.md`](../docs/PHASE_3.md).
+**Documentation détaillée** : [docs/infrastructure.md](../docs/infrastructure.md) (concepts, sécurité, workflows).

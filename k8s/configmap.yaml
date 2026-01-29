@@ -13,6 +13,7 @@ data:                            # Données en clair (clé: valeur)
   ENVIRONMENT: "production"
   MODEL_DIR: "/app/models"
   LOG_LEVEL: "INFO"              # DEBUG | INFO | WARNING | ERROR
-  
-  # Pour CORS en production, décommenter et adapter :
-  # CORS_ORIGINS: "https://example.com,https://app.example.com"
+  # Origines CORS autorisées en production
+  # 🔒 Ne jamais utiliser "*" en production (bloqué par le code)
+  # Adapter cette valeur selon votre front-end (ex: https://example.com)
+  CORS_ORIGINS: "http://localhost:3000"

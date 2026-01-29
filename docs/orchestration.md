@@ -1,15 +1,17 @@
-# 🟣 Phase 5 : Orchestration - Kubernetes avec Auto-Scaling
+# Orchestration — Kubernetes
+
+Ce document explique **comment déployer et faire tourner l’API ML sur un cluster Kubernetes** (local ou cloud). Vous y trouverez : les **concepts K8s** utiles (Pods, Deployments, Services, volumes), l’**architecture** du projet (API, MLflow, Job d’entraînement), un **guide de déploiement** pas à pas, les **trois workflows MLflow** (modèle local, entraînement en cluster, GCS), ainsi que l’**auto-scaling**, les **tests** et le **dépannage**.
 
 ## 🧭 Navigation
 
 | ← Précédent | Suivant → |
 |-------------|-----------|
-| [Phase 4 : Expérimentation](PHASE_4.md) | Phase 6 : Observabilité (à venir) |
-| [Retour au README](../README.md) | [Toutes les phases](.) |
+| [Expérimentation](experimentation.md) | [Observabilité](observability.md) |
+| [Retour au README](../README.md) | [Documentation](README.md) |
 
 ## 📋 Table des Matières
 
-1. [Objectif de la Phase](#-objectif-de-la-phase)
+1. [Objectif](#-objectif)
 2. [Tâches à Accomplir](#-tâches-à-accomplir)
 3. [Livrables Créés](#-livrables-créés)
 4. [Fonctionnalités Implémentées](#-fonctionnalités-implémentées)
@@ -25,29 +27,37 @@
 14. [Dépannage](#-dépannage)
 15. [Métriques](#-métriques)
 16. [Validation des Objectifs](#-validation-des-objectifs)
-17. [Prochaines Étapes](#-prochaines-étapes-phase-6)
+17. [Prochaines étapes](#-prochaines-étapes-observabilité)
 18. [Ressources](#-ressources)
 
 ---
 
-## 🎯 Objectif de la Phase
+## 🎯 Objectif
 
-**Orchestrer l'application ML containerisée sur Kubernetes avec haute disponibilité et auto-scaling**
+**Orchestrer l’application ML containerisée sur Kubernetes avec haute disponibilité et auto-scaling.**
 
-### ❓ Questions Clés
-- Qu'est-ce qu'un Pod, un Deployment et un Service dans Kubernetes ?
+À la fin de ce parcours, vous saurez déployer l’API FastAPI et le serveur MLflow sur un cluster (minikube/kind ou cloud), gérer la configuration et les secrets, et faire évoluer le nombre de pods selon la charge.
+
+### ❓ Questions auxquelles ce document répond
+
+- Qu’est-ce qu’un Pod, un Deployment et un Service dans Kubernetes ?
 - Comment exposer une application dockerisée dans un cluster K8s ?
 - Comment gérer les configurations et secrets dans Kubernetes ?
 - Comment mettre en place le scaling automatique basé sur les métriques ?
 
-### ⏱️ Répartition des Heures (20h)
-- **8h** → Apprentissage des concepts K8s (Pods, Deployments, Services, ConfigMaps, Secrets)
-- **8h** → Installation et utilisation de minikube/kind localement
-- **4h** → Déploiement de l'API ML dockerisée sur le cluster local K8s
+### ⏱️ Répartition indicative (20 h)
+
+| Phase | Durée | Contenu |
+|-------|--------|---------|
+| Concepts K8s | 8 h | Pods, Deployments, Services, ConfigMaps, Secrets, Namespaces |
+| Installation | 8 h | kubectl, minikube ou kind, cluster local |
+| Déploiement | 4 h | Manifests, API + MLflow, health checks, exposition |
 
 ---
 
 ## 📋 Tâches à Accomplir
+
+Les tâches ci-dessous correspondent au parcours type : de l’apprentissage des concepts à la mise en production sur le cluster.
 
 ### 1. 🎓 Apprendre les Concepts Kubernetes
 - Comprendre l'architecture d'un cluster Kubernetes
@@ -80,6 +90,8 @@
 
 ## 📦 Livrables Créés
 
+Cette section liste les **fichiers et ressources Kubernetes** produits par le projet. Ils permettent de déployer l’API, le serveur MLflow, le job d’entraînement et l’auto-scaling.
+
 ### Structure des Fichiers Kubernetes
 
 ```
@@ -87,6 +99,9 @@ k8s/
 ├── namespace.yaml              # Namespace mlops pour isolation
 ├── deployment.yaml             # Deployment API (2 replicas)
 ├── mlflow-deployment.yaml      # Deployment MLflow server (1 replica)
+├── mlflow-pvc.yaml             # PVC pour les runs MLflow (/app/mlruns)
+├── models-pvc.yaml             # PVC pour les modèles et métadonnées (/app/models)
+├── train-job.yaml              # Job Kubernetes pour entraîner le modèle et mettre à jour /app/models
 ├── service.yaml                # Service ClusterIP pour l'API
 ├── mlflow-service.yaml         # Service ClusterIP pour MLflow
 ├── service-nodeport.yaml       # Service NodePort (dev/test)
@@ -105,14 +120,24 @@ k8s/
 - **Health Checks** : Liveness et readiness probes sur `/health`
 - **Ressources** : Requests et limits CPU/mémoire
 - **Sécurité** : Containers non-root, capabilities limitées
-- **Volumes** : Partage de `mlruns/` via hostPath
+- **Volumes** :
+  - `mlruns-volume` (hostPath) pour le mode MLflow local (développement)
+  - `models-volume` (PVC `models-pvc`) pour les fichiers de modèle (`/app/models`)
 
 #### `k8s/mlflow-deployment.yaml` - Serveur MLflow
 - **Replicas** : 1 (singleton)
 - **Strategy** : Recreate (serveur avec état)
 - **Image** : `ghcr.io/mlflow/mlflow:v2.9.2`
-- **Backend Store** : Fichier local (`file:///mlruns`)
-- **Volume** : Partage du même volume que l'API
+- **Backend Store** : Fichier local (`file:///app/mlruns`)
+- **Volume** : PVC dédié `mlflow-pvc` pour les runs MLflow (params, metrics, tags). Avec artifact root `file://`, les artifacts ne sont pas enregistrés sur le serveur depuis un client distant ; pour le serving, le job écrit `model.joblib` dans le PVC `models-pvc`.
+
+#### `k8s/train-job.yaml` - Job d'Entraînement dans le Cluster
+- **Kind** : `Job` (Batch)
+- **Image** : `iris-api:latest` (réutilise le code d'entraînement existant)
+- **Rôle** :
+  - Entraîne le modèle dans le cluster
+  - Loggue le run dans MLflow (`MLFLOW_TRACKING_URI` = `mlflow-server-service`)
+  - Écrit `model.joblib`, `metadata.json` et `metrics.json` dans `/app/models` (PVC `models-pvc`)
 
 #### `k8s/service.yaml` - Service ClusterIP
 - **Type** : ClusterIP (accès interne uniquement)
@@ -141,9 +166,13 @@ k8s/
 - **TLS** : Support HTTPS (cert-manager)
 - **Annotations** : Rate limiting, CORS, timeouts
 
+**En résumé** : L’API et MLflow sont déployés via des Deployments ; le **Job** `iris-train-job` entraîne le modèle et écrit dans le PVC `models-pvc` ; l’API charge le modèle depuis `/app/models`. Les ConfigMaps et Secrets fournissent la configuration et les clés.
+
 ---
 
 ## ✅ Fonctionnalités Implémentées
+
+Cette section récapitule **ce qui est déjà en place** dans le projet : déploiement, services, configuration, MLflow, HPA et commandes Makefile.
 
 ### Déploiement Kubernetes
 - ✅ Namespace `mlops` pour isolation
@@ -174,7 +203,15 @@ k8s/
   - Local avec hostPath (développement)
   - GCS (production cloud)
 
-### Auto-Scaling
+> 🔍 **Note d’architecture**  
+> Dans ce projet, MLflow est utilisé comme **source de vérité analytique** (UI, runs, Model Registry),
+> tandis que le **runtime de l’API** consomme une copie contrôlée du modèle via un PVC (`/app/models`).
+> Cela évite de dépendre d’implémentations parfois ambiguës de `mlruns/.../artifacts` avec un backend
+> `file:///` et un serveur HTTP, tout en restant très proche d’un setup réel (Job d’entraînement → PVC
+> → API). En contexte entreprise, la v2 naturelle serait : **backend SQL + object store (S3/MinIO/GCS) +
+> chargement `models:/name/stage` côté API**.
+
+### Auto-scaling
 - ✅ Horizontal Pod Autoscaler (HPA) configuré
 - ✅ Scaling basé sur CPU et mémoire
 - ✅ Comportement configurable (stabilisation, politiques)
@@ -182,8 +219,8 @@ k8s/
 
 ### Commandes Makefile
 - ✅ `make k8s-setup` : Installation minikube/kind
-- ✅ `make k8s-deploy` : Déploiement API
-- ✅ `make k8s-deploy-mlflow` : Déploiement API + MLflow
+- ✅ `make k8s-deploy` : Déploiement API (avec PVC, sans serveur MLflow)
+- ✅ `make k8s-deploy-mlflow` : Déploiement API + MLflow server (avec PVC)
 - ✅ `make k8s-status` : Vérification du statut
 - ✅ `make k8s-logs` : Visualisation des logs
 - ✅ `make k8s-port-forward` : Accès à l'API
@@ -195,8 +232,11 @@ k8s/
 
 ## 🎓 Concepts Kubernetes
 
+Avant de déployer, il est utile de comprendre les **concepts de base** utilisés dans ce projet. Chaque concept est illustré par son usage concret (API, MLflow, Job).
+
 ### Pod
-**Plus petite unité déployable** dans Kubernetes. Contient un ou plusieurs containers qui partagent :
+
+**Plus petite unité déployable** dans Kubernetes. Un Pod contient un ou plusieurs containers qui partagent :
 - Le même réseau (même IP)
 - Le même stockage (volumes)
 - Le même namespace
@@ -246,32 +286,41 @@ k8s/
 
 ### Volume
 **Permet aux pods de partager des données**. Types :
-- **hostPath** : Monte un répertoire de la machine hôte
-- **PersistentVolume** : Stockage persistant
+- **hostPath** : Monte un répertoire de la machine hôte (surtout pour le dev local)
+- **PersistentVolume / PersistentVolumeClaim (PVC)** : Stockage persistant géré par Kubernetes
 - **ConfigMap/Secret** : Montés comme volumes
 
-**Dans notre cas** : `hostPath` pour partager `mlruns/` entre pods.
+**Dans notre cas** :
+- Un **PVC dédié** (`mlflow-pvc`) pour stocker les runs MLflow dans `/app/mlruns` (mode serveur K8s)
+- Un **hostPath + minikube mount** uniquement pour le mode local (développement)
 
 ### HPA (Horizontal Pod Autoscaler)
-**Ajuste automatiquement le nombre de replicas** selon les métriques (CPU, mémoire).
 
-**Dans notre cas** : Scale entre 2 et 10 pods selon CPU (70%) et mémoire (80%).
+**Ajuste automatiquement le nombre de replicas** selon les métriques (CPU, mémoire). Kubernetes compare l’utilisation actuelle aux seuils définis et ajoute ou retire des pods.
+
+**Dans notre cas** : Scale entre 2 et 10 pods selon CPU (70 %) et mémoire (80 %).
+
+**À retenir** : Pod = unité de base ; Deployment = orchestrateur de Pods identiques ; Service = point d’accès réseau stable ; ConfigMap/Secret = configuration ; Namespace = isolation ; Volume/PVC = stockage partagé ; HPA = scaling automatique.
 
 ---
 
 ## 🏗️ Architecture du Déploiement
 
-### Vue d'Ensemble
+Cette section décrit **comment les composants sont organisés** dans le cluster et comment ils communiquent (réseau, volumes, DNS).
 
-Le cluster Kubernetes héberge **3 applications principales** réparties dans **2 namespaces** :
+### Vue d’ensemble
+
+Le cluster héberge **deux applications métier** dans le namespace `mlops` (API et MLflow), et **optionnellement** un Ingress Controller dans un autre namespace pour exposer l’API vers l’extérieur.
 
 | Application | Namespace | Rôle |
 |-------------|-----------|------|
-| **nginx** (Ingress Controller) | `ingress-nginx` | Reverse proxy, routage HTTP/HTTPS |
-| **iris-api** (FastAPI) | `mlops` | API ML pour prédictions |
-| **mlflow-server** (MLflow) | `mlops` | Tracking et gestion des modèles ML |
+| **iris-api** (FastAPI) | `mlops` | API ML pour prédictions (2 replicas) |
+| **mlflow-server** (MLflow) | `mlops` | Tracking des runs (params, metrics, tags) |
+| **nginx** (Ingress Controller) | `ingress-nginx` | Optionnel : reverse proxy, routage HTTP/HTTPS |
 
 ### Namespaces
+
+Le projet utilise le namespace **`mlops`** pour l’API et MLflow ; un namespace **`ingress-nginx`** (ou équivalent) est optionnel pour l’Ingress Controller.
 
 #### Namespace `ingress-nginx`
 
@@ -316,9 +365,11 @@ kubectl apply -f k8s/namespace.yaml
 kubectl get all -n mlops
 ```
 
-### Applications et Pods
+### Applications et pods
 
-#### 1. Nginx Ingress Controller (Optionnel)
+Chaque application est déployée via un **Deployment** (ou équivalent) et exposée via un **Service**.
+
+#### 1. Nginx Ingress Controller (optionnel)
 
 **Namespace** : `ingress-nginx` (ou `kube-system`)
 
@@ -385,10 +436,9 @@ kubectl get all -n mlops
 - **Port** : 5000
 
 **Rôle** :
-- ✅ Stocke les runs ML (expériences, paramètres, métriques)
-- ✅ Sert les modèles ML (artifacts)
-- ✅ UI MLflow (interface web)
-- ✅ API REST MLflow
+- ✅ Stocke les runs ML (expériences, paramètres, métriques, tags)
+- ✅ UI MLflow (interface web) et API REST
+- ✅ Avec backend `file://`, les artifacts ne sont pas stockés sur le serveur depuis un client distant ; le serving du modèle repose sur le PVC `models-pvc` (voir [Workflows MLflow](#-workflows-mlflow))
 
 **Service** :
 - **Type** : `ClusterIP` (accès interne uniquement)
@@ -400,6 +450,8 @@ kubectl get all -n mlops
 - Depuis l'extérieur : Via port-forward (`make k8s-mlflow-ui`)
 
 ### Services
+
+Chaque application est exposée via un **Service** (ClusterIP dans ce projet) pour un accès réseau stable et un load balancing entre les pods.
 
 #### Service iris-api
 
@@ -454,9 +506,9 @@ backend:
 MLFLOW_TRACKING_URI = "http://mlflow-server-service:5000"
 ```
 
-### Communication Inter-Namespace
+### Communication inter-namespace
 
-Kubernetes permet la communication entre namespaces via le DNS interne.
+Kubernetes permet la communication entre namespaces via le **DNS interne**. Chaque Service a une adresse DNS stable.
 
 #### Format DNS Kubernetes
 
@@ -500,52 +552,76 @@ MLFLOW_TRACKING_URI: "http://mlflow-server-service:5000"
 # MLFLOW_TRACKING_URI: "http://mlflow-server-service.mlops.svc.cluster.local:5000"
 ```
 
-### Volumes Partagés
+### Volumes partagés
 
-#### Volume `mlruns-volume`
+Les pods ont besoin de **stockage persistant** pour les runs MLflow et pour les fichiers de modèle utilisés par l’API. Cette section décrit les volumes utilisés.
 
-**Type** : `hostPath`
+#### Volume `mlruns-volume` (mode serveur K8s)
 
-**Path sur le nœud** : `/tmp/mlruns`
+**Type** : `PersistentVolumeClaim`
+
+**PVC** : `mlflow-pvc`
 
 **Monté dans** :
 
-**1. Pods iris-api** :
+**1. Pod mlflow-server** :
 ```yaml
 volumeMounts:
 - name: mlruns-volume
-  mountPath: /app/mlruns  # Où le code Python cherche mlruns/
+  mountPath: /app/mlruns  # MLflow stocke tout ici
   readOnly: false
 ```
 
 **Usage** :
-- ✅ Nécessaire si `MLFLOW_TRACKING_URI=""` (mode local)
-- ❌ Pas nécessaire si `MLFLOW_TRACKING_URI="http://mlflow-server-service:5000"` (mode serveur)
+- ✅ Toujours nécessaire en mode serveur K8s (MLflow stocke les runs dans `/app/mlruns`)
 
-**2. Pod mlflow-server** :
+**2. Pods iris-api (optionnel)** :
+
+Si l'API devait accéder aux artifacts MLflow (par ex. avec un artifact store partagé ou en mode local avec hostPath), elle pourrait monter le même PVC. Dans le setup actuel, l'API charge le modèle depuis `/app/models` (PVC `models-pvc`) où le job écrit `model.joblib`.
+
 ```yaml
 volumeMounts:
 - name: mlruns-volume
-  mountPath: /mlruns  # MLflow stocke tout ici
+  mountPath: /app/mlruns  # Accès en lecture/écriture aux artifacts MLflow (si partagés)
+  readOnly: false
+```
+
+#### Mode Local avec `hostPath` (Développement uniquement)
+
+En mode local (sans serveur MLflow dans K8s), on peut continuer à utiliser un `hostPath` + `minikube mount` :
+
+```bash
+minikube mount $(pwd)/mlruns:/tmp/mlruns
+```
+
+Puis monter `/tmp/mlruns` dans les pods :
+
+```yaml
+volumes:
+- name: mlruns-volume
+  hostPath:
+    path: /tmp/mlruns
+    type: DirectoryOrCreate
+
+volumeMounts:
+- name: mlruns-volume
+  mountPath: /app/mlruns
   readOnly: false
 ```
 
 **Usage** :
-- ✅ Toujours nécessaire (mlflow-server stocke les données ici)
+- ✅ Utile pour expérimenter rapidement en local
+- ❌ À éviter en production (préférer un PVC ou un backend objet type GCS/S3)
 
-#### Partage de Données
+#### Partage de données
 
-**Workflow avec MLflow Server** :
-1. MLflow server stocke dans `/mlruns` (volume partagé)
-2. Iris-api charge via HTTP : `http://mlflow-server-service:5000`
-3. Le volume n'est pas utilisé par iris-api (mais nécessaire pour mlflow-server)
+**Avec serveur MLflow dans K8s** : Le serveur MLflow stocke les runs dans `/app/mlruns` (PVC `mlflow-pvc`). L’API charge le modèle depuis `/app/models` (PVC `models-pvc`), pas depuis les artifacts MLflow lorsque le backend est `file://`. Le volume `mlruns` est donc utilisé par le serveur MLflow ; le volume `models` est utilisé par l’API et le Job d’entraînement.
 
-**Workflow Local** :
-1. Modèle dans `/app/mlruns` (volume partagé)
-2. Iris-api charge directement depuis le système de fichiers
-3. Le volume est utilisé par iris-api
+**Mode local (hostPath)** : Le répertoire `mlruns/` de la machine est monté dans le cluster ; l’API charge le modèle depuis `/app/mlruns` (metadata + run MLflow).
 
-### Flux de Trafic
+### Flux de trafic
+
+Comment les requêtes circulent entre le client, l’API et MLflow (Ingress, interne, port-forward).
 
 #### Flux 1 : Client → API (via Ingress)
 
@@ -559,13 +635,9 @@ volumeMounts:
 7. Service load balance vers un Pod iris-api (1 ou 2)
 8. FastAPI traite la requête et retourne la réponse
 
-#### Flux 2 : API → MLflow Server (interne)
+#### Flux 2 : API → chargement du modèle
 
-**Étapes** :
-1. Pod iris-api envoie une requête HTTP vers `http://mlflow-server-service:5000`
-2. Service `mlflow-server-service` route vers le Pod mlflow-server
-3. MLflow traite la requête et retourne le modèle ou les métadonnées
-4. Pod iris-api charge le modèle et l'utilise pour les prédictions
+**Comportement actuel** : L’API charge en priorité le modèle depuis le fichier local `/app/models/model.joblib` (PVC `models-pvc`). Si ce fichier n’existe pas, elle peut interroger le serveur MLflow (`http://mlflow-server-service:5000`) pour récupérer les métadonnées ou le modèle (par ex. avec un backend GCS). Avec un backend `file://` sur MLflow, les artifacts ne sont pas sur le serveur ; le flux de serving repose donc sur le PVC `models-pvc`.
 
 #### Flux 3 : Port-Forward (développement)
 
@@ -579,13 +651,15 @@ volumeMounts:
 
 ### Modes MLflow
 
+Selon la valeur de `MLFLOW_TRACKING_URI`, l’API et le Job utilisent un mode différent (serveur K8s, local, GCS).
+
 | Mode | MLFLOW_TRACKING_URI | Volume | Usage |
 |------|---------------------|--------|-------|
-| **K8s Server** | `http://mlflow-server-service:5000` | Partagé | Portfolio/Production |
-| **Local** | `""` | hostPath + mount | Développement |
+| **K8s Server** | `http://mlflow-server-service:5000` | PVC `mlflow-pvc` (monté sur `/app/mlruns`) | Portfolio/Production |
+| **Local** | `""` | hostPath + `minikube mount` | Développement |
 | **GCS** | `gs://bucket/mlruns/` | Aucun | Production cloud |
 
-### Tableau Récapitulatif
+### Tableau récapitulatif
 
 | Composant | Namespace | Type | Nom | Port | Accès |
 |-----------|-----------|------|-----|------|-------|
@@ -593,11 +667,15 @@ volumeMounts:
 | **iris-api** | `mlops` | Deployment | `iris-api` | 8000 | Interne (ClusterIP) |
 | **mlflow-server** | `mlops` | Deployment | `mlflow-server` | 5000 | Interne (ClusterIP) |
 | **Ingress** | `mlops` | Ingress | `iris-api-ingress` | - | Règles de routage |
-| **Volume** | `mlops` | Volume | `mlruns-volume` | - | Partagé entre pods |
+| **Volume** | `mlops` | Volume | `mlruns-volume` / `models-volume` | - | Partagé (MLflow runs / modèles API) |
+
+**En résumé** : L’API (`iris-api`) et MLflow (`mlflow-server`) tournent dans `mlops`. L’API appelle MLflow via le service `mlflow-server-service`. L’API charge le modèle depuis le PVC `models-pvc` (`/app/models`), pas depuis les artifacts MLflow lorsque le backend est `file://`. L’Ingress (optionnel) expose l’API vers l’extérieur.
 
 ---
 
 ## 🚀 Installation et Configuration
+
+Cette section décrit **comment installer les outils** (kubectl, minikube ou kind) et créer un cluster local utilisable pour le reste du guide.
 
 ### Prérequis
 
@@ -605,7 +683,7 @@ volumeMounts:
 |-------|---------|-------------|
 | **kubectl** | >= 1.28 | Client Kubernetes |
 | **Docker** | >= 20.10 | Pour minikube/kind |
-| **minikube** | >= 1.30 | Ou **kind** >= 0.20 | Cluster local |
+| **minikube** ou **kind** | >= 1.30 / >= 0.20 | Cluster local (un des deux suffit) |
 
 ### Installation Automatique (Recommandé)
 
@@ -661,7 +739,9 @@ kubectl get nodes
 
 ## 🚀 Guide de Déploiement
 
-### Étape 1 : Préparer l'Image Docker
+Ce guide décrit **l’ordre recommandé** pour un premier déploiement : image Docker, secrets, application des manifests, vérification et accès à l’API et à MLflow.
+
+### Étape 1 : Préparer l’image Docker
 
 **Option A : Image Locale (minikube)**
 ```bash
@@ -681,7 +761,7 @@ imagePullPolicy: Always
 ```bash
 cp k8s/secret.yaml.example k8s/secret.yaml
 # Éditer k8s/secret.yaml avec vos valeurs
-# ⚠️ Ne JAMAIS commiter secret.yaml !
+# ⚠️ Ne jamais commiter secret.yaml dans le dépôt !
 ```
 
 **Contenu de `k8s/secret.yaml`** :
@@ -713,18 +793,20 @@ minikube mount $(pwd)/mlruns:/tmp/mlruns
 make k8s-deploy
 ```
 
-**Manuellement** :
+**Déploiement manuel (sans make)** : pour reproduire **`make k8s-deploy-mlflow`** (API + MLflow), appliquer dans l’ordre :
 ```bash
 kubectl apply -f k8s/namespace.yaml
 kubectl apply -f k8s/configmap.yaml
 kubectl apply -f k8s/secret.yaml
-kubectl apply -f k8s/mlflow-deployment.yaml  # Si MLflow server
+kubectl apply -f k8s/mlflow-pvc.yaml
+kubectl apply -f k8s/models-pvc.yaml
+kubectl apply -f k8s/mlflow-deployment.yaml
 kubectl apply -f k8s/mlflow-service.yaml
 kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/service.yaml
 ```
 
-### Étape 4 : Vérifier
+### Étape 4 : Vérifier le déploiement
 
 ```bash
 make k8s-status
@@ -740,7 +822,7 @@ iris-api-xxxxxxxxxx-xxxxx   1/1     Running   0          30s
 mlflow-server-xxxxx         1/1     Running   0          30s
 ```
 
-### Étape 5 : Accéder à l'API
+### Étape 5 : Accéder à l’API et à MLflow
 
 **Port-Forward** (Développement) :
 ```bash
@@ -761,75 +843,80 @@ NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="
 curl http://$NODE_IP:30080/health
 ```
 
-**Ingress** (Production) :
+**Ingress** (production) :
 ```bash
 # Installer Ingress Controller
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
 kubectl apply -f k8s/ingress.yaml
 ```
 
+**En résumé** : Image → Secret → `make k8s-deploy-mlflow` (ou `k8s-deploy`) → vérifier les pods → accéder via port-forward, NodePort ou Ingress. Voir [k8s/README.md](../k8s/README.md) pour un guide pas à pas détaillé.
+
 ---
 
 ## 🔄 Workflows MLflow
 
-### Workflow 1 : Migration des Données Existantes
+**Trois façons** d’utiliser MLflow et l’API sur Kubernetes, selon la **source du modèle** (déjà entraîné en local, entraînement dans le cluster, backend cloud) et l’**environnement** (développement, cluster local, production GCP). Choisir le workflow adapté à votre cas.
 
-**Objectif** : Utiliser un modèle déjà entraîné localement
+---
 
-```bash
-# 1. Monter mlruns/ local vers le cluster
-minikube mount $(pwd)/mlruns:/tmp/mlruns
+### Workflow 1 : Utiliser un modèle déjà entraîné (local → cluster)
 
-# 2. Déployer (MLFLOW_TRACKING_URI="")
-make k8s-deploy
+**Quand l’utiliser** : Vous avez déjà entraîné un modèle en local ; les runs sont dans `mlruns/`. Vous voulez servir ce modèle depuis l’API déployée sur le cluster sans serveur MLflow dans K8s.
 
-# 3. Vérifier
-kubectl exec -it deployment/iris-api -n mlops -- ls -la /app/mlruns
-```
+**Idée** : Monter le répertoire `mlruns/` de votre machine vers le cluster (minikube), déployer l’API avec un volume hostPath pointant vers ce montage. L’API charge le modèle depuis `/app/mlruns` (metadata + run MLflow).
 
-### Workflow 2 : Réentraînement vers MLflow Server
+| Étape | Action |
+|-------|--------|
+| 1 | Dans un **terminal dédié** (laisser tourner) : `minikube mount $(pwd)/mlruns:/tmp/mlruns` |
+| 2 | Dans le secret K8s : `MLFLOW_TRACKING_URI: ""` (ou chemin local). Puis déployer l’API : `make k8s-deploy` |
+| 3 | Vérifier : `kubectl exec -it deployment/iris-api -n mlops -- ls -la /app/mlruns` |
 
-**Objectif** : Entraîner un nouveau modèle vers le serveur MLflow
+**Résultat** : L’API lit les runs depuis le volume monté ; pas de serveur MLflow dans le cluster. Adapté au développement / démo.
 
-```bash
-# 1. Déployer MLflow server
-kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/mlflow-deployment.yaml
-kubectl apply -f k8s/mlflow-service.yaml
+---
 
-# 2. Port-forward (terminal séparé)
-kubectl port-forward service/mlflow-server-service 5000:5000 -n mlops
+### Workflow 2 : Entraîner dans le cluster et servir depuis le PVC (recommandé)
 
-# 3. Entraîner vers le serveur
-export MLFLOW_TRACKING_URI="http://localhost:5000"
-make train
+**Quand l’utiliser** : Vous voulez entraîner un nouveau modèle **dans le cluster**, tracker les runs dans MLflow, et servir le modèle via l’API. C’est le flux recommandé pour un usage “production” sur un cluster local (minikube/kind).
 
-# 4. Déployer l'API
-kubectl apply -f k8s/configmap.yaml
-kubectl apply -f k8s/secret.yaml  # MLFLOW_TRACKING_URI="http://mlflow-server-service:5000"
-kubectl apply -f k8s/deployment.yaml
-kubectl apply -f k8s/service.yaml
-```
+**Idée** : Un **Job** Kubernetes lance l’entraînement ; il écrit `model.joblib`, `metadata.json` et `metrics.json` dans le PVC `models-pvc` (monté en `/app/models`). Il envoie aussi params, metrics et tags au **serveur MLflow** (tracking uniquement : avec artifact root `file://`, les artifacts ne sont pas stockés sur le serveur). L’API monte le même PVC et charge le modèle depuis `/app/models`. Après chaque nouvel entraînement, on redémarre l’API pour qu’elle relise le PVC.
 
-### Workflow 3 : Production avec GCS
+| Étape | Action |
+|-------|--------|
+| 1 | Déployer l’infra : namespace, PVC (`mlflow-pvc`, `models-pvc`), MLflow server, configmap, secret (`MLFLOW_TRACKING_URI="http://mlflow-server-service:5000"`), deployment et service de l’API. Ex. : `make k8s-deploy-mlflow` ou appliquer les manifests dans l’ordre. |
+| 2 | Lancer le job d’entraînement : `kubectl delete job iris-train-job -n mlops --ignore-not-found` puis `kubectl apply -f k8s/train-job.yaml` ; suivre les logs : `kubectl logs job/iris-train-job -n mlops -f`. |
+| 3 | Recharger l’API pour qu’elle relise `/app/models` : `kubectl rollout restart deployment/iris-api -n mlops`. |
 
-**Objectif** : Utiliser GCS comme backend MLflow (production cloud)
+**Option — Entraînement en local, tracking vers le serveur MLflow** : Si vous lancez `make train` en local avec `MLFLOW_TRACKING_URI="http://localhost:5000"` (après port-forward du service MLflow), seuls params, metrics et tags sont enregistrés sur le serveur ; les artifacts ne le sont pas. Pour servir ce modèle en cluster, il faut ensuite l’écrire dans le PVC (par ex. via un job ou une copie de `model.joblib` + metadata/metrics vers le volume).
 
-```bash
-# 1. Configurer secret.yaml
-# MLFLOW_TRACKING_URI: "gs://bucket-name/mlruns/"
+**Résultat** : Modèle servi depuis `/app/models` (PVC partagé) ; MLflow utilisé pour le tracking (params, metrics, tags). Voir [k8s/README.md](../k8s/README.md) pour le détail des commandes.
 
-# 2. Déployer (pas besoin de volume hostPath)
-kubectl apply -f k8s/deployment.yaml
+---
 
-# 3. L'API charge automatiquement depuis GCS
-```
+### Workflow 3 : Production avec GCS (backend MLflow dans le cloud)
+
+**Quand l’utiliser** : Environnement de production sur GCP ; le backend MLflow (runs + artifacts) est un bucket GCS. Pas de volume hostPath ni de PVC MLflow dans le cluster pour les runs.
+
+**Idée** : Configurer `MLFLOW_TRACKING_URI` avec l’URI GCS du bucket (ex. `gs://bucket-name/mlruns/`). L’API et les jobs utilisent ce backend pour le tracking et le chargement du modèle ; pas besoin de monter `mlruns` dans les pods.
+
+| Étape | Action |
+|-------|--------|
+| 1 | Créer un bucket GCS (ou utiliser un existant) et configurer dans le secret : `MLFLOW_TRACKING_URI: "gs://bucket-name/mlruns/"`. |
+| 2 | Déployer l’API (namespace, configmap, secret, PVC, deployment, service) : **`make k8s-deploy`**. Les PVC sont inclus ; pas de serveur MLflow dans le cluster. |
+| 3 | L’API charge le modèle depuis GCS via les métadonnées (ex. `metadata.json` ou run_id) ; les artifacts sont lus depuis le bucket. |
+
+**Résultat** : Runs et artifacts MLflow dans GCS ; cluster K8s sans dépendance à un volume local pour MLflow.
 
 ---
 
 ## 📊 Auto-Scaling avec HPA
 
+Le **Horizontal Pod Autoscaler (HPA)** ajuste automatiquement le nombre de replicas de l’API en fonction de l’utilisation CPU et mémoire. Utile en production pour absorber les pics de charge sans surdimensionner le cluster.
+
 ### Installation de metrics-server
+
+Le HPA s’appuie sur les métriques fournies par **metrics-server** (utilisation CPU/mémoire des pods). À installer une fois sur le cluster.
 
 ```bash
 kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
@@ -848,7 +935,7 @@ kubectl get hpa -n mlops
 kubectl describe hpa iris-api-hpa -n mlops
 ```
 
-### Test du Scaling
+### Test du scaling
 
 ```bash
 # Générer de la charge
@@ -859,13 +946,15 @@ watch kubectl get pods -n mlops
 kubectl get hpa -n mlops
 ```
 
-Le HPA scale automatiquement entre 2 et 10 pods selon CPU (70%) et mémoire (80%).
+Le HPA scale automatiquement entre 2 et 10 pods selon CPU (70 %) et mémoire (80 %).
 
 ---
 
 ## 🧪 Tests et Validation
 
-### Test 1 : Health Check
+Cette section décrit **comment vérifier** que le déploiement fonctionne : health check, prédiction, logs, scaling.
+
+### Test 1 : Health check
 
 ```bash
 make k8s-port-forward  # Terminal 1
@@ -881,7 +970,7 @@ curl http://localhost:8000/health  # Terminal 2
 }
 ```
 
-### Test 2 : Prédiction
+### Test 2 : Prédiction (endpoint `/predict`)
 
 ```bash
 export API_KEY=$(kubectl get secret iris-api-secrets -n mlops -o jsonpath='{.data.API_KEY}' | base64 -d)
@@ -897,7 +986,7 @@ curl -X POST "http://localhost:8000/predict" \
   }'
 ```
 
-### Test 3 : Logs
+### Test 3 : Logs (débogage)
 
 ```bash
 make k8s-logs
@@ -905,14 +994,14 @@ make k8s-logs
 kubectl logs -f deployment/iris-api -n mlops
 ```
 
-### Test 4 : Scaling Manuel
+### Test 4 : Scaling manuel
 
 ```bash
 kubectl scale deployment iris-api --replicas=3 -n mlops
 kubectl get pods -n mlops
 ```
 
-### Test 5 : Auto-Scaling (HPA)
+### Test 5 : Auto-scaling (HPA)
 
 ```bash
 # Installer metrics-server
@@ -930,7 +1019,9 @@ watch kubectl get pods -n mlops
 
 ---
 
-## 📝 Commandes Utiles
+## 📝 Commandes utiles
+
+Les commandes ci-dessous couvrent le **cycle de vie** du déploiement : création du cluster, déploiement, statut, logs, accès, tests, nettoyage.
 
 ### Commandes Makefile
 
@@ -938,8 +1029,8 @@ watch kubectl get pods -n mlops
 |----------|-------------|
 | `make k8s-setup` | Installer minikube et créer le cluster |
 | `make k8s-setup-kind` | Installer kind et créer le cluster |
-| `make k8s-deploy` | Déployer l'API |
-| `make k8s-deploy-mlflow` | Déployer API + MLflow server |
+| `make k8s-deploy` | Déployer l'API (avec PVC, sans serveur MLflow) |
+| `make k8s-deploy-mlflow` | Déployer API + serveur MLflow (avec PVC) |
 | `make k8s-status` | Vérifier le statut |
 | `make k8s-logs` | Voir les logs |
 | `make k8s-port-forward` | Port-forward vers l'API |
@@ -947,7 +1038,7 @@ watch kubectl get pods -n mlops
 | `make k8s-test` | Tester l'API |
 | `make k8s-clean` | Nettoyer complètement |
 
-### Commandes kubectl Essentielles
+### Commandes kubectl essentielles
 
 ```bash
 # Voir toutes les ressources
@@ -976,7 +1067,9 @@ kubectl top pods -n mlops
 
 ## 🔒 Sécurité
 
-### Bonnes Pratiques Implémentées
+Cette section résume les **bonnes pratiques** déjà appliquées dans les manifests et les **recommandations** pour aller plus loin en production.
+
+### Bonnes pratiques implémentées
 
 - ✅ **Secrets Kubernetes** : Jamais en clair dans Git
 - ✅ **Containers non-root** : `runAsNonRoot: true`, `runAsUser: 1000`
@@ -986,7 +1079,7 @@ kubectl top pods -n mlops
 - ✅ **TLS via Ingress** : Support HTTPS en production
 - ✅ **RBAC** : Permissions limitées par namespace
 
-### Recommandations Production
+### Recommandations production
 
 - 🔐 Utiliser External Secrets Operator avec Secret Manager GCP/AWS
 - 🔐 Activer Network Policies pour isolation réseau
@@ -998,6 +1091,8 @@ kubectl top pods -n mlops
 ---
 
 ## 🔍 Dépannage
+
+En cas de problème, utiliser les commandes ci-dessous pour **diagnostiquer** (pods, API, secrets, image, HPA) et corriger les causes courantes.
 
 ### Pods ne démarrent pas
 
@@ -1072,6 +1167,8 @@ kubectl describe hpa iris-api-hpa -n mlops
 
 ## 📊 Métriques
 
+Résumé des **ressources et capacités** déployées par ce projet (nombre de manifests, pods, services, commandes).
+
 | Métrique | Valeur |
 |----------|--------|
 | **Fichiers créés** | 10+ manifests Kubernetes |
@@ -1084,6 +1181,8 @@ kubectl describe hpa iris-api-hpa -n mlops
 ---
 
 ## ✅ Validation des Objectifs
+
+Tableau de **suivi des objectifs** du parcours : chaque ligne correspond à un objectif à valider.
 
 | Objectif | Status | Détails |
 |----------|--------|---------|
@@ -1099,26 +1198,30 @@ kubectl describe hpa iris-api-hpa -n mlops
 
 ---
 
-## 🚀 Prochaines Étapes (Phase 6)
+## 🚀 Prochaines étapes : Observabilité
 
-- 📊 Observabilité & Monitoring (Prometheus, Grafana)
+Une fois l’orchestration en place, la suite logique est l’**observabilité** : métriques, dashboards, alertes.
+
+Voir [Observabilité](observability.md) pour :
+- 📊 Observabilité & Monitoring (Prometheus, Grafana, AlertManager)
 - 🔍 Métriques avancées
 - 📈 Dashboards de monitoring
 - 🚨 Alertes et notifications
-- 📝 Logging structuré et centralisé
 
 ---
 
 ## 📚 Ressources
 
+Liens utiles pour **aller plus loin** : documentation du projet, Kubernetes, minikube/kind, MLflow, HPA.
+
 ### Documentation
 
-- [Guide Kubernetes](../k8s/README.md) - Guide rapide de déploiement
+- [k8s/README.md](../k8s/README.md) — Déploiement et workflows (MLflow / API seule)
 - [Kubernetes Documentation](https://kubernetes.io/docs/) - Documentation officielle
 - [minikube](https://minikube.sigs.k8s.io/) - Cluster local
 - [kind](https://kind.sigs.k8s.io/) - Kubernetes in Docker
 
-### Ressources Externes
+### Ressources externes
 
 - [Kubernetes Concepts](https://kubernetes.io/docs/concepts/)
 - [Kubernetes Best Practices](https://kubernetes.io/docs/concepts/configuration/overview/)
@@ -1127,9 +1230,9 @@ kubectl describe hpa iris-api-hpa -n mlops
 
 ---
 
-**🎉 Phase 5 terminée avec succès !**
+**Orchestration terminée avec succès.**
 
-L'API MLOps est maintenant déployée sur Kubernetes avec :
+L’API MLOps est maintenant déployée sur Kubernetes avec :
 - ✅ Haute disponibilité (2 replicas)
 - ✅ Health checks configurés
 - ✅ Configuration et secrets gérés
@@ -1137,4 +1240,4 @@ L'API MLOps est maintenant déployée sur Kubernetes avec :
 - ✅ Serveur MLflow intégré
 - ✅ Documentation complète
 
-Le projet est prêt pour la Phase 6 (Observabilité & Monitoring) !
+Le projet est prêt pour l’observabilité (Prometheus, Grafana, AlertManager).

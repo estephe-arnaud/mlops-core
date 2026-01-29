@@ -1,13 +1,13 @@
-# 🟠 Phase 3 : Infrastructure - Infrastructure as Code avec Terraform
+# Infrastructure — Terraform & GCP
 
 ## 🧭 Navigation
 
 | ← Précédent | Suivant → |
 |-------------|-----------|
-| [Phase 2 : CI/CD](PHASE_2.md) | [Phase 4 : Expérimentation](PHASE_4.md) |
-| [Retour au README](../README.md) | [Toutes les phases](.) |
+| [CI/CD](cicd.md) | [Expérimentation](experimentation.md) |
+| [Retour au README](../README.md) | [Documentation](README.md) |
 
-## 🎯 Objectif de la Phase
+## 🎯 Objectif
 
 **Provisionner une infrastructure cloud simple sur GCP via Terraform et déployer l'API en production**
 
@@ -276,7 +276,7 @@ terraform/
 - **`providers.tf`** : Configure le provider Google Cloud
 - **`backend.tf.example`** : Exemple de configuration pour un backend distant (GCS)
 - **`terraform.tfvars.example`** : Exemple de fichier de configuration (à copier vers `terraform.tfvars`)
-- **Documentation détaillée** : ce fichier `docs/PHASE_3.md` (guide complet Terraform pour le projet)
+- **Documentation détaillée** : ce fichier `docs/infrastructure.md` (guide complet Terraform pour le projet)
 
 ---
 
@@ -355,7 +355,7 @@ gcloud auth application-default login
 # Activer les APIs nécessaires
 gcloud services enable \
   compute.googleapis.com \
-  storage-component.googleapis.com \
+  storage.googleapis.com \
   iam.googleapis.com \
   secretmanager.googleapis.com \
   artifactregistry.googleapis.com \
@@ -1342,7 +1342,7 @@ gcloud compute ssh iris-api-server \
   - [ ] `force_destroy_bucket = false`
   - [ ] `docker_image` configuré avec `$DOCKER_IMAGE_URI` (voir section Build et Push)
   - [ ] `secret_manager_api_key_name` configuré (ex: `mlops-api-key`)
-- [ ] `cors_origins` configuré avec des origines explicites (jamais `"*"` en production)
+  - [ ] `cors_origins` configuré avec des origines explicites (jamais `"*"` en production)
   - [ ] Configuration Terraform validée
   - [ ] Backend Terraform configuré (optionnel)
 
@@ -1528,7 +1528,7 @@ terraform -chdir=terraform output vm_external_ip
 ```bash
 # Activer les APIs nécessaires
 gcloud services enable compute.googleapis.com
-gcloud services enable storage-component.googleapis.com
+gcloud services enable storage.googleapis.com
 gcloud services enable iam.googleapis.com
 ```
 
@@ -1599,7 +1599,7 @@ Pour toute question ou problème :
 
 ---
 
-## 📈 Progression de la Phase 3
+## 📈 Progression Infrastructure
 
 ### Étape 1 : Setup (6h) ✅
 - [x] Installation de Terraform
@@ -1637,12 +1637,12 @@ Pour toute question ou problème :
 
 ---
 
-**Date de dernière mise à jour** : 2024  
+**Date de dernière mise à jour** : 2025  
 **Version** : 1.0.0
 
 ---
 
-**🎉 Phase 3 terminée avec succès !**
+**Infrastructure terminée avec succès.**
 
 L'infrastructure Terraform est maintenant complètement configurée, sécurisée et prête pour le déploiement en production sur GCP. L'API est déployée et fonctionnelle avec toutes les mesures de sécurité en place.
 

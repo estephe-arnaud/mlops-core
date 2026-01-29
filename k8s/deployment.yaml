@@ -42,15 +42,16 @@ spec:
       
       terminationGracePeriodSeconds: 30  # Délai avant SIGKILL (shutdown graceful)
       
-      # Volumes : Partage de fichiers entre la machine hôte et le container
-      # ✅ Nécessaire si MLFLOW_TRACKING_URI="" (mode local)
-      #    Optionnel si MLFLOW_TRACKING_URI="http://mlflow-server-service:5000" (mode serveur) mais recommandé de le garder
-      #    Pour minikube : "minikube mount $(pwd)/mlruns:/tmp/mlruns"
+      # Volumes : stockage partagé pour MLflow (mlruns/) et modèles (models/)
+      # - mlruns-volume : PVC partagé avec le serveur MLflow (/app/mlruns)
+      # - models-volume : PVC partagé entre l'API et les jobs de training (/app/models)
       volumes:
       - name: mlruns-volume
-        hostPath:
-          path: /tmp/mlruns  # Chemin dans la VM minikube/kind (monté depuis la machine hôte)
-          type: DirectoryOrCreate  # Crée le répertoire s'il n'existe pas
+        persistentVolumeClaim:
+          claimName: mlflow-pvc
+      - name: models-volume
+        persistentVolumeClaim:
+          claimName: models-pvc
       
       containers:
       - name: iris-api
@@ -112,13 +113,16 @@ spec:
             memory: "512Mi"        # Si dépassé → OOMKilled
             cpu: "500m"            # Si dépassé → throttling CPU
         
-        # Volumes : Montage du répertoire mlruns depuis la machine hôte
-        # ✅ Nécessaire si MLFLOW_TRACKING_URI="" (mode local)
-        #    Optionnel en mode serveur mais recommandé de le garder pour la flexibilité
+        # Volumes : montage des répertoires de travail
+        # - /app/mlruns : MLflow local (mode hostPath)
+        # - /app/models : métadonnées et métriques du modèle (partagées via PVC)
         volumeMounts:
         - name: mlruns-volume
           mountPath: /app/mlruns  # Où le code Python cherche mlruns/ (Path("mlruns").absolute())
           readOnly: false  # Permet la lecture/écriture (nécessaire pour MLflow local)
+        - name: models-volume
+          mountPath: /app/models  # Où le lifespan attend metadata.json/metrics.json
+          readOnly: false
         
         # Sécurité Container-level (en plus du Pod securityContext)
         securityContext:
